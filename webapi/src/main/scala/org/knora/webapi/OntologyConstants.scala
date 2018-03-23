@@ -91,6 +91,7 @@ object OntologyConstants {
         val Uri: IRI = XsdPrefixExpansion + "anyURI"
         val Pattern: IRI = XsdPrefixExpansion + "pattern"
         val DateTimeStamp: IRI = XsdPrefixExpansion + "dateTimeStamp"
+        val DateTime: IRI = XsdPrefixExpansion + "dateTime"
     }
 
     /**
