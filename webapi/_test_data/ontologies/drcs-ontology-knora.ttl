@@ -1,0 +1,66 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+# @prefix skos: <http://www.w3.org/2004/02/skos/core#>.
+# @prefix dct: <http://purl.org/dc/terms/>.
+@prefix human: <http://www.knora.org/ontology/human#>.
+@prefix text: <http://www.knora.org/ontology/text#>.
+@prefix schola: <http://www.knora.org/ontology/scholasticism#>.
+@prefix knora-base: <http://www.knora.org/ontology/knora-base#>.
+@prefix drcs: <http://www.knora.org/ontology/drcs#>.
+
+<http://www.knora.org/ontology/drcs>
+	a owl:Ontology.
+#	dct:title "An ontology for the Digital Repertory of Commentaries on Peter Lombard’s Sentences"@en;
+#	dct:description """Formal description of specific concepts in the scientific study of Petrus Lombardus as in the Digital Repertory of Commentaries on Peter Lombard’s Sentences (DRCS)."""@en;
+#	dct:creator "Hans Cools, software developer, NIE, Basel University, Switzerland"@en;
+#	dct:contributor "Prof. Dr. Ueli Zahnd, History of Christianity, University of Basel, Switzerland"@en;
+#	rdfs:seeAlso <https://de.wikipedia.org/wiki/Friedrich_Stegmüller>.
+
+#
+# CLASSES
+#
+
+drcs:Person
+	a owl:Class;
+	rdfs:label "person"@en, "Person"@de, "personne"@fr, "persona"@it;
+	rdfs:comment """Person as in scientific study of Petrus Lombardus."""@en;
+	rdfs:subClassOf human:Person, [
+		a owl:Restriction; owl:onProperty drcs:hasStegmuellerPersonDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger].
+
+drcs:Commentary # DB PL: RCS_XPRESSIONS - TYPE
+	a owl:Class;
+	rdfs:label "commentarius"@la, "commentary"@en, "Kommentar"@de;
+	rdfs:comment """Commentary on Petrus Lombardus' Sentences."""@en;
+	rdfs:subClassOf schola:Commentary, [ # subClassOf text:Commentary subClassOf text:Expression subClassOf knora-base:Resource
+		a owl:Restriction; owl:onProperty drcs:hasStegmuellerExpressionDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty drcs:hasStegmuellerCode; owl:minCardinality "0"^^xsd:nonNegativeInteger].
+
+#
+# PROPERTIES
+#
+
+drcs:hasStegmuellerPersonDescription # DB PL: RCS_AUTHORS - STGM
+ 	a owl:ObjectProperty;
+ 	rdfs:label "has Stegmüller's person description"@en;
+ 	rdfs:comment """Relating a person to a Stegmüller's description (as object) thereof."""@en;
+ 	rdfs:subPropertyOf human:hasDescription; # subPropertyOf text:hasDescription subPropertyOf text:hasText subPropertyOf knora-base:hasValue
+ 	knora-base:subjectClassConstraint drcs:Person;
+ 	knora-base:objectClassConstraint knora-base:TextValue.
+
+drcs:hasStegmuellerExpressionDescription # DB PL: RCS_XPRESSIONS - STGM I/STGM II
+	a owl:ObjectProperty;
+	rdfs:label "has Stegmüller's expression description"@en;
+	rdfs:comment """Relating an expression to a Stegmüller's description (as object) thereof."""@en;
+	rdfs:subPropertyOf text:hasDescription; # subPropertyOf text:hasText subPropertyOf knora-base:hasValue
+	knora-base:subjectClassConstraint drcs:Commentary;
+	knora-base:objectClassConstraint knora-base:TextValue.
+
+drcs:hasStegmuellerCode # DB PL: RCS_XPRESSIONS - RSCODES
+	a owl:ObjectProperty;
+	rdfs:label "has Stegmüller's code"@en;
+	rdfs:comment """Relating an expression to a Stegmüller's code (as object) thereof."""@en;
+	rdfs:subPropertyOf text:hasText; # subPropertyOf knora-base:hasValue
+	knora-base:subjectClassConstraint drcs:Commentary;
+	knora-base:objectClassConstraint knora-base:TextValue.
