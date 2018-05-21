@@ -20,13 +20,13 @@ curl -F filedata=@..\\_test_data\\ontologies\\biblio-onto.ttl http://localhost:3
 curl -F filedata=@..\\_test_data\\all_data\\biblio-data.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/data/biblio > /dev/null
 
 # curl -F filedata=@..\\_test_data\\ontologies\\text-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/text > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\human-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/human > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\image-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/image > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\work-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/work > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\scholasticism-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/scholasticism > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\event-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/event > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\publication-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/publication > /dev/null
-curl -F filedata=@..\\_test_data\\ontologies\\agent-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/agent > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\human-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/human > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\image-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/image > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\work-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/work > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\scholasticism-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/scholasticism > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\event-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/event > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\publication-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/publication > /dev/null
+# curl -F filedata=@..\\_test_data\\ontologies\\agent-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/agent > /dev/null
 
 curl -F filedata=@..\\_test_data\\ontologies\\walser-project.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/data/kwa
 curl -F filedata=@..\\_test_data\\ontologies\\walser-onto.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/kwa

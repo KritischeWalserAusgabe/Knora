@@ -13,7 +13,11 @@
 @prefix walser: <http://www.knora.org/ontology/kwa#> .
 @prefix : <http://www.knora.org/ontology/kwa#> .
 
-<http://www.knora.org/ontology/kwa> rdf:type owl:Ontology .
+<http://www.knora.org/ontology/kwa> rdf:type owl:Ontology ;
+knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
+
+## TODO: derive matching entities from work-ontology-knora.ttl
+
 
 ###############################################
 ## SURFACE
@@ -225,31 +229,7 @@
 
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
-                          
-           
-:textcarrier-fulltext rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "Volltext"@de ,
-                     "Full text"@en ;
-
-          rdfs:comment "The raw text content of the textcarrier" ;
-
-          knora-base:subjectClassConstraint :textcarrier;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-
-          salsah-gui:guiElement salsah-gui:Textarea ;
-
-          salsah-gui:guiAttribute "cols=60" ,
-                                       "rows=3" ,
-                                       "wrap=soft" ;
-
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                      
-                                                
+                                                                                   
                                                 
 :textcarrier-kwa-id rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:hasValue, dcterms:identifier ;
@@ -333,12 +313,7 @@
 					owl:onProperty :textcarrier-description;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
 					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger
-				] ,
-				[
-					rdf:type owl:Restriction;
-					owl:onProperty :textcarrier-fulltext;
-					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
-					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger ;] ,					
+				] ,									
 				 [
 					rdf:type owl:Restriction ;
 					owl:onProperty :textcarrier-kwa-id ;
@@ -413,7 +388,68 @@
               rdfs:comment "A concept of a text that can be materialized on various textcarriers as different textmanifests" ;
               rdfs:label "Textkonzept"@de ,
                           "text concept"@en .
+               
+                          
+###############################################
+## TEXTEXPRESSION
+##############
+## 
+## The text expression is an realization of the
+## text concept that has been materialized in a textmanifest
+##
+## Properties of TEXTEXPRESSION
+:is-textconcept-instance rdf:type owl:ObjectProperty ;
+
+           rdfs:subPropertyOf knora-base:hasLinkTo ;
+
+           rdfs:label "Realisiert Textkonzept"@de ,                      
+                      "Instanciates text-concept"@en ;
+                      
+           knora-base:subjectClassConstraint :textexpression;
+          
+           knora-base:objectClassConstraint :textconcept ;                      
+
+           salsah-gui:guiElement salsah-gui:Searchbox ;
+
+           salsah-gui:guiAttribute "numprops=2" ;
+
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
+
+:is-textconcept-instanceValue rdf:type owl:ObjectProperty ;
+
+                rdfs:subPropertyOf knora-base:hasLinkToValue ;
               
+                rdfs:label "Realisiert Textkonzept"@de ,                      
+                	      "Instanciates text-concept"@en ;
+              
+                knora-base:subjectClassConstraint :textexpression ;
+          		knora-base:objectClassConstraint knora-base:LinkValue . 
+
+
+##############
+## Class TEXTEXPRESSION
+:textexpression  rdf:type owl:Class  ;
+              rdfs:subClassOf knora-base:Resource ,  [
+					rdf:type owl:Restriction;
+					owl:onProperty :is-textconcept-instance;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger] ,
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :is-textconcept-instanceValue;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger];
+					
+              rdfs:subClassOf knora-base:Resource  ;
+              rdfs:comment "An expression of a concept of a text that can be materialized on various textcarriers as different textmanifests" ;
+              rdfs:label "Textkonzept"@de ,
+                          "text concept"@en .
+
+      
+                          
+# TODO: add text expression parent to create groups or compilations                          
+                          
    
 ###############################################
 ## TEXTMANIFEST
@@ -468,16 +504,44 @@
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
 
-:is-textconcept-instance rdf:type owl:ObjectProperty ;
+                                                
+                                                
+# TODO: this should be a standoff text field                                                
+                                                
+:textmanifest-fulltext rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+
+          rdfs:label "Volltext"@de ,
+                     "Full text"@en ;
+
+          rdfs:comment "The raw text content of the textcarrier" ;
+
+          knora-base:subjectClassConstraint :textmanifest;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:Textarea ;
+
+          salsah-gui:guiAttribute "cols=60" ,
+                                       "rows=3" ,
+                                       "wrap=soft" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                      
+                                                
+                  
+:manifests-expression rdf:type owl:ObjectProperty ;
 
            rdfs:subPropertyOf knora-base:hasLinkTo ;
 
-           rdfs:label "Realisiert Textkonzept"@de ,                      
-                      "Instanciates text-concept"@en ;
+           rdfs:label "Realisiert Textexpression"@de ,                      
+                      "Realizes text-expression"@en ;
                       
            knora-base:subjectClassConstraint :textmanifest;
           
-           knora-base:objectClassConstraint :textconcept ;                      
+           knora-base:objectClassConstraint :textexpression ;                      
 
            salsah-gui:guiElement salsah-gui:Searchbox ;
 
@@ -486,7 +550,7 @@
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
-:is-textconcept-instanceValue rdf:type owl:ObjectProperty ;
+:manifests-expressionValue rdf:type owl:ObjectProperty ;
 
                 rdfs:subPropertyOf knora-base:hasLinkToValue ;
               
@@ -494,7 +558,8 @@
                 	      "Instanciates text-concept"@en ;
               
                 knora-base:subjectClassConstraint :textmanifest ;
-          		knora-base:objectClassConstraint knora-base:LinkValue . 
+          		knora-base:objectClassConstraint knora-base:LinkValue .                                                 
+                                                
                       
 :text-kwa-volume rdf:type owl:ObjectProperty ;
 	      rdfs:subPropertyOf  knora-base:hasValue ;
@@ -554,27 +619,32 @@
 					rdf:type owl:Restriction;
 					owl:onProperty :text-incipit;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] ,				
-				 [
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] ,
+				[
 					rdf:type owl:Restriction;
-					owl:onProperty :is-textconcept-instance;
-					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger] ,
-				 [
+					owl:onProperty :textmanifest-fulltext;
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
+					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger ;]
+					,  [
 					rdf:type owl:Restriction;
-					owl:onProperty :is-textconcept-instanceValue;
+					owl:onProperty :manifests-expression;
 					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
 					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
+					owl:onProperty :manifests-expressionValue;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger],									 
+				 [
+					rdf:type owl:Restriction;
 					owl:onProperty :text-kwa-volume;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger] ,
+					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :text-kwa-page-no;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ;
+					salsah-gui:guiOrder "6"^^xsd:nonNegativeInteger] ;
 					
               rdfs:comment "A single manifestation of a text (on a textcarrier)" ;
               rdfs:label "Textmanifest"@de ,
