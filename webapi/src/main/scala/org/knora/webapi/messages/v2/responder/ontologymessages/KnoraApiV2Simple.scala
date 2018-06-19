@@ -35,7 +35,7 @@ object KnoraApiV2Simple {
     val OntologyMetadata = OntologyMetadataV2(
         ontologyIri = OntologyConstants.KnoraApiV2Simple.KnoraApiOntologyIri.toSmartIri,
         projectIri = Some(OntologyConstants.KnoraBase.SystemProject.toSmartIri),
-        label = Some("The simplified knora-api ontology")
+        label = Some("The knora-api ontology in the simple schema")
     )
 
     private val Result: ReadPropertyInfoV2 = makeProperty(
@@ -304,6 +304,7 @@ object KnoraApiV2Simple {
             OntologyConstants.KnoraBase.ObjectClassConstraint,
             OntologyConstants.KnoraBase.SubjectClassConstraint,
             OntologyConstants.KnoraBase.StandoffParentClassConstraint,
+            OntologyConstants.KnoraBase.ValueHasLanguage,
             OntologyConstants.KnoraBase.ValueHasStandoff,
             OntologyConstants.KnoraBase.ValueHasMapping,
             OntologyConstants.KnoraBase.HasMappingElement,
@@ -424,7 +425,6 @@ object KnoraApiV2Simple {
             OntologyConstants.KnoraBase.GeonameValue,
             OntologyConstants.KnoraBase.FileValue,
             OntologyConstants.KnoraBase.DefaultObjectAccessPermission,
-            OntologyConstants.KnoraBase.XSLTransformation,
             OntologyConstants.KnoraBase.MappingElement,
             OntologyConstants.KnoraBase.MappingComponent,
             OntologyConstants.KnoraBase.MappingStandoffDataTypeClass,

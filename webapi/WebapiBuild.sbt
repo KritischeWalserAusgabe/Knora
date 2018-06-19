@@ -142,7 +142,7 @@ lazy val webapi = (project in file(".")).
 lazy val webApiCommonSettings = Seq(
     organization := "org.knora",
     name := "webapi",
-    version := "1.3.0",
+    version := "1.5.0",
     scalaVersion := "2.12.4"
 )
 
@@ -164,7 +164,7 @@ lazy val webApiLibs = Seq(
     library.bcprov,
     library.commonsBeanUtil,
     library.commonsIo,
-    library.commonsLang3,
+    library.commonsText,
     library.commonsValidator,
     library.diff,
     library.ehcache,
@@ -185,9 +185,8 @@ lazy val webApiLibs = Seq(
     library.kamonZipkin,
     library.kamonJaeger,
     library.logbackClassic,
-    library.rdf4jRioTurtle,
-    library.rdf4jQueryParserSparql,
-    library.sayonHE,
+    library.rdf4jRuntime,
+    library.saxonHE,
     library.scalaArm,
     library.scalaJava8Compat,
     library.scalaLogging,
@@ -195,6 +194,7 @@ lazy val webApiLibs = Seq(
     library.scalaXml,
     library.scallop,
     library.springSecurityCore,
+    library.swaggerAkkaHttp,
     library.xmlunitCore
 )
 
@@ -204,8 +204,6 @@ lazy val library =
             val akkaBase = "2.5.11"
             val akkaHttp = "10.1.0"
             val jena = "3.4.0"
-            val aspectj = "1.8.13"
-            val kamon = "1.0.0"
         }
 
         // akka
@@ -225,44 +223,45 @@ lazy val library =
 
         // testing
         val scalaTest              = "org.scalatest"                %% "scalatest"                % "3.0.4"             % "test, fuseki, graphdb, tdb, it, fuseki-it"
-        val gatlingHighcharts      = "io.gatling.highcharts"         % "gatling-charts-highcharts"% "2.3.0"             % "test, fuseki, graphdb, tdb, it, fuseki-it"
-        val gatlingTestFramework   = "io.gatling"                    % "gatling-test-framework"   % "2.3.0"             % "test, fuseki, graphdb, tdb, it, fuseki-it"
+        val gatlingHighcharts      = "io.gatling.highcharts"         % "gatling-charts-highcharts"% "2.3.1"             % "test, fuseki, graphdb, tdb, it, fuseki-it"
+        val gatlingTestFramework   = "io.gatling"                    % "gatling-test-framework"   % "2.3.1"             % "test, fuseki, graphdb, tdb, it, fuseki-it"
 
         //CORS support
-        val akkaHttpCors           = "ch.megard"                    %% "akka-http-cors"           % "0.2.2"
+        val akkaHttpCors           = "ch.megard"                    %% "akka-http-cors"           % "0.3.0"
 
         // jena
         val jenaLibs               = "org.apache.jena"               % "apache-jena-libs"         % Version.jena exclude("org.slf4j", "slf4j-log4j12") exclude("commons-codec", "commons-codec")
         val jenaText               = "org.apache.jena"               % "jena-text"                % Version.jena exclude("org.slf4j", "slf4j-log4j12") exclude("commons-codec", "commons-codec")
 
         // logging
-        val scalaLogging           = "com.typesafe.scala-logging"   %% "scala-logging"            % "3.5.0"
-        val logbackClassic         = "ch.qos.logback"                % "logback-classic"          % "1.1.7"
+        val commonsLogging         = "commons-logging"               % "commons-logging"          % "1.2"
+        val scalaLogging           = "com.typesafe.scala-logging"   %% "scala-logging"            % "3.8.0"
+        val logbackClassic         = "ch.qos.logback"                % "logback-classic"          % "1.2.3"
 
         // input validation
         val commonsValidator       = "commons-validator"             % "commons-validator"        % "1.6" exclude("commons-logging", "commons-logging")
 
         // authentication
-        val bcprov                 = "org.bouncycastle"              % "bcprov-jdk15on"           % "1.56"
-        val springSecurityCore     = "org.springframework.security"  % "spring-security-core"     % "4.2.3.RELEASE" exclude("commons-logging", "commons-logging") exclude("org.springframework", "spring-aop")
+        val bcprov                 = "org.bouncycastle"              % "bcprov-jdk15on"           % "1.59"
+        val springSecurityCore     = "org.springframework.security"  % "spring-security-core"     % "4.2.5.RELEASE" exclude("commons-logging", "commons-logging") exclude("org.springframework", "spring-aop")
         val jwt                    = "io.igl"                       %% "jwt"                      % "1.2.2" exclude("commons-codec", "commons-codec")
 
         // caching
         val ehcache                = "net.sf.ehcache"                % "ehcache"                  % "2.10.0"
 
         // monitoring
-        val kamonCore              = "io.kamon"                     %% "kamon-core"               % Version.kamon
-        val kamonAkka              = "io.kamon"                     %% "kamon-akka-2.5"           % Version.kamon
-        val kamonPrometheus        = "io.kamon"                     %% "kamon-prometheus"         % Version.kamon
-        val kamonZipkin            = "io.kamon"                     %% "kamon-zipkin"             % Version.kamon
-        val kamonJaeger            = "io.kamon"                     %% "kamon-jaeger"             % Version.kamon
-        val aspectJWeaver          = "org.aspectj"                   % "aspectjweaver"            % Version.aspectj
+        val kamonCore              = "io.kamon"                     %% "kamon-core"               % "1.1.0"
+        val kamonAkka              = "io.kamon"                     %% "kamon-akka-2.5"           % "1.0.0"
+        val kamonPrometheus        = "io.kamon"                     %% "kamon-prometheus"         % "1.0.0"
+        val kamonZipkin            = "io.kamon"                     %% "kamon-zipkin"             % "1.0.0"
+        val kamonJaeger            = "io.kamon"                     %% "kamon-jaeger"             % "1.0.1"
+        val aspectJWeaver          = "org.aspectj"                   % "aspectjweaver"            % "1.8.13"
 
         // other
         //"javax.transaction" % "transaction-api" % "1.1-rev-1",
-        val commonsLang3           = "org.apache.commons"            % "commons-lang3"            % "3.4"
-        val commonsIo              = "commons-io"                    % "commons-io"               % "2.4"
-        val commonsBeanUtil        = "commons-beanutils"             % "commons-beanutils"        % "1.9.2" exclude("commons-logging", "commons-logging") // not used by us, but need newest version to prevent this problem: http://stackoverflow.com/questions/14402745/duplicate-classes-in-commons-collections-and-commons-beanutils
+        val commonsText            = "org.apache.commons"            % "commons-text"             % "1.3"
+        val commonsIo              = "commons-io"                    % "commons-io"               % "2.6"
+        val commonsBeanUtil        = "commons-beanutils"             % "commons-beanutils"        % "1.9.3" exclude("commons-logging", "commons-logging") // not used by us, but need newest version to prevent this problem: http://stackoverflow.com/questions/14402745/duplicate-classes-in-commons-collections-and-commons-beanutils
         val jodd                   = "org.jodd"                      % "jodd"                     % "3.2.6"
         val jodaTime               = "joda-time"                     % "joda-time"                % "2.9.1"
         val jodaConvert            = "org.joda"                      % "joda-convert"             % "1.8"
@@ -270,21 +269,23 @@ lazy val library =
         val xmlunitCore            = "org.xmlunit"                   % "xmlunit-core"             % "2.1.1"
 
         // other
-        val rdf4jRioTurtle         = "org.eclipse.rdf4j"             % "rdf4j-rio-turtle"         % "2.2.4"
-        val rdf4jQueryParserSparql = "org.eclipse.rdf4j"             % "rdf4j-queryparser-sparql" % "2.2.4"
+        val rdf4jRuntime           = "org.eclipse.rdf4j"             % "rdf4j-runtime"            % "2.3.2"
         val scallop                = "org.rogach"                   %% "scallop"                  % "2.0.5"
         val gwtServlet             = "com.google.gwt"                % "gwt-servlet"              % "2.8.0"
-        val sayonHE                = "net.sf.saxon"                  % "Saxon-HE"                 % "9.7.0-14"
+        val saxonHE                = "net.sf.saxon"                  % "Saxon-HE"                 % "9.7.0-14"
 
-        val scalaXml               = "org.scala-lang.modules"       %% "scala-xml"                % "1.0.6"
+        val scalaXml               = "org.scala-lang.modules"       %% "scala-xml"                % "1.1.0"
         val scalaArm               = "com.jsuereth"                  % "scala-arm_2.12"           % "2.0"
         val scalaJava8Compat       = "org.scala-lang.modules"        % "scala-java8-compat_2.12"  % "0.8.0"
 
         // provides akka jackson (json) support
-        val akkaHttpCirce          = "de.heikoseeberger"            %% "akka-http-circe"          % "1.20.0"
+        val akkaHttpCirce          = "de.heikoseeberger"            %% "akka-http-circe"          % "1.20.1"
         val jacksonScala           = "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.9.4"
 
-        val jsonldJava             = "com.github.jsonld-java"        % "jsonld-java"              % "0.11.1"
+        val jsonldJava             = "com.github.jsonld-java"        % "jsonld-java"              % "0.12.0"
+
+        // swagger (api documentation)
+        val swaggerAkkaHttp        = "com.github.swagger-akka-http" %% "swagger-akka-http"        % "0.14.0"
     }
 
 lazy val javaRunOptions = Seq(
@@ -367,6 +368,9 @@ val aopMerge: MergeStrategy = new MergeStrategy {
 val customMergeStrategy: String => MergeStrategy = {
     case PathList("META-INF", "aop.xml") =>
         aopMerge
+    case PathList(ps @ _*) if ps.exists(_.contains("aopalliance")) || ps.exists(_.contains("lucene")) || ps.exists(_.contains("joda")) =>
+        // Workaround for #855. TODO: find a better way to resolve these conflicts.
+        MergeStrategy.first
     case s =>
         defaultMergeStrategy(s)
 }

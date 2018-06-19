@@ -47,7 +47,7 @@ class ProjectsResponderADM extends Responder {
     val knoraIdUtil = new KnoraIdUtil
 
     // Global lock IRI used for project creation and update
-    val PROJECTS_GLOBAL_LOCK_IRI = "http://data.knora.org/projects"
+    val PROJECTS_GLOBAL_LOCK_IRI = "http://rdfh.ch/projects"
 
     /**
       * Receives a message extending [[org.knora.webapi.messages.v1.responder.projectmessages.ProjectsResponderRequestV1]], and returns an appropriate response message, or
@@ -399,19 +399,20 @@ class ProjectsResponderADM extends Responder {
                 throw DuplicateValueException(s"Project with the shortname: '${createRequest.shortname}' already exists")
             }
 
+            validatedShortcode = StringFormatter.getGeneralInstance.validateProjectShortcode(
+                createRequest.shortcode,
+                errorFun = throw BadRequestException(s"The supplied short code: '${createRequest.shortcode}' is not valid.")
+            )
+
             // check if the optionally supplied shortcode is valid and unique
             shortcodeExists <- {
-                val shortcode = StringFormatter.getGeneralInstance.validateProjectShortcode(
-                    createRequest.shortcode,
-                    errorFun = throw BadRequestException(s"The supplied short code: '${createRequest.shortcode}' is not valid.")
-                )
-                projectByShortcodeExists(shortcode)
+                projectByShortcodeExists(validatedShortcode)
             }
             _ = if (shortcodeExists) {
                 throw DuplicateValueException(s"Project with the shortcode: '${createRequest.shortcode}' already exists")
             }
 
-            newProjectIRI = knoraIdUtil.makeRandomProjectIri(Some(createRequest.shortcode))
+            newProjectIRI = knoraIdUtil.makeRandomProjectIri(validatedShortcode)
 
             // Create the new project.
             createNewProjectSparqlString = queries.sparql.admin.txt.createNewProject(
@@ -420,7 +421,7 @@ class ProjectsResponderADM extends Responder {
                 projectIri = newProjectIRI,
                 projectClassIri = OntologyConstants.KnoraBase.KnoraProject,
                 shortname = createRequest.shortname,
-                shortcode = createRequest.shortcode,
+                shortcode = validatedShortcode,
                 maybeLongname = createRequest.longname,
                 maybeDescriptions = if(createRequest.description.nonEmpty) {Some(createRequest.description)} else None,
                 maybeKeywords = if (createRequest.keywords.nonEmpty) {Some(createRequest.keywords)} else None,
@@ -636,9 +637,9 @@ class ProjectsResponderADM extends Responder {
         ProjectADM(
             id = projectIri,
             shortname = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectShortname, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortname defined.")).head.asInstanceOf[StringLiteralV2].value,
-            shortcode = propsMap.get(OntologyConstants.KnoraBase.ProjectShortcode).map(_.head.asInstanceOf[StringLiteralV2].value),
+            shortcode = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectShortcode, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortcode defined.")).head.asInstanceOf[StringLiteralV2].value,
             longname = propsMap.get(OntologyConstants.KnoraBase.ProjectLongname).map(_.head.asInstanceOf[StringLiteralV2].value),
-            description = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectDescription, Seq.empty[StringLiteralV2]).map(_.asInstanceOf[StringLiteralV2]),
+            description = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectDescription, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no description defined.")).map(_.asInstanceOf[StringLiteralV2]),
             keywords = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectKeyword, Seq.empty[String]).map(_.asInstanceOf[StringLiteralV2].value).sorted,
             logo = propsMap.get(OntologyConstants.KnoraBase.ProjectLogo).map(_.head.asInstanceOf[StringLiteralV2].value),
             ontologies = ontologies,

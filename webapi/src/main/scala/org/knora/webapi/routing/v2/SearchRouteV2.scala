@@ -27,7 +27,7 @@ import akka.util.Timeout
 import org.knora.webapi.messages.v2.responder.searchmessages._
 import org.knora.webapi.routing.{Authenticator, RouteUtilV2}
 import org.knora.webapi.util.IriConversions._
-import org.knora.webapi.util.search.v2.SearchParserV2
+import org.knora.webapi.util.search.gravsearch.GravsearchParser
 import org.knora.webapi.util.{SmartIri, StringFormatter}
 import org.knora.webapi.{BadRequestException, IRI, InternalSchema, SettingsImpl}
 
@@ -40,6 +40,7 @@ object SearchRouteV2 extends Authenticator {
     private val LIMIT_TO_PROJECT = "limitToProject"
     private val LIMIT_TO_RESOURCE_CLASS = "limitToResourceClass"
     private val OFFSET = "offset"
+    private val LIMIT_TO_STANDOFF_CLASS = "limitToStandoffClass"
 
     /**
       * Gets the requested offset. Returns zero if no offset is indicated.
@@ -114,6 +115,30 @@ object SearchRouteV2 extends Authenticator {
         }
     }
 
+    /**
+      * Gets the standoff class the search should be restricted to.
+      *
+      * @param params the GET parameters.
+      * @return the internal standoff class, if any.
+      */
+    private def getStandoffClass(params: Map[String, String]): Option[SmartIri] = {
+        implicit val stringFormatter: StringFormatter = StringFormatter.getGeneralInstance
+        val limitToStandoffClassIriStr: Option[String] = params.get(LIMIT_TO_STANDOFF_CLASS)
+
+        limitToStandoffClassIriStr match {
+            case Some(standoffClassIriStr: String) =>
+                val externalStandoffClassIri = standoffClassIriStr.toSmartIriWithErr(throw BadRequestException(s"Invalid standoff class IRI: $limitToStandoffClassIriStr"))
+
+                if (!externalStandoffClassIri.isKnoraApiV2EntityIri) {
+                    throw BadRequestException(s"$externalStandoffClassIri is not a valid knora-api standoff class IRI")
+                }
+
+                Some(externalStandoffClassIri.toOntologySchema(InternalSchema))
+
+            case None => None
+        }
+    }
+
     def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
         implicit val system: ActorSystem = _system
         implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -139,14 +164,23 @@ object SearchRouteV2 extends Authenticator {
 
                     val limitToResourceClass: Option[SmartIri] = getResourceClassFromParams(params)
 
-                    val requestMessage = FullTextSearchCountGetRequestV2(searchValue = searchString, limitToProject = limitToProject, limitToResourceClass = limitToResourceClass, requestingUser = requestingUser)
+                    val limitToStandoffClass: Option[SmartIri] = getStandoffClass(params)
 
-                    RouteUtilV2.runJsonRoute(
+                    val requestMessage = FullTextSearchCountRequestV2(
+                        searchValue = searchString,
+                        limitToProject = limitToProject,
+                        limitToResourceClass = limitToResourceClass,
+                        limitToStandoffClass = limitToStandoffClass,
+                        requestingUser = requestingUser
+                    )
+
+                    RouteUtilV2.runRdfRoute(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        log
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
                     )
             }
         } ~ path("v2" / "search" / Segment) { searchval => // TODO: if a space is encoded as a "+", this is not converted back to a space
@@ -168,52 +202,98 @@ object SearchRouteV2 extends Authenticator {
 
                     val limitToResourceClass: Option[SmartIri] = getResourceClassFromParams(params)
 
-                    val requestMessage = FulltextSearchGetRequestV2(searchValue = searchString, offset = offset, limitToProject = limitToProject, limitToResourceClass = limitToResourceClass, requestingUser = requestingUser)
+                    val limitToStandoffClass: Option[SmartIri] = getStandoffClass(params)
 
-                    RouteUtilV2.runJsonRoute(
+                    val requestMessage = FulltextSearchRequestV2(
+                        searchValue = searchString,
+                        offset = offset,
+                        limitToProject = limitToProject,
+                        limitToResourceClass = limitToResourceClass,
+                        limitToStandoffClass,
+                        requestingUser = requestingUser
+                    )
+
+                    RouteUtilV2.runRdfRoute(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        log
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
                     )
                 }
             }
-        } ~ path("v2" / "searchextended" / "count" / Segment) { sparql => // Segment is a URL encoded string representing a Sparql query
+        } ~ path("v2" / "searchextended" / "count") {
+            post {
+                entity(as[String]) { gravsearchQuery =>
+                    requestContext => {
+                        val requestingUser = getUserADM(requestContext)
+                        val constructQuery = GravsearchParser.parseQuery(gravsearchQuery)
+                        val requestMessage = GravsearchCountRequestV2(constructQuery = constructQuery, requestingUser = requestingUser)
+
+                        RouteUtilV2.runRdfRoute(
+                            requestMessage,
+                            requestContext,
+                            settings,
+                            responderManager,
+                            log,
+                            RouteUtilV2.getOntologySchema(requestContext)
+                        )
+                    }
+                }
+            }
+        } ~ path("v2" / "searchextended" / "count" / Segment) { gravsearchQuery => // Segment is a URL encoded string representing a Gravsearch query
             get {
 
                 requestContext => {
                     val requestingUser = getUserADM(requestContext)
+                    val constructQuery = GravsearchParser.parseQuery(gravsearchQuery)
+                    val requestMessage = GravsearchCountRequestV2(constructQuery = constructQuery, requestingUser = requestingUser)
 
-                    val constructQuery = SearchParserV2.parseSearchQuery(sparql)
-
-                    val requestMessage = ExtendedSearchCountGetRequestV2(constructQuery = constructQuery, requestingUser = requestingUser)
-
-                    RouteUtilV2.runJsonRoute(
+                    RouteUtilV2.runRdfRoute(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        log
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
                     )
                 }
             }
-        } ~ path("v2" / "searchextended" / Segment) { sparql => // Segment is a URL encoded string representing a Sparql query
+        } ~ path("v2" / "searchextended") {
+            post {
+                entity(as[String]) { gravsearchQuery =>
+                    requestContext => {
+                        val requestingUser = getUserADM(requestContext)
+                        val constructQuery = GravsearchParser.parseQuery(gravsearchQuery)
+                        val requestMessage = GravsearchRequestV2(constructQuery = constructQuery, requestingUser = requestingUser)
+
+                        RouteUtilV2.runRdfRoute(
+                            requestMessage,
+                            requestContext,
+                            settings,
+                            responderManager,
+                            log,
+                            RouteUtilV2.getOntologySchema(requestContext)
+                        )
+                    }
+                }
+            }
+        } ~ path("v2" / "searchextended" / Segment) { sparql => // Segment is a URL encoded string representing a Gravsearch query
             get {
 
                 requestContext => {
                     val requestingUser = getUserADM(requestContext)
+                    val constructQuery = GravsearchParser.parseQuery(sparql)
+                    val requestMessage = GravsearchRequestV2(constructQuery = constructQuery, requestingUser = requestingUser)
 
-                    val constructQuery = SearchParserV2.parseSearchQuery(sparql)
-
-                    val requestMessage = ExtendedSearchGetRequestV2(constructQuery = constructQuery, requestingUser = requestingUser)
-
-                    RouteUtilV2.runJsonRoute(
+                    RouteUtilV2.runRdfRoute(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        log
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
                     )
                 }
 
@@ -237,19 +317,20 @@ object SearchRouteV2 extends Authenticator {
 
                     val limitToResourceClass: Option[SmartIri] = getResourceClassFromParams(params)
 
-                    val requestMessage = SearchResourceByLabelCountGetRequestV2(
+                    val requestMessage = SearchResourceByLabelCountRequestV2(
                         searchValue = searchString,
                         limitToProject = limitToProject,
                         limitToResourceClass = limitToResourceClass,
                         requestingUser = requestingUser
                     )
 
-                    RouteUtilV2.runJsonRoute(
+                    RouteUtilV2.runRdfRoute(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        log
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
                     )
                 }
             }
@@ -273,7 +354,7 @@ object SearchRouteV2 extends Authenticator {
 
                     val limitToResourceClass: Option[SmartIri] = getResourceClassFromParams(params)
 
-                    val requestMessage = SearchResourceByLabelGetRequestV2(
+                    val requestMessage = SearchResourceByLabelRequestV2(
                         searchValue = searchString,
                         offset = offset,
                         limitToProject = limitToProject,
@@ -281,12 +362,13 @@ object SearchRouteV2 extends Authenticator {
                         requestingUser = requestingUser
                     )
 
-                    RouteUtilV2.runJsonRoute(
+                    RouteUtilV2.runRdfRoute(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        log
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
                     )
                 }
             }

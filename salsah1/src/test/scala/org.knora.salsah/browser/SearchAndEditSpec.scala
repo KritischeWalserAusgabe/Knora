@@ -47,10 +47,10 @@ class SearchAndEditSpec extends SalsahSpec {
     private val rdfDataObjectsJsonList: String =
         """
             [
-                {"path": "_test_data/all_data/incunabula-data.ttl", "name": "http://www.knora.org/data/incunabula"},
+                {"path": "_test_data/all_data/incunabula-data.ttl", "name": "http://www.knora.org/data/0803/incunabula"},
                 {"path": "_test_data/demo_data/images-demo-data.ttl", "name": "http://www.knora.org/data/00FF/images"},
-                {"path": "_test_data/all_data/anything-data.ttl", "name": "http://www.knora.org/data/anything"},
-                {"path": "_test_data/all_data/biblio-data.ttl", "name": "http://www.knora.org/data/biblio"}
+                {"path": "_test_data/all_data/anything-data.ttl", "name": "http://www.knora.org/data/0001/anything"},
+                {"path": "_test_data/all_data/biblio-data.ttl", "name": "http://www.knora.org/data/0802/biblio"}
             ]
         """
 
@@ -161,9 +161,9 @@ class SearchAndEditSpec extends SalsahSpec {
 
             page.selectVocabulary("0") // select all
 
-            page.selectRestype("http://www.knora.org/ontology/incunabula#book")
+            page.selectRestype("http://www.knora.org/ontology/0803/incunabula#book")
 
-            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/incunabula#title")
+            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/0803/incunabula#title")
 
             page.getExtendedSearchSelectionByName(1, "compop").selectByValue("LIKE")
 
@@ -217,9 +217,9 @@ class SearchAndEditSpec extends SalsahSpec {
 
             page.selectVocabulary("0") // select all
 
-            page.selectRestype("http://www.knora.org/ontology/incunabula#page")
+            page.selectRestype("http://www.knora.org/ontology/0803/incunabula#page")
 
-            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/incunabula#seqnum")
+            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/0803/incunabula#seqnum")
 
             page.getExtendedSearchSelectionByName(1, "compop").selectByValue("EQ")
 
@@ -227,7 +227,7 @@ class SearchAndEditSpec extends SalsahSpec {
 
             page.addPropertySetToExtendedSearch(2)
 
-            page.getExtendedSearchSelectionByName(2, "selprop").selectByValue("http://www.knora.org/ontology/incunabula#partOf")
+            page.getExtendedSearchSelectionByName(2, "selprop").selectByValue("http://www.knora.org/ontology/0803/incunabula#partOf")
 
             page.getExtendedSearchSelectionByName(2, "compop").selectByValue("EQ")
 
@@ -295,9 +295,9 @@ class SearchAndEditSpec extends SalsahSpec {
 
             page.selectVocabulary("0") // select all
 
-            page.selectRestype("http://www.knora.org/ontology/incunabula#book")
+            page.selectRestype("http://www.knora.org/ontology/0803/incunabula#book")
 
-            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/incunabula#pubdate")
+            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/0803/incunabula#pubdate")
 
             page.getExtendedSearchSelectionByName(1, "compop").selectByValue("EQ")
 
@@ -340,9 +340,9 @@ class SearchAndEditSpec extends SalsahSpec {
 
             page.selectVocabulary("0") // select all
 
-            page.selectRestype("http://www.knora.org/ontology/incunabula#book")
+            page.selectRestype("http://www.knora.org/ontology/0803/incunabula#book")
 
-            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/incunabula#pubdate")
+            page.getExtendedSearchSelectionByName(1, "selprop").selectByValue("http://www.knora.org/ontology/0803/incunabula#pubdate")
 
             page.getExtendedSearchSelectionByName(1, "compop").selectByValue("EQ")
 
@@ -410,7 +410,7 @@ class SearchAndEditSpec extends SalsahSpec {
 
             page.selectVocabulary("0") // select all
 
-            page.selectRestype("http://www.knora.org/ontology/incunabula#book")
+            page.selectRestype("http://www.knora.org/ontology/0803/incunabula#book")
 
             page.submitExtendedSearch()
 
@@ -428,7 +428,7 @@ class SearchAndEditSpec extends SalsahSpec {
             // get a list of editing fields
             val editFields = page.getEditingFieldsFromMetadataSection(metadataSection)
 
-            val pubdateField = editFields(7)
+            val pubdateField = editFields(6)
 
             page.clickEditButton(pubdateField)
 
@@ -565,7 +565,7 @@ class SearchAndEditSpec extends SalsahSpec {
             val editFields = page.getEditingFieldsFromMetadataSection(metadataSection)
 
             // get the field representing the seqnum of the page
-            val creatorField = editFields(2)
+            val creatorField = editFields(3)
 
             page.clickAddButton(creatorField)
 
