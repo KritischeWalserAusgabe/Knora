@@ -29,7 +29,7 @@
 <configuration scan="false" debug="false">
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>[%date{ISO8601}] %-5level - %logger{0} - %msg%n</pattern>
+            <pattern>[%level] %logger{0} - %msg%n</pattern>
         </encoder>
     </appender>
     <appender name="R" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -85,9 +85,11 @@
 
     <!-- V2 -->
 
+    <logger name="org.knora.webapi.util.search.gravsearch" level="DEBUG"/>
+
     <!-- Admin -->
     <logger name="org.knora.webapi.responders.admin.GroupsResponderADM" level="INFO"/>
-    <logger name="org.knora.webapi.responders.admin.ListsResponderADM" level="DEBUG"/>
+    <logger name="org.knora.webapi.responders.admin.ListsResponderADM" level="INFO"/>
     <logger name="org.knora.webapi.responders.admin.OntologiesResponderADM" level="INFO"/>
     <logger name="org.knora.webapi.responders.admin.ProjectsResponderADM" level="INFO"/>
     <logger name="org.knora.webapi.responders.admin.StoresResponderADM" level="INFO"/>
@@ -114,7 +116,7 @@
     <logger name="org.knora.webapi.responders.admin.UsersResponderADMSpec" level="INFO"/>
     <logger name="org.knora.webapi.e2e.admin.ListsADME2ESpec" level="INFO"/>
     <logger name="org.knora.webapi.e2e.admin.ProjectsADME2ESpec" level="INFO"/>
-    <logger name="org.knora.webapi.e2e.admin.UsersADME2ESpecE2E" level="INFO"/>
+    <logger name="org.knora.webapi.e2e.admin.UsersADME2ESpec" level="INFO"/>
 
 
     <root level="INFO">

@@ -54,9 +54,7 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
     private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
     private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
 
-    private val rdfDataObjects = List(
-        RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/anything")
-    )
+    private val anythingData = RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/0001/anything")
 
     // The default timeout for receiving reply messages from actors.
     private val timeout = 10.seconds
@@ -64,17 +62,24 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
     private val fooIri = new MutableTestIri
     private var fooLastModDate: Instant = Instant.now
 
-    private val AnythingOntologyIri = "http://0.0.0.0:3333/ontology/anything/v2".toSmartIri
+    private val AnythingOntologyIri = "http://0.0.0.0:3333/ontology/0001/anything/v2".toSmartIri
     private var anythingLastModDate: Instant = Instant.now
 
     private val printErrorMessages = false
 
-    "Load test data" in {
-        storeManager ! ResetTriplestoreContent(rdfDataObjects)
+    private def loadTestData(rdfDataObjs: List[RdfDataObject], expectOK: Boolean = false): Unit = {
+        storeManager ! ResetTriplestoreContent(rdfDataObjs)
         expectMsg(300.seconds, ResetTriplestoreContentACK())
 
         responderManager ! LoadOntologiesRequestV2(KnoraSystemInstances.Users.SystemUser)
-        expectMsgType[SuccessResponseV2](10.seconds)
+
+        if (expectOK) {
+            expectMsgType[SuccessResponseV2](10.seconds)
+        }
+    }
+
+    "Load test data" in {
+        loadTestData(rdfDataObjs = List(anythingData), expectOK = true)
     }
 
     "The ontology responder v2" should {
@@ -147,7 +152,7 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
 
         "not delete an ontology that doesn't exist" in {
             actorUnderTest ! DeleteOntologyRequestV2(
-                ontologyIri = "http://0.0.0.0:3333/ontology/nonexistent/v2".toSmartIri,
+                ontologyIri = "http://0.0.0.0:3333/ontology/1234/nonexistent/v2".toSmartIri,
                 lastModificationDate = fooLastModDate,
                 apiRequestID = UUID.randomUUID,
                 requestingUser = imagesUser
@@ -228,19 +233,33 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
                     cause.isInstanceOf[BadRequestException] should ===(true)
 
                     val expectedSubjects = Set(
-                        "<http://data.knora.org/a-thing>", // rdf:type anything:Thing
-                        "<http://data.knora.org/a-blue-thing>", // rdf:type anything:BlueThing, a subclass of anything:Thing
-                        "<http://www.knora.org/ontology/something#Something>", // a subclass of anything:Thing in another ontology
-                        "<http://www.knora.org/ontology/something#hasOtherSomething>" // a subproperty of anything:hasOtherThing in another ontology
+                        "<http://rdfh.ch/0001/a-thing>", // rdf:type anything:Thing
+                        "<http://rdfh.ch/0001/a-blue-thing>", // rdf:type anything:BlueThing, a subclass of anything:Thing
+                        "<http://www.knora.org/ontology/0001/something#Something>", // a subclass of anything:Thing in another ontology
+                        "<http://www.knora.org/ontology/0001/something#hasOtherSomething>" // a subproperty of anything:hasOtherThing in another ontology
                     )
 
                     expectedSubjects.forall(s => errorMsg.contains(s)) should ===(true)
             }
         }
 
-        "not create an ontology called '0000'" ignore {
-            // TODO: re-enable when #667 is resolved.
 
+        "not create an ontology called 'rdfs'" in {
+            actorUnderTest ! CreateOntologyRequestV2(
+                ontologyName = "rdfs",
+                projectIri = imagesProjectIri,
+                label = "The rdfs ontology",
+                apiRequestID = UUID.randomUUID,
+                requestingUser = imagesUser
+            )
+
+            expectMsgPF(timeout) {
+                case msg: akka.actor.Status.Failure => msg.cause.isInstanceOf[BadRequestException] should ===(true)
+            }
+
+        }
+
+        "not create an ontology called '0000'" in {
             actorUnderTest ! CreateOntologyRequestV2(
                 ontologyName = "0000",
                 projectIri = imagesProjectIri,
@@ -255,9 +274,7 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
 
         }
 
-        "not create an ontology called '-foo'" ignore {
-            // TODO: re-enable when #667 is resolved.
-
+        "not create an ontology called '-foo'" in {
             actorUnderTest ! CreateOntologyRequestV2(
                 ontologyName = "-foo",
                 projectIri = imagesProjectIri,
@@ -446,13 +463,11 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val property = ontology.properties(propertyIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    val property = externalOntology.properties(propertyIri)
                     property.entityInfoContent should ===(propertyInfoContent)
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -470,11 +485,10 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.properties.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val readPropertyInfo: ReadPropertyInfoV2 = externalMsg.ontologies.head.properties.values.head
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val readPropertyInfo: ReadPropertyInfoV2 = externalOntology.properties.values.head
                     readPropertyInfo.entityInfoContent should ===(propertyInfoContent)
             }
         }
@@ -532,15 +546,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val property = ontology.properties(propertyIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    val property = externalOntology.properties(propertyIri)
                     assert(property.isLinkProp)
                     assert(!property.isLinkValueProp)
-                    ontology.properties(propertyIri).entityInfoContent should ===(propertyInfoContent)
-                    val metadata = ontology.ontologyMetadata
+                    externalOntology.properties(propertyIri).entityInfoContent should ===(propertyInfoContent)
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -557,11 +569,10 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.properties.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val readPropertyInfo: ReadPropertyInfoV2 = externalMsg.ontologies.head.properties.values.head
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val readPropertyInfo: ReadPropertyInfoV2 = externalOntology.properties.values.head
                     assert(readPropertyInfo.entityInfoContent.propertyIri == linkValuePropIri)
                     assert(!readPropertyInfo.isLinkProp)
                     assert(readPropertyInfo.isLinkValueProp)
@@ -579,11 +590,10 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.properties.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val readPropertyInfo: ReadPropertyInfoV2 = externalMsg.ontologies.head.properties.values.head
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val readPropertyInfo: ReadPropertyInfoV2 = externalOntology.properties.values.head
                     assert(readPropertyInfo.isLinkProp)
                     assert(!readPropertyInfo.isLinkValueProp)
                     readPropertyInfo.entityInfoContent should ===(propertyInfoContent)
@@ -596,11 +606,10 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.properties.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val readPropertyInfo: ReadPropertyInfoV2 = externalMsg.ontologies.head.properties.values.head
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val readPropertyInfo: ReadPropertyInfoV2 = externalOntology.properties.values.head
                     assert(readPropertyInfo.entityInfoContent.propertyIri == linkValuePropIri)
                     assert(!readPropertyInfo.isLinkProp)
                     assert(readPropertyInfo.isLinkValueProp)
@@ -800,7 +809,7 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             expectMsgPF(timeout) {
                 case msg: akka.actor.Status.Failure =>
                     if (printErrorMessages) println(msg.cause.getMessage)
-                    msg.cause.isInstanceOf[NotFoundException] should ===(true)
+                    msg.cause.isInstanceOf[BadRequestException] should ===(true)
             }
         }
 
@@ -1669,14 +1678,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readPropertyInfo = ontology.properties(propertyIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val readPropertyInfo = externalOntology.properties(propertyIri)
                     readPropertyInfo.entityInfoContent.predicates(OntologyConstants.Rdfs.Label.toSmartIri).objects should ===(newObjects)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -1732,14 +1740,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readPropertyInfo = ontology.properties(propertyIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val readPropertyInfo = externalOntology.properties(propertyIri)
                     readPropertyInfo.entityInfoContent.predicates(OntologyConstants.Rdfs.Comment.toSmartIri).objects should ===(newObjectsUnescaped)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -1824,40 +1831,38 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             val expectedProperties: Set[SmartIri] = Set(
                 "http://api.knora.org/ontology/knora-api/v2#hasStandoffLinkTo",
                 "http://api.knora.org/ontology/knora-api/v2#hasStandoffLinkToValue",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasOtherThingValue",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasBlueThing",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasThingPicture",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasDate",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasBoolean",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasThingPictureValue",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasText",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasColor",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasInterval",
-                "http://0.0.0.0:3333/ontology/anything/v2#isPartOfOtherThing",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasDecimal",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasOtherThing",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasBlueThingValue",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasInteger",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasListItem",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasRichtext",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasUri",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasName",
-                "http://0.0.0.0:3333/ontology/anything/v2#isPartOfOtherThingValue",
-                "http://0.0.0.0:3333/ontology/anything/v2#hasOtherListItem"
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasOtherThingValue",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasBlueThing",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasThingPicture",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasDate",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasBoolean",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasThingPictureValue",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasText",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasColor",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasInterval",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#isPartOfOtherThing",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasDecimal",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasOtherThing",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasBlueThingValue",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasInteger",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasListItem",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasRichtext",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasUri",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasName",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#isPartOfOtherThingValue",
+                "http://0.0.0.0:3333/ontology/0001/anything/v2#hasOtherListItem"
             ).map(_.toSmartIri)
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.classes.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent should ===(classInfoContent)
-                    readClassInfo.inheritedCardinalities.keySet.contains("http://0.0.0.0:3333/ontology/anything/v2#hasInteger".toSmartIri) should ===(false)
+                    readClassInfo.inheritedCardinalities.keySet.contains("http://0.0.0.0:3333/ontology/0001/anything/v2#hasInteger".toSmartIri) should ===(false)
                     readClassInfo.allResourcePropertyCardinalities.keySet should ===(expectedProperties)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -1906,16 +1911,14 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             ).map(_.toSmartIri)
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.classes.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent should ===(classInfoContent)
                     readClassInfo.allResourcePropertyCardinalities.keySet should ===(expectedProperties)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -1964,14 +1967,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent.predicates(OntologyConstants.Rdfs.Label.toSmartIri).objects should ===(newObjects)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2025,14 +2027,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent.predicates(OntologyConstants.Rdfs.Comment.toSmartIri).objects should ===(newObjectsUnescaped)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2158,7 +2159,7 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             expectMsgPF(timeout) {
                 case msg: akka.actor.Status.Failure =>
                     if (printErrorMessages) println(msg.cause.getMessage)
-                    msg.cause.isInstanceOf[NotFoundException] should ===(true)
+                    msg.cause.isInstanceOf[BadRequestException] should ===(true)
             }
         }
 
@@ -2323,15 +2324,14 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent should ===(classInfoContent)
                     readClassInfo.allCardinalities(AnythingOntologyIri.makeEntityIri("hasBoolean")).cardinality should ===(Cardinality.MustHaveOne)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2430,13 +2430,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val property = ontology.properties(propertyIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val property = externalOntology.properties(propertyIri)
                     property.entityInfoContent should ===(propertyInfoContent)
-                    val metadata = ontology.ontologyMetadata
+
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2564,15 +2564,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    assert(msg.ontologies.head.classes.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent should ===(classInfoContent)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2709,15 +2707,14 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent.directCardinalities should ===(classInfoContent.directCardinalities)
                     readClassInfo.allResourcePropertyCardinalities.keySet should ===(expectedProperties)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2800,13 +2797,13 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val property = ontology.properties(propertyIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.properties.size == 1)
+                    val property = externalOntology.properties(propertyIri)
+
                     property.entityInfoContent should ===(propertyInfoContent)
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2850,15 +2847,14 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent.directCardinalities should ===(expectedDirectCardinalities)
                     readClassInfo.allResourcePropertyCardinalities.keySet should ===(expectedProperties)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -2927,15 +2923,14 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent.directCardinalities should ===(classInfoContent.directCardinalities)
                     readClassInfo.allResourcePropertyCardinalities.keySet should ===(expectedProperties)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -3050,15 +3045,14 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
             )
 
             expectMsgPF(timeout) {
-                case msg: ReadOntologiesV2 =>
-                    assert(msg.ontologies.size == 1)
-                    val externalMsg = msg.toOntologySchema(ApiV2WithValueObjects)
-                    val ontology = externalMsg.ontologies.head
-                    val readClassInfo = ontology.classes(classIri)
+                case msg: ReadOntologyV2 =>
+                    val externalOntology = msg.toOntologySchema(ApiV2WithValueObjects)
+                    assert(externalOntology.classes.size == 1)
+                    val readClassInfo = externalOntology.classes(classIri)
                     readClassInfo.entityInfoContent.directCardinalities should ===(classInfoContent.directCardinalities)
                     readClassInfo.allResourcePropertyCardinalities.keySet should ===(expectedProperties)
 
-                    val metadata = ontology.ontologyMetadata
+                    val metadata = externalOntology.ontologyMetadata
                     val newAnythingLastModDate = metadata.lastModificationDate.getOrElse(throw AssertionException(s"${metadata.ontologyIri} has no last modification date"))
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
@@ -3135,6 +3129,268 @@ class OntologyResponderV2Spec extends CoreSpec() with ImplicitSender {
                     assert(newAnythingLastModDate.isAfter(anythingLastModDate))
                     anythingLastModDate = newAnythingLastModDate
             }
+        }
+
+        "not load an ontology that has no knora-base:attachedToProject" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/onto-without-project.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a class that's missing a cardinality for a link value property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/missing-link-value-cardinality-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+
+        "not load an ontology containing a class that's missing a cardinality for a link property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/missing-link-cardinality-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a class with a cardinality whose subject class constraint is incompatible with the class" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-incompatible-with-scc-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class without an rdfs:label" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-without-label-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource property without an rdfs:label" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/property-without-label-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class that is also a standoff class" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/resource-class-is-standoff-class-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class with a cardinality on an undefined property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-with-missing-property-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class with a directly defined cardinality on a non-resource property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-with-non-resource-prop-cardinality-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class with a cardinality on knora-base:resourceProperty" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-with-cardinality-on-kbresprop-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class with a cardinality on knora-base:hasValue" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-with-cardinality-on-kbhasvalue-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource class with a base class that has a Knora IRI but isn't a resource class" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/resource-class-with-invalid-base-class-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a standoff class with a cardinality on a resource property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/standoff-class-with-resprop-cardinality-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a standoff class with a base class that's not a standoff class" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/standoff-class-with-invalid-base-class-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property with a subject class constraint of foaf:Person" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-with-non-knora-scc-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a Knora value property with a subject class constraint of knora-base:TextValue" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-with-value-scc-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property with a subject class constraint of salsah-gui:Guielement" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-with-guielement-scc-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property with an object class constraint of foaf:Person" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-with-non-knora-occ-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property whose object class constraint is incompatible with its base property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-with-incompatible-occ-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a class with cardinalities for a link property and a matching link value property, except that the link property isn't really a link property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-with-misdefined-link-property-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a class with cardinalities for a link property and a matching link value property, except that the link value property isn't really a link value property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/class-with-misdefined-link-value-property-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource property with no object class constraint" ignore { // Consistency checks don't allow this in GraphDB.
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/resource-prop-without-occ-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource property with no rdfs:label" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/resource-prop-without-label-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property that's a subproperty of both knora-base:hasValue and knora-base:hasLinkTo" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-both-value-and-link-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property that's a subproperty of knora-base:hasFileValue" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/filevalue-prop-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a resource property with a base property that has a Knora IRI but isn't a resource property" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/resource-prop-wrong-base-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a property that contains salsah-gui:guiOrder" ignore { // Consistency checks don't allow this in GraphDB.
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/prop-with-guiorder-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a cardinality that contains salsah-gui:guiElement" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/cardinality-with-guielement-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
+        }
+
+        "not load an ontology containing a cardinality that contains salsah-gui:guiAttribute" in {
+            val invalidOnto = List(RdfDataObject(
+                path = "_test_data/responders.v2.OntologyResponderV2Spec/cardinality-with-guiattribute-onto.ttl", name = "http://www.knora.org/ontology/invalid"
+            ))
+
+            loadTestData(invalidOnto)
+            expectMsgType[akka.actor.Status.Failure](timeout).cause.isInstanceOf[InconsistentTriplestoreDataException] should ===(true)
         }
     }
 }

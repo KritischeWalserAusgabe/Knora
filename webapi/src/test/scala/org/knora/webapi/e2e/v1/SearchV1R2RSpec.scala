@@ -30,6 +30,7 @@ import org.knora.webapi.messages.v1.responder.ontologymessages.LoadOntologiesReq
 import org.knora.webapi.responders.{RESPONDER_MANAGER_ACTOR_NAME, ResponderManager}
 import org.knora.webapi.routing.v1.SearchRouteV1
 import org.knora.webapi.store.{STORE_MANAGER_ACTOR_NAME, StoreManager}
+import org.scalatest.Assertion
 import spray.json._
 
 import scala.concurrent.duration.DurationInt
@@ -54,16 +55,14 @@ class SearchV1R2RSpec extends R2RSpec {
 
     implicit private val timeout: Timeout = settings.defaultRestoreTimeout
 
-    implicit def default(implicit system: ActorSystem) = RouteTestTimeout(new DurationInt(30).second)
+    implicit def default(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(new DurationInt(30).second)
 
     implicit val ec: ExecutionContextExecutor = system.dispatcher
 
     private val rdfDataObjects = List(
-
-        RdfDataObject(path = "_test_data/all_data/incunabula-data.ttl", name = "http://www.knora.org/data/incunabula"),
+        RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/0001/anything"),
         RdfDataObject(path = "_test_data/demo_data/images-demo-data.ttl", name = "http://www.knora.org/data/00FF/images"),
-        RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/anything")
-
+        RdfDataObject(path = "_test_data/all_data/incunabula-data.ttl", name = "http://www.knora.org/data/0803/incunabula")
     )
 
     "Load test data" in {
@@ -78,7 +77,7 @@ class SearchV1R2RSpec extends R2RSpec {
       * @param expectedNumber the expected number of results for the query.
       * @return an assertion that the actual amount of results corresponds with the expected number of results.
       */
-    def checkNumberOfHits(responseJson: String, expectedNumber: Int) = {
+    def checkNumberOfHits(responseJson: String, expectedNumber: Int): Assertion = {
 
         val response: Map[String, JsValue] = responseAs[String].parseJson.asJsObject.fields
 
@@ -96,8 +95,8 @@ class SearchV1R2RSpec extends R2RSpec {
     "The Search Endpoint" should {
         "perform an extended search for the pages of a book whose seqnum is lower than or equals 10" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23partOf&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23seqnum&compop=EQ&compop=LT_EQ&searchval=http%3A%2F%2Fdata.knora.org%2F5e77e98d2603&searchval=10"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23page"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23partOf&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23seqnum&compop=EQ&compop=LT_EQ&searchval=http%3A%2F%2Frdfh.ch%2F5e77e98d2603&searchval=10"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23page"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -111,8 +110,8 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for books that have been published on the first of March 1497 (Julian Calendar)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23pubdate&compop=EQ&searchval=JULIAN:1497-03-01"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23pubdate&compop=EQ&searchval=JULIAN:1497-03-01"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23book"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -126,8 +125,8 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for books that have not been published on the first of March 1497 (Julian Calendar)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23pubdate&compop=!EQ&searchval=JULIAN:1497-03-01"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23pubdate&compop=!EQ&searchval=JULIAN:1497-03-01"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23book"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -142,8 +141,8 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for books that have been published before 1497 (Julian Calendar)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23pubdate&compop=LT&searchval=JULIAN:1497"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23pubdate&compop=LT&searchval=JULIAN:1497"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23book"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -158,8 +157,8 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for books that have been published 1497 or later (Julian Calendar)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23pubdate&compop=GT_EQ&searchval=JULIAN:1497"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23pubdate&compop=GT_EQ&searchval=JULIAN:1497"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23book"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -174,8 +173,8 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for books that have been published after 1497 (Julian Calendar)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23pubdate&compop=GT&searchval=JULIAN:1497"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23pubdate&compop=GT&searchval=JULIAN:1497"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23book"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -190,8 +189,8 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for books that have been published 1497 or before (Julian Calendar)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23pubdate&compop=LT_EQ&searchval=JULIAN:1497"
-            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23pubdate&compop=LT_EQ&searchval=JULIAN:1497"
+            val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23book"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
@@ -206,14 +205,14 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for an anything:Thing that has a Boolean value set to true" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fanything%23hasBoolean&compop=EQ&searchval=true"
-            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2Fanything"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0001%2Fanything%23hasBoolean&compop=EQ&searchval=true"
+            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2F0001"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
                 assert(status == StatusCodes.OK, response.toString)
 
-                checkNumberOfHits(responseAs[String], 1)
+                checkNumberOfHits(responseAs[String], 2)
 
             }
 
@@ -221,14 +220,14 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for an anything:Thing that has a Boolean value that is not false" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fanything%23hasBoolean&compop=!EQ&searchval=false"
-            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2Fanything"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0001%2Fanything%23hasBoolean&compop=!EQ&searchval=false"
+            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2F0001"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
                 assert(status == StatusCodes.OK, response.toString)
 
-                checkNumberOfHits(responseAs[String], 1)
+                checkNumberOfHits(responseAs[String], 2)
 
             }
 
@@ -236,40 +235,40 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for an anything:Thing that has a Boolean value (EXISTS)" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fanything%23hasBoolean&compop=EXISTS&searchval="
-            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2Fanything"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0001%2Fanything%23hasBoolean&compop=EXISTS&searchval="
+            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2F0001"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {
 
                 assert(status == StatusCodes.OK, response.toString)
 
-                checkNumberOfHits(responseAs[String], 1)
+                checkNumberOfHits(responseAs[String], 2)
 
             }
 
         }
 
-        val props_two_lists_one = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fanything%23hasListItem&compop=EQ&searchval=http%3A%2F%2Fdata.knora.org%2Fanything%2FtreeList01"
+        val props_two_lists_one = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0001%2Fanything%23hasListItem&compop=EQ&searchval=http%3A%2F%2Frdfh.ch%2Flists%2F0001%2FtreeList01"
 
         "perform an extended search for an anything:Thing that has two list values on one of the lists (EQ)" in {
 
-            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2Fanything"
+            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2F0001"
 
             Get("/v1/search/?searchtype=extended" + props_two_lists_one + filter) ~> searchPath ~> check {
 
                 assert(status == StatusCodes.OK, response.toString)
 
-                checkNumberOfHits(responseAs[String], 1)
+                checkNumberOfHits(responseAs[String], 2)
 
             }
 
         }
 
-        val props_two_lists_two = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2Fanything%23hasOtherListItem&compop=EQ&searchval=http%3A%2F%2Fdata.knora.org%2Fanything%2FotherTreeList02"
+        val props_two_lists_two = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0001%2Fanything%23hasOtherListItem&compop=EQ&searchval=http%3A%2F%2Frdfh.ch%2Flists%2F0001%2FotherTreeList02"
 
         "perform an extended search for an anything:Thing that has two list values on the other lists (EQ)" in {
 
-            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2Fanything"
+            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2F0001"
 
             Get("/v1/search/?searchtype=extended" + props_two_lists_two + filter) ~> searchPath ~> check {
 
@@ -283,7 +282,7 @@ class SearchV1R2RSpec extends R2RSpec {
 
         "perform an extended search for an anything:Thing that has two list values on both lists (EQ)" in {
 
-            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2Fanything"
+            val filter = "&show_nrows=25&start_at=0&filter_by_project=http%3A%2F%2Frdfh.ch%2Fprojects%2F0001"
 
             Get("/v1/search/?searchtype=extended" + props_two_lists_one + props_two_lists_two + filter) ~> searchPath ~> check {
 
