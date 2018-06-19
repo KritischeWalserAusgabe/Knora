@@ -27,11 +27,11 @@ import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
 import org.knora.webapi.messages.store.triplestoremessages.VariableResultsRow
 import org.knora.webapi.messages.v1.responder.ontologymessages._
 import org.knora.webapi.messages.v1.responder.resourcemessages.LocationV1
-import org.knora.webapi.messages.v1.responder.standoffmessages.{GetMappingRequestV1, GetMappingResponseV1}
 import org.knora.webapi.messages.v1.responder.valuemessages._
+import org.knora.webapi.messages.v2.responder.standoffmessages.{GetMappingRequestV2, GetMappingResponseV2}
 import org.knora.webapi.responders.v1.GroupedProps._
 import org.knora.webapi.twirl._
-import org.knora.webapi.util.standoff.StandoffTagUtilV1
+import org.knora.webapi.util.standoff.StandoffTagUtilV2
 import org.knora.webapi.util.{DateUtilV1, ErrorHandlingMap, StringFormatter}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -97,7 +97,7 @@ class ValueUtilV1(private val settings: SettingsImpl) {
       * Creates a URL for accessing a text file via Sipi.
       *
       * @param textFileValue the text file value representing the text file.
-      * @param external a flag denoting the type of URL that should be generated.
+      * @param external      a flag denoting the type of URL that should be generated.
       * @return a Sipi URL.
       */
     def makeSipiTextFileGetUrlFromFilename(textFileValue: TextFileValueV1, external: Boolean = true): String = {
@@ -340,9 +340,9 @@ class ValueUtilV1(private val settings: SettingsImpl) {
       * {{{
       * prop                obj                                                     objPred                            objObj
       * ---------------------------------------------------------------------------------------------------------------------------------------------------
-      * incunabula:pagenum       http://data.knora.org/8a0b1e75/values/61cb927602        knora-base:valueHasString          a1r, Titelblatt
-      * incunabula:pagenum       http://data.knora.org/8a0b1e75/values/61cb927602        knora-base:hasViewPermission       knora-base:KnownUser
-      * incunabula:pagenum       http://data.knora.org/8a0b1e75/values/61cb927602        knora-base:hasViewPermission       knora-base:UnknownUser
+      * incunabula:pagenum       http://rdfh.ch/8a0b1e75/values/61cb927602        knora-base:valueHasString          a1r, Titelblatt
+      * incunabula:pagenum       http://rdfh.ch/8a0b1e75/values/61cb927602        knora-base:hasViewPermission       knora-base:KnownUser
+      * incunabula:pagenum       http://rdfh.ch/8a0b1e75/values/61cb927602        knora-base:hasViewPermission       knora-base:UnknownUser
       * }}}
       *
       * The result will be a [[GroupedProperties]] containing a [[ValueProps]] with two keys, `valueHasString` and `hasPermission`.
@@ -467,7 +467,7 @@ class ValueUtilV1(private val settings: SettingsImpl) {
       * @param userProfile      the client that is making the request.
       * @return a [[TextValueWithStandoffV1]].
       */
-    private def makeTextValueWithStandoff(utf8str: String, valueProps: ValueProps, responderManager: ActorSelection, userProfile: UserADM)(implicit timeout: Timeout, executionContext: ExecutionContext): Future[TextValueWithStandoffV1] = {
+    private def makeTextValueWithStandoff(utf8str: String, language: Option[String] = None, valueProps: ValueProps, responderManager: ActorSelection, userProfile: UserADM)(implicit timeout: Timeout, executionContext: ExecutionContext): Future[TextValueWithStandoffV1] = {
 
         // get the IRI of the mapping
         val mappingIri = valueProps.literalData.getOrElse(OntologyConstants.KnoraBase.ValueHasMapping, throw InconsistentTriplestoreDataException(s"no mapping IRI associated with standoff belonging to textValue ${valueProps.valueIri}")).literals.head
@@ -475,12 +475,14 @@ class ValueUtilV1(private val settings: SettingsImpl) {
         for {
 
             // get the mapping and the related standoff entities
-            mappingResponse: GetMappingResponseV1 <- (responderManager ? GetMappingRequestV1(mappingIri = mappingIri, userProfile = userProfile)).mapTo[GetMappingResponseV1]
+            // v2 responder is used here directly, v1 responder would inernally use v2 responder anyway and do unnecessary back and forth conversions
+            mappingResponse: GetMappingResponseV2 <- (responderManager ? GetMappingRequestV2(mappingIri = mappingIri, userProfile = userProfile)).mapTo[GetMappingResponseV2]
 
-            standoffTags: Seq[StandoffTagV1] = StandoffTagUtilV1.createStandoffTagsV1FromSparqlResults(mappingResponse.standoffEntities, valueProps.standoff)
+            standoffTags: Seq[StandoffTagV2] = StandoffTagUtilV2.createStandoffTagsV2FromSparqlResults(mappingResponse.standoffEntities, valueProps.standoff)
 
         } yield TextValueWithStandoffV1(
             utf8str = utf8str,
+            language = language,
             standoff = standoffTags,
             mappingIri = mappingIri,
             mapping = mappingResponse.mapping,
@@ -495,9 +497,9 @@ class ValueUtilV1(private val settings: SettingsImpl) {
       * @param utf8str the string representation of the TextValue.
       * @return a [[TextValueSimpleV1]].
       */
-    private def makeTextValueSimple(utf8str: String)(implicit timeout: Timeout, executionContext: ExecutionContext): Future[TextValueSimpleV1] = {
+    private def makeTextValueSimple(utf8str: String, language: Option[String] = None)(implicit timeout: Timeout, executionContext: ExecutionContext): Future[TextValueSimpleV1] = {
         Future(TextValueSimpleV1(
-            utf8str = utf8str
+            utf8str = utf8str, language = language
         ))
     }
 
@@ -510,15 +512,16 @@ class ValueUtilV1(private val settings: SettingsImpl) {
     private def makeTextValue(valueProps: ValueProps, responderManager: ActorSelection, userProfile: UserADM)(implicit timeout: Timeout, executionContext: ExecutionContext): Future[ApiValueV1] = {
 
 
-        val valueHasString = valueProps.literalData.get(OntologyConstants.KnoraBase.ValueHasString).map(_.literals.head).getOrElse(throw InconsistentTriplestoreDataException(s"Value ${valueProps.valueIri} has no knora-base:valueHasString"))
+        val valueHasString: String = valueProps.literalData.get(OntologyConstants.KnoraBase.ValueHasString).map(_.literals.head).getOrElse(throw InconsistentTriplestoreDataException(s"Value ${valueProps.valueIri} has no knora-base:valueHasString"))
+        val valueHasLanguage: Option[String] = valueProps.literalData.get(OntologyConstants.KnoraBase.ValueHasLanguage).map(_.literals.head)
 
         if (valueProps.standoff.nonEmpty) {
             // there is standoff markup
-            makeTextValueWithStandoff(valueHasString, valueProps, responderManager, userProfile)
+            makeTextValueWithStandoff(valueHasString, valueHasLanguage, valueProps, responderManager, userProfile)
 
         } else {
             // there is no standoff markup
-            makeTextValueSimple(valueHasString)
+            makeTextValueSimple(valueHasString, valueHasLanguage)
 
         }
     }
@@ -628,7 +631,7 @@ class ValueUtilV1(private val settings: SettingsImpl) {
     }
 
     /** Creates an attribute segment for the Salsah GUI from the given resource class.
-      * Example: if "http://www.knora.org/ontology/incunabula#book" is given, the function returns "restypeid=http://www.knora.org/ontology/incunabula#book".
+      * Example: if "http://www.knora.org/ontology/0803/incunabula#book" is given, the function returns "restypeid=http://www.knora.org/ontology/0803/incunabula#book".
       *
       * @param resourceClass the resource class.
       * @return an attribute string to be included in the attributes for the GUI

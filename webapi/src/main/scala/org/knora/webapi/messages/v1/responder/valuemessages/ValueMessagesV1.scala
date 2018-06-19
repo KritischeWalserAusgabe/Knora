@@ -26,12 +26,12 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
 import org.knora.webapi.messages.v1.responder.resourcemessages.LocationV1
 import org.knora.webapi.messages.v1.responder.sipimessages.SipiResponderConversionRequestV1
-import org.knora.webapi.messages.v1.responder.standoffmessages.MappingXMLtoStandoff
 import org.knora.webapi.messages.v1.responder.{KnoraRequestV1, KnoraResponseV1}
-import org.knora.webapi.twirl.{StandoffTagAttributeV1, StandoffTagInternalReferenceAttributeV1, StandoffTagV1}
-import org.knora.webapi.util.standoff.StandoffTagUtilV1
+import org.knora.webapi.messages.v2.responder.standoffmessages.MappingXMLtoStandoff
+import org.knora.webapi.twirl.{StandoffTagAttributeV2, StandoffTagInternalReferenceAttributeV2, StandoffTagV2}
+import org.knora.webapi.util.standoff.StandoffTagUtilV2
 import org.knora.webapi.util.{DateUtilV1, KnoraIdUtil, StringFormatter}
-import org.knora.webapi.{BadRequestException, _}
+import org.knora.webapi._
 import spray.json._
 
 
@@ -116,6 +116,7 @@ case class CreateValueApiRequestV1(res_id: IRI,
   * @param mapping_id IRI of the mapping used to transform XML to standoff.
   */
 case class CreateRichtextV1(utf8str: Option[String] = None,
+                            language: Option[String] = None,
                             xml: Option[String] = None,
                             mapping_id: Option[IRI] = None) {
 
@@ -620,31 +621,35 @@ object KnoraPrecisionV1 extends Enumeration {
 
 /**
   *
-  * Represents a [[StandoffTagV1]] for a standoff tag of a certain type (standoff tag class) that is about to be created in the triplestore.
+  * Represents a [[StandoffTagV2]] for a standoff tag of a certain type (standoff tag class) that is about to be created in the triplestore.
   *
   * @param standoffNode           the standoff node to be created.
   * @param standoffTagInstanceIri the standoff node's IRI.
   * @param startParentIri         the IRI of the parent of the start tag.
   * @param endParentIri           the IRI of the parent of the end tag, if any.
   */
-case class CreateStandoffTagV1InTriplestore(standoffNode: StandoffTagV1, standoffTagInstanceIri: IRI, startParentIri: Option[IRI] = None, endParentIri: Option[IRI] = None)
+case class CreateStandoffTagV1InTriplestore(standoffNode: StandoffTagV2, standoffTagInstanceIri: IRI, startParentIri: Option[IRI] = None, endParentIri: Option[IRI] = None)
 
 sealed trait TextValueV1 {
 
     def utf8str: String
 
+    def language: Option[String]
+
 }
 
 /**
-  * Represents a textual value with additional information in standoff format.
+  * Represents a text value with standoff markup.
   *
   * @param utf8str            text in mere utf8 representation (including newlines and carriage returns).
-  * @param standoff           attributes of the text in standoff format. For each attribute, several ranges may be given (a list of [[StandoffTagV1]]).
+  * @param language           the language of the text, if known.
+  * @param standoff           attributes of the text in standoff format. For each attribute, several ranges may be given (a list of [[StandoffTagV2]]).
   * @param resource_reference referred Knora resources.
   * @param mapping            the mapping used to create standoff from another format.
   */
 case class TextValueWithStandoffV1(utf8str: String,
-                                   standoff: Seq[StandoffTagV1],
+                                   language: Option[String] = None,
+                                   standoff: Seq[StandoffTagV2],
                                    resource_reference: Set[IRI] = Set.empty[IRI],
                                    mappingIri: IRI,
                                    mapping: MappingXMLtoStandoff) extends TextValueV1 with UpdateValueV1 with ApiValueV1 {
@@ -655,21 +660,32 @@ case class TextValueWithStandoffV1(utf8str: String,
     def valueTypeIri = OntologyConstants.KnoraBase.TextValue
 
     def toJsValue = {
-
         // TODO: depending on the given mapping, decide how serialize the text with standoff markup
 
-        val xml = StandoffTagUtilV1.convertStandoffTagV1ToXML(utf8str, standoff, mapping)
+        val xml = StandoffTagUtilV2.convertStandoffTagV2ToXML(utf8str, standoff, mapping)
 
-        JsObject(
-            "xml" -> JsString(xml),
-            "mapping_id" -> JsString(mappingIri)
-        )
+        language match {
+            case Some(lang) =>
+                JsObject(
+                    "xml" -> JsString(xml),
+                    "mapping_id" -> JsString(mappingIri),
+                    "language" -> JsString(lang)
+                )
+
+
+            case None =>
+                JsObject(
+                    "xml" -> JsString(xml),
+                    "mapping_id" -> JsString(mappingIri)
+                )
+        }
+
     }
 
     /**
-      * A convenience method that creates an IRI for each [[StandoffTagV1]] and resolves internal references to standoff node Iris.
+      * A convenience method that creates an IRI for each [[StandoffTagV2]] and resolves internal references to standoff node Iris.
       *
-      * @return a list of [[CreateStandoffTagV1InTriplestore]] each representing a [[StandoffTagV1]] object
+      * @return a list of [[CreateStandoffTagV1InTriplestore]] each representing a [[StandoffTagV2]] object
       *         along with is standoff tag class and IRI that is going to identify it in the triplestore.
       */
     def prepareForSparqlInsert(valueIri: IRI): Seq[CreateStandoffTagV1InTriplestore] = {
@@ -677,7 +693,7 @@ case class TextValueWithStandoffV1(utf8str: String,
         // create an IRI for each standoff tag
         // internal references to XML ids are not resolved yet
         val standoffTagsWithOriginalXMLIDs: Seq[CreateStandoffTagV1InTriplestore] = standoff.map {
-            case (standoffNode: StandoffTagV1) =>
+            case (standoffNode: StandoffTagV2) =>
                 CreateStandoffTagV1InTriplestore(
                     standoffNode = standoffNode,
                     standoffTagInstanceIri = knoraIdUtil.makeRandomStandoffTagIri(valueIri) // generate IRI for new standoff node
@@ -708,10 +724,10 @@ case class TextValueWithStandoffV1(utf8str: String,
             (standoffTag: CreateStandoffTagV1InTriplestore) =>
 
                 // resolve original XML ids to standoff node Iris for `StandoffTagInternalReferenceAttributeV1`
-                val attributesWithStandoffNodeIriReferences: Seq[StandoffTagAttributeV1] = standoffTag.standoffNode.attributes.map {
-                    (attributeWithOriginalXMLID: StandoffTagAttributeV1) =>
+                val attributesWithStandoffNodeIriReferences: Seq[StandoffTagAttributeV2] = standoffTag.standoffNode.attributes.map {
+                    (attributeWithOriginalXMLID: StandoffTagAttributeV2) =>
                         attributeWithOriginalXMLID match {
-                            case refAttr: StandoffTagInternalReferenceAttributeV1 =>
+                            case refAttr: StandoffTagInternalReferenceAttributeV2 =>
                                 // resolve the XML id to the corresponding standoff node IRI
                                 refAttr.copy(value = iDsToStandoffNodeIris(refAttr.value))
                             case attr => attr
@@ -781,14 +797,27 @@ case class TextValueWithStandoffV1(utf8str: String,
 
 }
 
-case class TextValueSimpleV1(utf8str: String) extends TextValueV1 with UpdateValueV1 with ApiValueV1 {
+/**
+  * Represents a text value without standoff markup.
+  *
+  * @param utf8str  the text.
+  * @param language the language of the text, if known.
+  */
+case class TextValueSimpleV1(utf8str: String, language: Option[String] = None) extends TextValueV1 with UpdateValueV1 with ApiValueV1 {
 
     def valueTypeIri = OntologyConstants.KnoraBase.TextValue
 
     def toJsValue = {
-        JsObject(
-            "utf8str" -> JsString(utf8str)
-        )
+        language match {
+            case Some(lang) =>
+                JsObject(
+                    "utf8str" -> JsString(utf8str),
+                    "language" -> JsString(lang)
+                )
+
+            case None =>
+                JsObject("utf8str" -> JsString(utf8str))
+        }
     }
 
     /**
@@ -807,6 +836,7 @@ case class TextValueSimpleV1(utf8str: String) extends TextValueV1 with UpdateVal
     }
 
     override def toString = utf8str
+
 
     /**
       * It's OK to add a new version of a text value as long as something has been changed in it, even if it's only the markup.
@@ -1592,7 +1622,7 @@ object ApiValueV1JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol 
     implicit val valueVersionV1Format: JsonFormat[ValueVersionV1] = jsonFormat3(ValueVersionV1)
     implicit val linkValueV1Format: JsonFormat[LinkValueV1] = jsonFormat4(LinkValueV1)
     implicit val valueVersionHistoryGetResponseV1Format: RootJsonFormat[ValueVersionHistoryGetResponseV1] = jsonFormat1(ValueVersionHistoryGetResponseV1)
-    implicit val createRichtextV1Format: RootJsonFormat[CreateRichtextV1] = jsonFormat3(CreateRichtextV1)
+    implicit val createRichtextV1Format: RootJsonFormat[CreateRichtextV1] = jsonFormat4(CreateRichtextV1)
     implicit val createValueApiRequestV1Format: RootJsonFormat[CreateValueApiRequestV1] = jsonFormat15(CreateValueApiRequestV1)
     implicit val createValueResponseV1Format: RootJsonFormat[CreateValueResponseV1] = jsonFormat4(CreateValueResponseV1)
     implicit val changeValueApiRequestV1Format: RootJsonFormat[ChangeValueApiRequestV1] = jsonFormat13(ChangeValueApiRequestV1)

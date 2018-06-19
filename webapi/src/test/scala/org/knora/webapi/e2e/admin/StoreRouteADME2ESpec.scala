@@ -19,7 +19,9 @@
 
 package org.knora.webapi.e2e.admin
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.testkit.RouteTestTimeout
 import com.typesafe.config.ConfigFactory
 import org.knora.webapi.E2ESpec
 import org.knora.webapi.messages.app.appmessages.SetAllowReloadOverHTTPState
@@ -42,20 +44,21 @@ object StoreRouteADME2ESpec {
   * This spec tests the 'v1/store' route.
   */
 class StoreRouteADME2ESpec extends E2ESpec(StoreRouteADME2ESpec.config) with TriplestoreJsonProtocol {
+    implicit def default(implicit system: ActorSystem) = RouteTestTimeout(120.seconds)
 
 	/**
       * The marshaling to Json is done automatically by spray, hence the import of the 'TriplestoreJsonProtocol'.
       * The Json which spray generates looks like this:
       *
       *  [
-      *     {"path": "_test_data/all_data/incunabula-data.ttl", "name": "http://www.knora.org/data/incunabula"},
+      *     {"path": "_test_data/all_data/incunabula-data.ttl", "name": "http://www.knora.org/data/0803/incunabula"},
       *     {"path": "_test_data/demo_data/images-demo-data.ttl", "name": "http://www.knora.org/data/00FF/images"}
       *  ]
       *
       * and could have been supplied to the post request instead of the scala object.
       */
     private val rdfDataObjects: List[RdfDataObject] = List(
-        RdfDataObject(path = "_test_data/all_data/incunabula-data.ttl", name = "http://www.knora.org/data/incunabula"),
+        RdfDataObject(path = "_test_data/all_data/incunabula-data.ttl", name = "http://www.knora.org/data/0803/incunabula"),
         RdfDataObject(path = "_test_data/demo_data/images-demo-data.ttl", name = "http://www.knora.org/data/00FF/images")
     )
 

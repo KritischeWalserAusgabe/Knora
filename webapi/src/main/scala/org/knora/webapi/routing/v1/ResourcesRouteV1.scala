@@ -51,7 +51,7 @@ import org.knora.webapi.messages.v1.responder.valuemessages._
 import org.knora.webapi.routing.{Authenticator, RouteUtilV1}
 import org.knora.webapi.util.IriConversions._
 import org.knora.webapi.util.StringFormatter.XmlImportNamespaceInfoV1
-import org.knora.webapi.util.standoff.StandoffTagUtilV1.TextWithStandoffTagsV1
+import org.knora.webapi.util.standoff.StandoffTagUtilV2.TextWithStandoffTagsV2
 import org.knora.webapi.util.{DateUtilV1, FileUtil, SmartIri, StringFormatter}
 import org.knora.webapi.viewhandlers.ResourceHtmlView
 import org.slf4j.LoggerFactory
@@ -123,16 +123,20 @@ object ResourcesRouteV1 extends Authenticator {
                                     // check if text has markup
                                     if (richtext.utf8str.nonEmpty && richtext.xml.isEmpty && richtext.mapping_id.isEmpty) {
                                         // simple text
-                                        Future(CreateValueV1WithComment(TextValueSimpleV1(stringFormatter.toSparqlEncodedString(richtext.utf8str.get, throw BadRequestException(s"Invalid text: '${richtext.utf8str.get}'"))),
-                                            givenValue.comment))
+
+                                        Future(CreateValueV1WithComment(TextValueSimpleV1(utf8str = stringFormatter.toSparqlEncodedString(richtext.utf8str.get, throw BadRequestException(s"Invalid text: '${richtext.utf8str.get}'")),
+                                                    language = richtext.language), givenValue.comment))
+
                                     } else if (richtext.xml.nonEmpty && richtext.mapping_id.nonEmpty) {
                                         // XML: text with markup
 
                                         val mappingIri = stringFormatter.validateAndEscapeIri(richtext.mapping_id.get, throw BadRequestException(s"mapping_id ${richtext.mapping_id.get} is invalid"))
 
+
+
                                         for {
 
-                                            textWithStandoffTags: TextWithStandoffTagsV1 <- RouteUtilV1.convertXMLtoStandoffTagV1(
+                                            textWithStandoffTags: TextWithStandoffTagsV2 <- RouteUtilV1.convertXMLtoStandoffTagV1(
                                                 xml = richtext.xml.get,
                                                 mappingIri = mappingIri,
                                                 acceptStandoffLinksToClientIDs = acceptStandoffLinksToClientIDs,
@@ -143,12 +147,13 @@ object ResourcesRouteV1 extends Authenticator {
                                             )
 
                                             // collect the resource references from the linking standoff nodes
-                                            resourceReferences: Set[IRI] = stringFormatter.getResourceIrisFromStandoffTags(textWithStandoffTags.standoffTagV1)
+                                            resourceReferences: Set[IRI] = stringFormatter.getResourceIrisFromStandoffTags(textWithStandoffTags.standoffTagV2)
 
                                         } yield CreateValueV1WithComment(TextValueWithStandoffV1(
-                                            utf8str = stringFormatter.toSparqlEncodedString(textWithStandoffTags.text, throw InconsistentTriplestoreDataException("utf8str for for TextValue contains invalid characters")),
+                                            utf8str = stringFormatter.toSparqlEncodedString(textWithStandoffTags.text, throw InconsistentTriplestoreDataException("utf8str for TextValue contains invalid characters")),
+                                            language = richtext.language,
                                             resource_reference = resourceReferences,
-                                            standoff = textWithStandoffTags.standoffTagV1,
+                                            standoff = textWithStandoffTags.standoffTagV2,
                                             mappingIri = textWithStandoffTags.mapping.mappingIri,
                                             mapping = textWithStandoffTags.mapping.mapping
                                         ), givenValue.comment)
@@ -451,7 +456,7 @@ object ResourcesRouteV1 extends Authenticator {
               * @return the prefix label that Knora uses to refer to the ontology.
               */
             def getNamespacePrefixLabel(internalEntityIri: IRI): String = {
-                val prefixLabel = internalEntityIri.toSmartIri.getPrefixLabel
+                val prefixLabel = internalEntityIri.toSmartIri.getLongPrefixLabel
 
                 // If the schema generation template asks for the prefix label of something in knora-base, return
                 // the prefix label of the Knora XML import v1 namespace instead.
@@ -514,9 +519,7 @@ object ResourcesRouteV1 extends Authenticator {
                 )
 
                 // Read the standard Knora XML import v1 schema from a file.
-                knoraXmlImportSchemaXml: String = FileUtil.readTextFile(
-                    new File("src/main/resources/" + OntologyConstants.KnoraXmlImportV1.KnoraXmlImportNamespacePrefixLabel + ".xsd")
-                )
+                knoraXmlImportSchemaXml: String = FileUtil.readTextResource(OntologyConstants.KnoraXmlImportV1.KnoraXmlImportNamespacePrefixLabel + ".xsd")
 
                 // Construct an XmlImportSchemaV1 for the standard Knora XML import v1 schema.
                 knoraXmlImportSchema: XmlImportSchemaV1 = XmlImportSchemaV1(
@@ -608,6 +611,7 @@ object ResourcesRouteV1 extends Authenticator {
         def validateImportXml(xml: String, defaultNamespace: IRI, userProfile: UserADM): Future[Unit] = {
             // Convert the default namespace of the submitted XML to an internal ontology IRI. This should be the
             // IRI of the main ontology used in the import.
+
             val mainOntologyIri: SmartIri = stringFormatter.xmlImportNamespaceToInternalOntologyIriV1(
                 defaultNamespace, throw BadRequestException(s"Invalid XML import namespace: $defaultNamespace")
             )
@@ -769,6 +773,7 @@ object ResourcesRouteV1 extends Authenticator {
             val elementValue = node.text
 
             if (knoraType.nonEmpty) {
+                val language = node.attribute("lang").map(s => s.head.toString)
                 knoraType.toString match {
                     case "richtext_value" =>
                         val maybeMappingID: Option[Seq[Node]] = node.attributes.get("mapping_id")
@@ -781,13 +786,13 @@ object ResourcesRouteV1 extends Authenticator {
                                 if (childElements.nonEmpty) {
                                     val embeddedXmlRootNode = childElements.head
                                     val embeddedXmlDoc = """<?xml version="1.0" encoding="UTF-8"?>""" + embeddedXmlRootNode.toString
-                                    CreateResourceValueV1(richtext_value = Some(CreateRichtextV1(utf8str = None, xml = Some(embeddedXmlDoc), mapping_id = mappingIri)))
+                                    CreateResourceValueV1(richtext_value = Some(CreateRichtextV1(utf8str = None, language = language, xml = Some(embeddedXmlDoc), mapping_id = mappingIri)))
                                 } else {
                                     throw BadRequestException(s"Element '${node.label}' provides a mapping_id, but its content is not XML")
                                 }
 
                             case None =>
-                                CreateResourceValueV1(richtext_value = Some(CreateRichtextV1(utf8str = Some(elementValue))))
+                                CreateResourceValueV1(richtext_value = Some(CreateRichtextV1(utf8str = Some(elementValue), language = language)))
                         }
 
                     case "link_value" =>
@@ -1204,7 +1209,7 @@ object ResourcesRouteV1 extends Authenticator {
                     throw BadRequestException(s"Invalid internal project-specific ontology IRI: $internalOntologyIri")
                 }
 
-                val internalOntologyPrefixLabel: String = internalOntologySmartIri.getPrefixLabel
+                val internalOntologyPrefixLabel: String = internalOntologySmartIri.getLongPrefixLabel
 
                 // Respond with a Content-Disposition header specifying the filename of the generated Zip file.
                 respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> (internalOntologyPrefixLabel + "-xml-schemas.zip")))) {
