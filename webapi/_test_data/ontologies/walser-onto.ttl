@@ -625,16 +625,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					owl:onProperty :textmanifest-fulltext;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
 					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger ;]
-					,  [
-					rdf:type owl:Restriction;
-					owl:onProperty :manifests-expression;
-					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger] ,
-				 [
-					rdf:type owl:Restriction;
-					owl:onProperty :manifests-expressionValue;
-					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger],									 
+					, 									 
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :text-kwa-volume;
@@ -652,39 +643,13 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               
               
 ########################
-## TEXTMANIFEST-NOTATION
-## A sequence of textmanifest-notations allow to localize how the text
-## manifested itself on different textcarrier-columns (possibly 
+## COLUMN
+## A column corresponds to a column of text on a textcarrier.
+## it is related to a textmanifest via StandoffSurfaceColumnTag
 ## on different textcarriers).
 ##
 ## One notation is written on one surface, possibly on more than one 
-## columns
-
-:notation-of  rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf knora-base:isPartOf ;
-          rdfs:label "Notiert einen Teil des Textes"@de ,
-                     "textmanifest reference."@en ;
-
-          rdfs:comment "The textmanifest this notation is part of" ;
-
-          knora-base:subjectClassConstraint :textmanifest-notation;
-          
-          knora-base:objectClassConstraint :textmanifest ;
-
-          salsah-gui:guiElement salsah-gui:Searchbox ;
-
-          salsah-gui:guiAttribute "numprops=1" ;
-
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .   
-                                                
-## Link Value Boilerplate...                                                
-:notation-ofValue  rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf knora-base:isPartOfValue ;                                                
-          knora-base:subjectClassConstraint :textmanifest-notation ;
-          knora-base:objectClassConstraint knora-base:LinkValue .          
+## columns 
           
           
 :notation-sequence-no rdf:type owl:ObjectProperty ;
@@ -699,7 +664,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                         """Cette \"property\" dénote la position dans un séquence."""@fr ,
                         """This property stands for the position within a set of rdered items (resoucres)"""@en ;
 
-           knora-base:subjectClassConstraint :textmanifest-notation ;
+           knora-base:subjectClassConstraint :column ;
 
            knora-base:objectClassConstraint knora-base:IntValue ;
 
@@ -722,7 +687,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            rdfs:label "Auf Textträger-Seite"@de ,                      
                       "On surface"@en ;
                       
-           knora-base:subjectClassConstraint :textmanifest-notation;
+           knora-base:subjectClassConstraint :column;
           
            knora-base:objectClassConstraint :surface ;                      
 
@@ -750,7 +715,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
           rdfs:comment "The sequence number of the notation on the page" ;
 
-          knora-base:subjectClassConstraint :textmanifest-notation ;
+          knora-base:subjectClassConstraint :column ;
           
           knora-base:objectClassConstraint knora-base:TextValue ;
 
@@ -776,7 +741,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                         """Cette \"property\" dénote la position dans un séquence."""@fr ,
                         """This property stands for the position within a set of rdered items (resoucres)"""@en ;
 
-           knora-base:subjectClassConstraint :textmanifest-notation ;
+           knora-base:subjectClassConstraint :column ;
 
            knora-base:objectClassConstraint knora-base:IntValue ;
 
@@ -793,19 +758,9 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                                                 
                                                 
 ##############
-## Class TEXTMANIFEST-NOTATION              
-:textmanifest-notation rdf:type owl:Class ;
-              rdfs:subClassOf knora-base:Resource    ,				
-				 [
-					rdf:type owl:Restriction;
-					owl:onProperty :notation-of;
-					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger] ,
-				 [
-					rdf:type owl:Restriction;
-					owl:onProperty :notation-ofValue;
-					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] ,
+## Class Column             
+:column rdf:type owl:Class ;
+              rdfs:subClassOf knora-base:Resource ,   
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :notation-sequence-no;
@@ -832,6 +787,143 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
 					salsah-gui:guiOrder "6"^^xsd:nonNegativeInteger] ;
 					
-              rdfs:comment "A single manifestation of a text (on a textcarrier)" ;
-              rdfs:label "Textmanifest"@de ,
-              "text manifest"@en .      
+              rdfs:comment "A column of thext on a textcarrier" ;
+              rdfs:label "Kolumne"@de ,
+              "column"@en .      
+
+              
+###########################################
+## STANDOFF TAGS
+###########################################
+
+:standoffResourceStartIndex rdf:type owl:ObjectProperty ;
+		   rdfs:subPropertyOf knora-base:intValue ;
+
+           rdfs:label "Startindex"@de,
+                      "starting index"@en ;
+
+           rdfs:comment """Startindex des Standoff Tags"""@de ,
+                        """starting index of the standoff tag"""@en ;
+
+           knora-base:subjectClassConstraint :StandoffResource ;
+
+           knora-base:objectClassConstraint knora-base:IntValue ;
+
+:standoffResourceEndIndex rdf:type owl:ObjectProperty ;
+		   rdfs:subPropertyOf knora-base:intValue ;
+
+           rdfs:label "Endindex"@de,
+                      "end index"@en ;
+
+           rdfs:comment """Endindex des Standoff Tags"""@de ,
+                        """ending index of the standoff tag"""@en ;
+
+           knora-base:subjectClassConstraint :StandoffResource ;
+
+           knora-base:objectClassConstraint knora-base:IntValue ;
+           
+           
+:standoffResourceTextResourceReference rdf:type  owl:ObjectProperty ;
+ rdfs:subPropertyOf knora-base:hasLinkTo ;
+
+           rdfs:label "Referenced text resource"@de ,                      
+                      "Referenced text resource"@en ;
+                      
+           knora-base:subjectClassConstraint :StandoffResource;
+          
+           knora-base:objectClassConstraint :TextResource ;                      
+
+           salsah-gui:guiElement salsah-gui:Searchbox ;
+
+           salsah-gui:guiAttribute "numprops=2" ;
+
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
+
+:standoffResourceTextResourceReferenceValue rdf:type owl:ObjectProperty ;
+
+                rdfs:subPropertyOf knora-base:hasLinkToValue ;
+              
+                rdfs:label "Referenced text resource"@de ,                      
+                      "Referenced text resource"@en ;
+              
+                knora-base:subjectClassConstraint :TextResource ;
+          		knora-base:objectClassConstraint knora-base:LinkValue .           
+           
+           
+:StandoffResource rdf:type owl:Class ; 
+		rdfs:subClassOf knora-base:Resource ,   
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :standoffResourceTextResourceReference;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger]
+					, [
+					rdf:type owl:Restriction;
+					owl:onProperty :standoffResourceTextResourceReferenceValue;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] 
+					, [
+					rdf:type owl:Restriction;
+					owl:onProperty :standoffResourceStartIndex;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger]
+					, [
+					rdf:type owl:Restriction;
+					owl:onProperty :standoffResourceEndIndex;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger]
+					; 
+			  rdfs:comment "A resource that is related to a fragment of a TextResource" ;
+              rdfs:label "Standoff-Ressource"@de ,
+              "standoff resource"@en .      
+
+:textresource-fulltext rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+
+          rdfs:label "Volltext"@de ,
+                     "Full text"@en ;
+
+          rdfs:comment "The raw text content of the text resource" ;
+
+          knora-base:subjectClassConstraint :TextResource;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:Textarea ;
+
+          salsah-gui:guiAttribute "cols=60" ,
+                                       "rows=3" ,
+                                       "wrap=soft" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                    
+              
+:TextResource rdf:type owl:Class ; 
+		rdfs:subClassOf knora-base:Resource ,   
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :textresource-fulltext;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger] ; 
+			  rdfs:comment "A resource that holds a fulltext field" ;
+              rdfs:label "Text-Ressource"@de ,
+              "text resource"@en .
+              
+
+###  StandoffSurfaceColumnTag
+:StandoffSurfaceTag  rdf:type owl:Class ;
+
+             rdfs:subClassOf knora-base:StandoffLinkTag ;
+
+             rdfs:comment "marks the boundaries of a surfacecolumn in the text. Corresponds to the <pb> and <cb>-Tags in TEI that match with the copy text"@en .
+             
+             
+###  StandoffTextExpressionTag
+:StandoffTextExpressionTag  rdf:type owl:Class ;
+
+             rdfs:subClassOf knora-base:StandoffLinkTag ;
+
+             rdfs:comment "marks the boundaries of a textexpression in the text. Corresponds to the <text> and <group>-Tags in TEI"@en .             
