@@ -22,6 +22,7 @@
 <http://data.knora.org/projects/kwa> a knora-base:knoraProject ;
 	knora-base:projectLongname "Kritische Robert Walser-Ausgabe"^^xsd:string ;
 	knora-base:projectShortname "kwa"^^xsd:string ;
+	knora-base:projectShortcode "CAFE"^^xsd:string ;
 	knora-base:projectDescription "Robert Walser, Kritische Ausgabe sämtlicher Drucke und Manuskripte."^^xsd:string ;
 	knora-base:projectKeywords "KWA Robert Walser"^^xsd:string ;
         knora-base:projectOntology <http://www.knora.org/ontology/kwa> ;
@@ -35,7 +36,7 @@
 	knora-base:email "kwa-admin" ;
 	knora-base:familyName "kwa" ;
 	knora-base:givenName "admin" ;
-	knora-base:password "eb0fd1a2c12fa0ffd795132de678c7078df8e82e" ;
+	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M=" ;
 	knora-base:preferredLanguage "de" ;
 	knora-base:status "true"^^xsd:boolean ;
 	knora-base:isInProject <http://data.knora.org/projects/kwa> ; 
@@ -46,7 +47,7 @@
 	knora-base:email "KWA_APP_USER"^^xsd:string ; 
 	knora-base:familyName "kwa"^^xsd:string ; 
 	knora-base:givenName "application"^^xsd:string ; 
-	knora-base:password "eb0fd1a2c12fa0ffd795132de678c7078df8e82e"^^xsd:string ; 
+	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M="^^xsd:string ; 
 	knora-base:preferredLanguage "de"^^xsd:string ; 
 	knora-base:status "true"^^xsd:boolean ;
 	knora-base:isInProject <http://data.knora.org/projects/kwa> ; 
@@ -56,7 +57,7 @@
 	knora-base:email "matthias.spruenglin@unibas.ch" ;
 	knora-base:familyName "Sprünglin" ;
 	knora-base:givenName "Matthias" ;
-	knora-base:password "eb0fd1a2c12fa0ffd795132de678c7078df8e82e" ;	
+	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M=" ;	
 	knora-base:preferredLanguage "de" ;
 	knora-base:status "true"^^xsd:boolean ;
 	knora-base:isInProject <http://data.knora.org/projects/kwa> ;
@@ -67,7 +68,7 @@
 	knora-base:email "caroline.socha@unibas.ch" ;
 	knora-base:familyName "Socha" ;
 	knora-base:givenName "Caroline" ;
-	knora-base:password "eb0fd1a2c12fa0ffd795132de678c7078df8e82e" ;
+	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M=" ;
 	knora-base:email "caroline.socha@unibas.ch" ;
 	knora-base:preferredLanguage "de" ;
 	knora-base:status "true"^^xsd:boolean ;
