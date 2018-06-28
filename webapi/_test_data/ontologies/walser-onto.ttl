@@ -400,6 +400,51 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## text concept that has been materialized in a textmanifest
 ##
 ## Properties of TEXTEXPRESSION
+:text-title rdf:type owl:ObjectProperty ;
+         rdfs:subPropertyOf knora-base:hasValue, dcterms:title ;
+      
+          rdfs:label "Titel"@de ,
+                     "title"@en ;
+
+          rdfs:comment "The title of the text expression, as found on the textcarrier" ;
+
+          knora-base:subjectClassConstraint :textexpression;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=128" ,
+                                  "maxlength=128" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .
+                                                
+:text-incipit rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf knora-base:hasValue ;
+      
+          rdfs:label "Incipit"@de ,
+                     "incipit"@en ;
+
+          rdfs:comment "The incipit of the text expression, as found on the textcarrier" ;
+
+          knora-base:subjectClassConstraint :textexpression;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+     
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=128" ,
+                                  "maxlength=128" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                
+
+
 :is-textconcept-instance rdf:type owl:ObjectProperty ;
 
            rdfs:subPropertyOf knora-base:hasLinkTo ;
@@ -436,12 +481,22 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					rdf:type owl:Restriction;
 					owl:onProperty :is-textconcept-instance;
 					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger] ,
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :is-textconcept-instanceValue;
 					owl:minCardinality "0"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger];
+					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger],
+				[
+					rdf:type owl:Restriction;
+					owl:onProperty :text-title;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger] ,				
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :text-incipit;
+					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger];
 					
               rdfs:subClassOf knora-base:Resource  ;
               rdfs:comment "An expression of a concept of a text that can be materialized on various textcarriers as different textmanifests" ;
@@ -462,7 +517,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ##
 ## Properties of TEXTMANIFEST
 
-:text-title rdf:type owl:ObjectProperty ;
+:textmanifest-title rdf:type owl:ObjectProperty ;
          rdfs:subPropertyOf knora-base:hasValue, dcterms:title ;
       
           rdfs:label "Titel"@de ,
@@ -482,59 +537,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .
-                                                
-:text-incipit rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf knora-base:hasValue ;
-      
-          rdfs:label "Incipit"@de ,
-                     "incipit"@en ;
-
-          rdfs:comment "The incipit of the manifest text, as found on the textcarrier" ;
-
-          knora-base:subjectClassConstraint :textmanifest;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-     
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=128" ,
-                                  "maxlength=128" ;
-
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                
-
-                                                                     
-                                                                 
-:manifests-expression rdf:type owl:ObjectProperty ;
-
-           rdfs:subPropertyOf knora-base:hasLinkTo ;
-
-           rdfs:label "Realisiert Textexpression"@de ,                      
-                      "Realizes text-expression"@en ;
-                      
-           knora-base:subjectClassConstraint :textmanifest;
-          
-           knora-base:objectClassConstraint :textexpression ;                      
-
-           salsah-gui:guiElement salsah-gui:Searchbox ;
-
-           salsah-gui:guiAttribute "numprops=2" ;
-
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .
-
-:manifests-expressionValue rdf:type owl:ObjectProperty ;
-
-                rdfs:subPropertyOf knora-base:hasLinkToValue ;
-              
-                rdfs:label "Realisiert Textkonzept"@de ,                      
-                	      "Instanciates text-concept"@en ;
-              
-                knora-base:subjectClassConstraint :textmanifest ;
-          		knora-base:objectClassConstraint knora-base:LinkValue .                                                 
+                                                knora-base:Owner .                                                                                                                                                                                                                                 
                                                 
                       
 :text-kwa-volume rdf:type owl:ObjectProperty ;
@@ -588,14 +591,9 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               rdfs:subClassOf :TextResource   ,				
 				 [
 					rdf:type owl:Restriction;
-					owl:onProperty :text-title;
+					owl:onProperty :textmanifest-title;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger] ,				
-				 [
-					rdf:type owl:Restriction;
-					owl:onProperty :text-incipit;
-					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] ,
+					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger] ,								 
 				[
 					rdf:type owl:Restriction;
 					owl:onProperty :textresource-fulltext;
