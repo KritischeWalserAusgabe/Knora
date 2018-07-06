@@ -11,7 +11,7 @@
      rep:repositoryType "graphdb:FreeSailRepository" ;
      sr:sailImpl [
        # owlim:ruleset "owl-horst-optimized" ;
-       owlim:ruleset "/graphdb/KnoraRules.pie" ;
+       owlim:ruleset "KnoraRules.pie" ;
        owlim:check-for-inconsistencies "true";
        sail:sailType "graphdb:FreeSail" ;
        owlim:base-URL "http://rdfh.ch/" ;

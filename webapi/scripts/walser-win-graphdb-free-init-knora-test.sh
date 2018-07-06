@@ -12,19 +12,19 @@ RED='\033[0;31m'
 NO_COLOUR='\033[0m'
 DELIMITER="****************************************************************************************************\n* "
 
-# printf "${GREEN}${DELIMITER}Deleting repository${NO_COLOUR}\n\n"
+printf "${GREEN}${DELIMITER}Deleting repository${NO_COLOUR}\n\n"
 
-# cat graphdb-drop-knora-test-repository.ttl | $CONSOLE
+#cat graphdb-drop-knora-test-repository.ttl | $CONSOLE
 
-# printf "\n${GREEN}${DELIMITER}Creating repository${NO_COLOUR}\n\n"
+printf "\n${GREEN}${DELIMITER}Creating repository${NO_COLOUR}\n\n"
 
-# curl -X POST -H "Content-Type:application/x-turtle" -T graphdb-free-knora-test-repository-config.ttl "$GRAPHDB/repositories/SYSTEM/rdf-graphs/service?graph=http://www.knora.org/config"
+#curl -X POST -H "Content-Type:application/x-turtle" -T graphdb-free-knora-test-repository-config.ttl "$GRAPHDB/repositories/SYSTEM/rdf-graphs/service?graph=http://www.knora.org/config"
 
-# curl -X POST -H "Content-Type:application/x-turtle" -d "<http://www.knora.org/config> a <http://www.openrdf.org/config/repository#RepositoryContext>." $GRAPHDB/repositories/SYSTEM/statements
+curl -X POST -H "Content-Type:application/x-turtle" -d "<http://www.knora.org/config> a <http://www.openrdf.org/config/repository#RepositoryContext>." $GRAPHDB/repositories/SYSTEM/statements
 
-# printf "${GREEN}Repository created.\n\n${DELIMITER}Loading test data${NO_COLOUR}\n\n"
+printf "${GREEN}Repository created.\n\n${DELIMITER}Loading test data${NO_COLOUR}\n\n"
 
-cat win-graphdb-knora-test-data.ttl | $CONSOLE
+cat walser-win-graphdb-knora-test-data.ttl | $CONSOLE
 
 printf "\n\n${GREEN}${DELIMITER}Creating Lucene index${NO_COLOUR}\n\n"
 

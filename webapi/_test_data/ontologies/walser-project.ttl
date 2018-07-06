@@ -25,7 +25,7 @@
 	knora-base:projectShortcode "CAFE"^^xsd:string ;
 	knora-base:projectDescription "Robert Walser, Kritische Ausgabe sämtlicher Drucke und Manuskripte."^^xsd:string ;
 	knora-base:projectKeywords "KWA Robert Walser"^^xsd:string ;
-        knora-base:projectOntology <http://www.knora.org/ontology/kwa> ;
+        knora-base:projectOntology <http://www.knora.org/ontology/CAFE/kwa> ;
         knora-base:projectDataGraph "http://www.knora.org/data/kwa"^^xsd:string ;
 	knora-base:status "true"^^xsd:boolean ;
 	knora-base:hasSelfJoinEnabled "false"^^xsd:boolean .

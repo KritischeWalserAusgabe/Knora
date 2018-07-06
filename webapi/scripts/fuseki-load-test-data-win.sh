@@ -29,4 +29,4 @@ curl -F filedata=@..\\_test_data\\demo_data\\images-demo-data.ttl http://localho
 # curl -F filedata=@..\\_test_data\\ontologies\\agent-ontology-knora.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/agent > /dev/null
 
 curl -F filedata=@..\\_test_data\\ontologies\\walser-project.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/data/kwa
-curl -F filedata=@..\\_test_data\\ontologies\\walser-onto.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/kwa
+curl -F filedata=@..\\_test_data\\ontologies\\walser-onto.ttl http://localhost:3030/knora-test/data?graph=http://www.knora.org/ontology/CAFE/kwa
