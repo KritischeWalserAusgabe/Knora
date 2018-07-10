@@ -51,6 +51,27 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
 
+:image-name  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Bildname"@de ,
+                     "image name."@en ;
+
+          rdfs:comment "The name of the image of the surface" ;
+
+          knora-base:subjectClassConstraint :surface ;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=10" ,
+                                  "maxlength=10" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                
+                                                
 
 :page_no  rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf  knora-base:hasValue ;
@@ -95,9 +116,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
 
-           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
-                                               knora-base:UnknownUser ,
-                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
            knora-base:hasDefaultModifyPermission knora-base:Owner .
                                                 
@@ -144,26 +163,32 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
 					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger 
           			] , 
+          		[
+					rdf:type owl:Restriction;
+					owl:onProperty :image-name;					
+					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger 
+          			] , 	
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :page_no;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger] , 					
+					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger] , 					
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :surface-sequence-no;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger] ,	
+					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger] ,	
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :part-of-textcarrier;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger] ,
+					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :part-of-textcarrierValue;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger] ;
+					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ;
 					
          rdfs:comment
                  "A surface of a textcarrier, normally a page." ; 
@@ -273,7 +298,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           salsah-gui:guiAttribute "size=64" ,
                                   "maxlength=64" ;
 
-          knora-base:hasDefaultViewPermission knora-base:UnknownUser ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
           knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
                                                 
@@ -439,10 +464,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
 
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser;
 
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                
 
 
 :is-textconcept-instance rdf:type owl:ObjectProperty ;
@@ -460,6 +487,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
            salsah-gui:guiAttribute "numprops=2" ;
 
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
+                                               knora-base:UnknownUser ,
+                                               knora-base:ProjectMember ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
@@ -471,7 +504,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                 	      "Instanciates text-concept"@en ;
               
                 knora-base:subjectClassConstraint :textexpression ;
-          		knora-base:objectClassConstraint knora-base:LinkValue . 
+          		knora-base:objectClassConstraint knora-base:LinkValue ;
+
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner . 
 
 
 ##############
@@ -534,10 +574,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
 
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                                                                                                                                                                                                 
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                                                                                                                                                                                                 
                                                 
                       
 :text-kwa-volume rdf:type owl:ObjectProperty ;
@@ -557,9 +599,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           salsah-gui:guiAttribute "size=64" ,
                                   "maxlength=64" ;
 
-          knora-base:hasDefaultViewPermission knora-base:UnknownUser ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
 
-          knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
                                                 
 :text-kwa-page-no rdf:type owl:ObjectProperty ;
 	      rdfs:subPropertyOf  knora-base:hasValue ;
@@ -578,10 +623,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           salsah-gui:guiAttribute "size=64" ,
                                   "maxlength=64" ;
 
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
 
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                 
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                 
                                                  
 ##############
 ## Class TEXTMANIFEST       
@@ -647,11 +694,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
 
-           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
-                                               knora-base:UnknownUser ,
-                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
 
-           knora-base:hasDefaultModifyPermission knora-base:Owner .
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
 
            
 :on-surface rdf:type owl:ObjectProperty ;
@@ -669,6 +717,10 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
            salsah-gui:guiAttribute "numprops=2" ;
 
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
@@ -680,7 +732,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                       		"On surface column"@en ;
               
                 knora-base:subjectClassConstraint :column ;
-          		knora-base:objectClassConstraint knora-base:LinkValue .    
+          		knora-base:objectClassConstraint knora-base:LinkValue ;
+
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .    
           		
 :surface-notation-no  rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf  knora-base:hasValue ;
@@ -700,8 +759,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .          		
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .         		
               
 :on-surface-sequence-no rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:seqnum ;
@@ -724,11 +787,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
 
-           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
-                                               knora-base:UnknownUser ,
-                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
 
-           knora-base:hasDefaultModifyPermission knora-base:Owner .
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
                                                 
                                                 
 ##############
@@ -787,9 +851,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
 
-           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
-                                               knora-base:UnknownUser ,
-                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
            knora-base:hasDefaultModifyPermission knora-base:Owner .
            
@@ -813,9 +875,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
 
-           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
-                                               knora-base:UnknownUser ,
-                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
 
            knora-base:hasDefaultModifyPermission knora-base:Owner .                        
                                    
@@ -835,6 +895,10 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
            salsah-gui:guiAttribute "numprops=2" ;
 
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
@@ -846,7 +910,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                       "Referenced text resource"@en ;
               
                 knora-base:subjectClassConstraint :StandoffResource ;
-          		knora-base:objectClassConstraint knora-base:LinkValue .           
+          		knora-base:objectClassConstraint knora-base:LinkValue ;
+
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .           
            
            
 :StandoffResource rdf:type owl:Class ; 
@@ -896,8 +967,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                    
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                    
               
 :TextResource rdf:type owl:Class ; 
 		rdfs:subClassOf knora-base:Resource ,   
