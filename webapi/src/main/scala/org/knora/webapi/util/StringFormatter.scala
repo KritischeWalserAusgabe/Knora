@@ -335,7 +335,12 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
     StringFormatter. To make this work, SmartIri provides its own equals and hashCode
     methods, which delegate to the string representation of the IRI.
 
-     */
+    */
+
+    /**
+      * Returns this IRI as a string in angle brackets.
+      */
+    def toSparql: String
 
     /**
       * Returns `true` if this is a Knora data or definition IRI.
@@ -422,6 +427,18 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
       * Returns the IRI's [[OntologySchema]], or `None` if this is not a Knora definition IRI.
       */
     def getOntologySchema: Option[OntologySchema]
+
+    /**
+      * Checks that the IRI's ontology schema, if present, corresponds to the specified schema. If the IRI
+      * has no schema, does nothing. If the IRI has a schema that's different to the specified schema, calls
+      * `errorFun`.
+      *
+      * @param allowedSchema the schema to be allowed.
+      * @param errorFun a function that throws an exception. It will be called if the IRI has a different schema
+      *                 to the one specified.
+      * @return the same IRI
+      */
+    def checkApiV2Schema(allowedSchema: ApiV2Schema, errorFun: => Nothing): SmartIri
 
     /**
       * Converts this IRI to another ontology schema.
@@ -829,6 +846,8 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
         override def toString: String = iri
 
+        override def toSparql: String = "<" + iri + ">"
+
         override def isKnoraIri: Boolean = iriInfo.iriType != UnknownIriType
 
         override def isKnoraDataIri: Boolean = iriInfo.iriType == KnoraDataIri
@@ -902,6 +921,19 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
         }
 
         override def getOntologySchema: Option[OntologySchema] = iriInfo.ontologySchema
+
+        override def checkApiV2Schema(allowedSchema: ApiV2Schema, errorFun: => Nothing): SmartIri = {
+            iriInfo.ontologySchema match {
+                case Some(schema) =>
+                    if (schema == allowedSchema) {
+                        this
+                    } else {
+                        errorFun
+                    }
+
+                case None => this
+            }
+        }
 
         override def getShortPrefixLabel: String = getOntologyName
 
