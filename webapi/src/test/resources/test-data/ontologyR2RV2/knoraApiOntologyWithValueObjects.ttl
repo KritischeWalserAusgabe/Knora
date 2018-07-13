@@ -1581,7 +1581,8 @@ knora-api:standoffTagHasStartIndex a owl:DatatypeProperty;
 
 knora-api:standoffTagHasStartParent a owl:ObjectProperty;
   knora-api:objectType knora-api:StandoffTag;
-  knora-api:subjectType knora-api:StandoffTag .
+  knora-api:subjectType knora-api:StandoffTag;
+  rdfs:subPropertyOf knora-api:standoffTagHasStartAncestor .
 
 knora-api:standoffTagHasUUID a owl:DatatypeProperty;
   knora-api:objectType xsd:string;
@@ -2442,6 +2443,24 @@ knora-api:isPartOfValue a owl:ObjectProperty;
   knora-api:subjectType knora-api:Resource;
   rdfs:subPropertyOf knora-api:hasLinkToValue .
 
+knora-api:isResourceClass a owl:AnnotationProperty;
+  knora-api:objectType xsd:boolean;
+  knora-api:subjectType owl:Class;
+  rdfs:comment "Indicates whether class is a subclass of Resource.";
+  rdfs:label "is resource class" .
+
+knora-api:isStandoffClass a owl:AnnotationProperty;
+  knora-api:objectType xsd:boolean;
+  knora-api:subjectType owl:Class;
+  rdfs:comment "Indicates whether class is a subclass of StandoffTag.";
+  rdfs:label "is standoff class" .
+
+knora-api:isValueClass a owl:AnnotationProperty;
+  knora-api:objectType xsd:boolean;
+  knora-api:subjectType owl:Class;
+  rdfs:comment "Indicates whether class is a subclass of Value.";
+  rdfs:label "is value class" .
+
 knora-api:linkValueHasTarget a owl:ObjectProperty;
   knora-api:objectType knora-api:Resource;
   knora-api:subjectType knora-api:LinkValue;
@@ -2485,6 +2504,10 @@ knora-api:seqnum a owl:ObjectProperty;
   rdfs:comment "Indicates the position of a resource within a sequence";
   rdfs:label "Sequence number";
   rdfs:subPropertyOf knora-api:hasValue .
+
+knora-api:standoffTagHasStartAncestor a owl:ObjectProperty, owl:TransitiveProperty;
+  knora-api:objectType knora-api:StandoffTag;
+  knora-api:subjectType knora-api:StandoffTag .
 
 knora-api:subjectType a rdf:Property;
   rdfs:comment "Specifies the required type of the subjects of a property";

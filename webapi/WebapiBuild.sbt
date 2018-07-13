@@ -3,6 +3,7 @@ import NativePackagerHelper._
 import sbt.io.IO
 import sbtassembly.MergeStrategy
 import sbtassembly.MergeStrategy._
+import sbt.librarymanagement.Resolver
 
 connectInput in run := true
 
@@ -69,6 +70,9 @@ lazy val webapi = (project in file(".")).
             ) ++ baseAssemblySettings
         ): _*).
         settings(
+            resolvers ++= Seq(
+                Resolver.bintrayRepo("hseeberger", "maven")
+            ),
             libraryDependencies ++= webApiLibs,
             scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation", "-Yresolve-term-conflict:package"),
             logLevel := Level.Info,
@@ -85,7 +89,9 @@ lazy val webapi = (project in file(".")).
             parallelExecution in Test := false,
             // enable publishing the jar produced by `sbt test:package` and `sbt it:package`
             publishArtifact in (Test, packageBin) := true,
-            publishArtifact in (IntegrationTest, packageBin) := true
+            publishArtifact in (IntegrationTest, packageBin) := true,
+            // enable test code coverage
+            coverageEnabled := true
         ).
         settings( // enable deployment staging with `sbt stage`. uses fat jar assembly.
             // we specify the name for our fat jars (main, test, it)
@@ -142,7 +148,7 @@ lazy val webapi = (project in file(".")).
 lazy val webApiCommonSettings = Seq(
     organization := "org.knora",
     name := "webapi",
-    version := "1.5.0",
+    version := "1.6.0",
     scalaVersion := "2.12.4"
 )
 
@@ -279,7 +285,7 @@ lazy val library =
         val scalaJava8Compat       = "org.scala-lang.modules"        % "scala-java8-compat_2.12"  % "0.8.0"
 
         // provides akka jackson (json) support
-        val akkaHttpCirce          = "de.heikoseeberger"            %% "akka-http-circe"          % "1.20.1"
+        val akkaHttpCirce          = "de.heikoseeberger"            %% "akka-http-circe"          % "1.21.0"
         val jacksonScala           = "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.9.4"
 
         val jsonldJava             = "com.github.jsonld-java"        % "jsonld-java"              % "0.12.0"
@@ -290,8 +296,8 @@ lazy val library =
 
 lazy val javaRunOptions = Seq(
     // "-showversion",
-    "-Xms2G",
-    "-Xmx2G"
+    "-Xms1G",
+    "-Xmx1G"
     // "-verbose:gc",
     //"-XX:+UseG1GC",
     //"-XX:MaxGCPauseMillis=500"
