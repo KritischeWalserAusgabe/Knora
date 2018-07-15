@@ -70,7 +70,28 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
 
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                
+                                                knora-base:Owner .    
+                                                
+:transcription-name  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Bildname"@de ,
+                     "image name."@en ;
+
+          rdfs:comment "The name of the image of the surface" ;
+
+          knora-base:subjectClassConstraint :surface ;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=10" ,
+                                  "maxlength=10" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                 
                                                 
 
 :page_no  rdf:type owl:ObjectProperty ;
@@ -169,6 +190,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
 					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger 
           			] , 	
+          		[
+					rdf:type owl:Restriction;
+					owl:onProperty :transcription-name;					
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;					
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger 
+          			] ,           			
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :page_no;
@@ -512,6 +539,54 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner . 
+                                                 
+:textexpression-kwa-volume rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  knora-base:hasValue ;
+
+          rdfs:label "KWA Band"@de ,
+                     "KWA volume"@en ;
+
+          rdfs:comment "The KWA volume of this text" ;
+
+          knora-base:subjectClassConstraint :textexpression;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=64" ,
+                                  "maxlength=64" ;
+
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
+                                                
+:textexpression-kwa-page-no rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  knora-base:hasValue ;
+
+          rdfs:label "KWA Seitenzahl"@de ,
+                     "KWA page number"@en ;
+
+          rdfs:comment "The KWA page number of this text" ;
+
+          knora-base:subjectClassConstraint :textexpression;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=64" ,
+                                  "maxlength=64" ;
+
+           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                 
 
 
 ##############
@@ -536,7 +611,17 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					rdf:type owl:Restriction;
 					owl:onProperty :text-incipit;
 					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger];
+					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger], 									 
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :textexpression-kwa-volume;
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ,
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :textexpression-kwa-page-no;
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
+					salsah-gui:guiOrder "6"^^xsd:nonNegativeInteger] ;
 					
               rdfs:subClassOf knora-base:Resource  ;
               rdfs:comment "An expression of a concept of a text that can be materialized on various textcarriers as different textmanifests" ;

@@ -28,10 +28,10 @@ import akka.http.scaladsl.server.Route
 import akka.pattern._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import kamon.Kamon
-import kamon.jaeger.JaegerReporter
-import kamon.prometheus.PrometheusReporter
-import kamon.zipkin.ZipkinReporter
+// import kamon.Kamon
+// import kamon.jaeger.JaegerReporter
+// import kamon.prometheus.PrometheusReporter
+// import kamon.zipkin.ZipkinReporter
 import org.knora.webapi.app._
 import org.knora.webapi.http.CORSSupport.CORS
 import org.knora.webapi.messages.app.appmessages.AppState.AppState
@@ -392,23 +392,23 @@ trait KnoraService {
       * the application which we will use to look at the collected data.
       */
     private def startReporters(): Unit = {
-
+/*
         implicit val blockingDispatcher: MessageDispatcher = system.dispatchers.lookup("my-blocking-dispatcher")
         implicit val executor: ExecutionContext = blockingDispatcher
 
         val prometheusReporter = Await.result(applicationStateActor ? GetPrometheusReporterState(), 1.second).asInstanceOf[Boolean]
         if (prometheusReporter) {
-            Kamon.addReporter(new PrometheusReporter()) // metrics
+            // Kamon.addReporter(new PrometheusReporter()) // metrics
         }
 
         val zipkinReporter = Await.result(applicationStateActor ? GetZipkinReporterState(), 1.second).asInstanceOf[Boolean]
         if (zipkinReporter) {
-            Kamon.addReporter(new ZipkinReporter()) // tracing
+            // Kamon.addReporter(new ZipkinReporter()) // tracing
         }
 
         val jaegerReporter = Await.result(applicationStateActor ? GetJaegerReporterState(), 1.second).asInstanceOf[Boolean]
         if (jaegerReporter) {
-            Kamon.addReporter(new JaegerReporter()) // tracing
-        }
+            // Kamon.addReporter(new JaegerReporter()) // tracing
+        }*/
     }
 }
