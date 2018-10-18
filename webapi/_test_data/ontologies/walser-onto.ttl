@@ -93,13 +93,34 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                 
                                                 
+                                                
+:transcription-name  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Bildname"@de ,
+                     "image name."@en ;
 
-:page_no  rdf:type owl:ObjectProperty ;
+          rdfs:comment "The name of the image of the surface" ;
+
+          knora-base:subjectClassConstraint :surface ;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=10" ,
+                                  "maxlength=10" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                
+
+:image-description  rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf  knora-base:hasValue ;
           rdfs:label "Seitenzahl"@de ,
                      "page no."@en ;
 
-          rdfs:comment "The page number of the page (explicit or [assigned by editor])" ;
+          rdfs:comment "A descriptive string to be shown with the image, e.g. the image provenence." ;
 
           knora-base:subjectClassConstraint :surface ;
           
@@ -114,7 +135,30 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
-                 
+
+                                                
+:image-copyright  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Seitenzahl"@de ,
+                     "page no."@en ;
+
+          rdfs:comment "A copyright string to be shown with the image." ;
+
+          knora-base:subjectClassConstraint :surface ;
+          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+
+          salsah-gui:guiAttribute "size=10" ,
+                                  "maxlength=10" ;
+
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .
+                                                
+                                                
 
 :surface-sequence-no rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:seqnum ;
@@ -195,7 +239,19 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					owl:onProperty :transcription-name;					
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;					
 					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger 
-          			] ,           			
+          			] ,
+          		[
+					rdf:type owl:Restriction;
+					owl:onProperty :image-description;					
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;					
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger 
+          			] ,
+           		[
+					rdf:type owl:Restriction;
+					owl:onProperty :image-copyright;					
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;					
+					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger 
+          			] ,
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :page_no;
