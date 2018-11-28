@@ -7,6 +7,7 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix knora-base: <http://www.knora.org/ontology/knora-base#> .
 @prefix salsah-gui: <http://www.knora.org/ontology/salsah-gui#> .
+@prefix standoff: <http://www.knora.org/ontology/standoff#> .
 
 @base <http://www.knora.org/ontology/CAFE/kwa> .
 
@@ -1124,7 +1125,58 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               rdfs:label "Text-Ressource"@de ,
               "text resource"@en .
               
+#
+#   Attributes for the regular standoff tags
+#
+    
+:standoffTagHasRendAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes rendition of the tag as defined in tei guidelines"@en ;
+                  knora-base:subjectClassConstraint :StandoffRenderableTag ;
+                  knora-base:objectDatatypeConstraint xsd:string .
+                  
+:standoffTagHasHandAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes the hand responsible for the content of the element as defined in tei guidelines"@en ;
+                  knora-base:subjectClassConstraint :StandoffRenderableTag ;
+                  knora-base:objectDatatypeConstraint xsd:string .                  
+#
+#  The regular standoff tags
+#
+#  Class StandoffRenderableTag: 
+#       an abstract super class for all tags with the @rend and @hand attribute (hi, p, etc.)              
+:StandoffRenderableTag  rdf:type owl:Class ;
+				rdfs:subClassOf knora-base:StandoffTag, [
+										rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasRendAttribute;
+										owl:minCardinality "1"^^xsd:nonNegativeInteger  ;
+										],
+										[
+										rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasHandAttribute;
+										owl:minCardinality "1"^^xsd:nonNegativeInteger  ;
+										];
+										rdfs:comment "A tag that optionally bears a rend and a hand attribute" .
+#
+#
+#  The tei p tag.
+#
+:StandoffTeiPTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffParagraphTag;
+			   rdfs:subClassOf :StandoffRenderableTag ;
+               rdfs:comment "marks a paragraph as defined by the tei guidelines"@en .               
+               
 
+#
+#
+#  The tei hi tag. A visual tag that emphasizes things, and can be rendered in various ways (thus has a @rend attribute)
+#
+:StandoffTeiHiTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffVisualTag;
+			   rdfs:subClassOf :StandoffRenderableTag ;
+               rdfs:comment "marks a highlighted span of text as defined by the tei guidelines"@en .                 
+               
+               
 ###  StandoffSurfaceColumnTag
 ###  :StandoffSurfaceTag  rdf:type owl:Class ;
 ###  
