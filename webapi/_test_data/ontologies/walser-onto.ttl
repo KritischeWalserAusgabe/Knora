@@ -1127,6 +1127,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               
 #
 #   Attributes for the regular standoff tags
+#    TODO: check if it is possible to limit the values that are allowed
 #
     
 :standoffTagHasRendAttribute rdf:type owl:DatatypeProperty ;
@@ -1139,7 +1140,21 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                   rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
                   rdfs:comment "describes the hand responsible for the content of the element as defined in tei guidelines"@en ;
                   knora-base:subjectClassConstraint :StandoffRenderableTag ;
-                  knora-base:objectDatatypeConstraint xsd:string .                  
+                  knora-base:objectDatatypeConstraint xsd:string .    
+                  
+:standoffTagHasTypeAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes a more detailed type of content of the element as defined in tei guidelines, eg. a lead may be a type of heading (not covered by its own tag)"@en ;
+                  knora-base:subjectClassConstraint :StandoffTypedTag ;
+                  knora-base:objectDatatypeConstraint xsd:string .     
+
+# an attribute to markup the part of a verse line, if the verse line is split, eg. into speech turns                  
+:standoffTagHasPartAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes the part of a verse represented by this l tag (I, M or F)"@en ;
+                  knora-base:subjectClassConstraint :StandoffTeiLTag ;
+                  knora-base:objectDatatypeConstraint xsd:string .                     
+                  
 #
 #  The regular standoff tags
 #
@@ -1149,14 +1164,26 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 				rdfs:subClassOf knora-base:StandoffTag, [
 										rdf:type owl:Restriction;
 										owl:onProperty :standoffTagHasRendAttribute;
-										owl:minCardinality "1"^^xsd:nonNegativeInteger  ;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
 										],
 										[
 										rdf:type owl:Restriction;
 										owl:onProperty :standoffTagHasHandAttribute;
-										owl:minCardinality "1"^^xsd:nonNegativeInteger  ;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
 										];
 										rdfs:comment "A tag that optionally bears a rend and a hand attribute" .
+										
+#
+#  Class StandoffTypedTag: 
+#       an abstract super class for all tags with the @type attribute (head etc)              
+:StandoffTypedTag  rdf:type owl:Class ;
+				rdfs:subClassOf knora-base:StandoffTag, [
+										rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasTypeAttribute;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
+										];
+										rdfs:comment "A tag that optionally bears a type attribute" .										
+
 #
 #
 #  The tei p tag.
@@ -1167,6 +1194,46 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                rdfs:comment "marks a paragraph as defined by the tei guidelines"@en .               
                
 
+#
+#
+#  The tei head tag.
+#  I am not using the StandoffHxxxTags because they imply the level thingy which contradicts the tei guidelines that 
+#    infer this info from the nesting of the head within divisions
+#
+:StandoffTeiHeadTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffParagraphTag;
+			   rdfs:subClassOf :StandoffRenderableTag ;
+			   rdfs:subClassOf :StandoffTypedTag ;
+               rdfs:comment "marks a header as defined by the tei guidelines"@en .               
+      
+#
+#
+#  The tei byline tag.
+#
+#
+:StandoffTeiBylineTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffParagraphTag;
+			   rdfs:subClassOf :StandoffRenderableTag ;
+			   rdfs:comment "marks a byline as defined by the tei guidelines"@en .                   
+
+#
+#  The tei lg tag. A structural tag for a strophe of verse
+#
+:StandoffTeiLgTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;
+               rdfs:comment "marks a strophe of verse"@en .			   
+			   
+#
+#  The tei l tag. A structural tag for a line of verse
+#
+:StandoffTeiLTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag, [rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasPartAttribute;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
+										];
+			   rdfs:subClassOf :StandoffRenderableTag ;
+               rdfs:comment "marks a line of verse"@en .
+			   
 #
 #
 #  The tei hi tag. A visual tag that emphasizes things, and can be rendered in various ways (thus has a @rend attribute)
