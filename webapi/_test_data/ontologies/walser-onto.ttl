@@ -1153,7 +1153,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                   rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
                   rdfs:comment "describes the part of a verse represented by this l tag (I, M or F)"@en ;
                   knora-base:subjectClassConstraint :StandoffTeiLTag ;
-                  knora-base:objectDatatypeConstraint xsd:string .                     
+                  knora-base:objectDatatypeConstraint xsd:string .       
+                  
+# an attribute to markup the place where an addition takes place                  
+:standoffTagHasPlaceAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes the part of a verse represented by this l tag (I, M or F)"@en ;
+                  knora-base:subjectClassConstraint :StandoffTeiAddTag ;
+                  knora-base:objectDatatypeConstraint xsd:string .                             
                   
 #
 #  The regular standoff tags
@@ -1185,13 +1192,64 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 										rdfs:comment "A tag that optionally bears a type attribute" .										
 
 #
+#  The tei text tag
+#
+:StandoffTeiTextTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;			   
+               rdfs:comment "marks a text, possibly within a group of texts"@en .										
+		
+               
+#
+#  The tei group tag
+#
+:StandoffTeiGroupTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;			   
+               rdfs:comment "marks a group of texts"@en .
+               
+#
+#  The tei div tag
+#
+:StandoffTeiDivTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;		
+               rdfs:subClassOf :StandoffTypedTag ;
+               rdfs:comment "marks a division within a text"@en .
+										
+										
+#
 #
 #  The tei p tag.
 #
 :StandoffTeiPTag rdf:type owl:Class ;
                rdfs:subClassOf standoff:StandoffParagraphTag;
 			   rdfs:subClassOf :StandoffRenderableTag ;
-               rdfs:comment "marks a paragraph as defined by the tei guidelines"@en .               
+               rdfs:comment "marks a paragraph as defined by the tei guidelines"@en .
+               
+#
+#
+#  The tei sp tag.
+#
+:StandoffTeiPTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;
+               rdfs:comment "marks a part of speech"@en .               
+     
+#
+#
+#  The tei speaker tag.
+#
+:StandoffTeiSpeakerTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;
+               rdfs:subClassOf :StandoffRenderableTag ;
+               rdfs:comment "marks speeker role within a part of speech"@en .                 
+
+#
+#
+#  The tei stage tag.
+#
+:StandoffTeiStageTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;
+               rdfs:subClassOf :StandoffRenderableTag ;
+               rdfs:subClassOf :StandoffTypedTag ;
+               rdfs:comment "marks a stage instruction in a dramatic text"@en .                    
                
 
 #
@@ -1217,6 +1275,15 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 			   rdfs:comment "marks a byline as defined by the tei guidelines"@en .                   
 
 #
+#
+#  The tei unclear tag.
+#
+#
+:StandoffTeiUnclearTag rdf:type owl:Class ;
+               rdfs:subClassOf knora-base:StandoffTag;
+			   rdfs:comment "marks a part of text as not clearly readable"@en .  			   
+			   
+#
 #  The tei lg tag. A structural tag for a strophe of verse
 #
 :StandoffTeiLgTag rdf:type owl:Class ;
@@ -1233,6 +1300,29 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 										];
 			   rdfs:subClassOf :StandoffRenderableTag ;
                rdfs:comment "marks a line of verse"@en .
+               
+
+#
+#  The tei add tag. A structural tag for a part of text added to the previously existing text
+#
+:StandoffTeiAddTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag, [rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasPlaceAttribute;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
+										];
+			   rdfs:subClassOf :StandoffRenderableTag ;
+			   rdfs:subClassOf :StandoffTypedTag ;			   
+               rdfs:comment "marks a part of text added to the previously existing text"@en .      
+               
+#
+#  The tei del tag. A structural tag for a part of text that has been marked as deleted
+#
+:StandoffTeiDelTag rdf:type owl:Class ;
+               rdfs:subClassOf standoff:StandoffStructuralTag;
+			   rdfs:subClassOf :StandoffRenderableTag ;
+			   rdfs:subClassOf :StandoffTypedTag ;			   
+               rdfs:comment "marks a part of a text marked for deletion"@en .                   
+               
 			   
 #
 #
