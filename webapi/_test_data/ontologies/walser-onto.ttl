@@ -1228,7 +1228,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 #
 #  The tei sp tag.
 #
-:StandoffTeiPTag rdf:type owl:Class ;
+:StandoffTeiSpTag rdf:type owl:Class ;
                rdfs:subClassOf standoff:StandoffStructuralTag;
                rdfs:comment "marks a part of speech"@en .               
      
