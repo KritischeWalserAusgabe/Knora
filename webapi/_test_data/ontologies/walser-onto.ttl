@@ -1156,11 +1156,25 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                   knora-base:objectDatatypeConstraint xsd:string .       
                   
 # an attribute to markup the place where an addition takes place                  
+:standoffTagHasNAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes the number of a page or column"@en ;
+                  knora-base:subjectClassConstraint :StandoffNumerableTag ;
+                  knora-base:objectDatatypeConstraint xsd:string . 
+                  
+# an attribute to markup the place where an addition takes place                  
+:standoffTagHasEdAttribute rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
+                  rdfs:comment "describes the witness of a page or column break"@en ;
+                  knora-base:subjectClassConstraint :StandoffNumerableTag ;
+                  knora-base:objectDatatypeConstraint xsd:string . 
+                  
+# an attribute to markup the place where an addition takes place                  
 :standoffTagHasPlaceAttribute rdf:type owl:DatatypeProperty ;
                   rdfs:subPropertyOf knora-base:objectCannotBeMarkedAsDeleted ;
                   rdfs:comment "describes the part of a verse represented by this l tag (I, M or F)"@en ;
                   knora-base:subjectClassConstraint :StandoffTeiAddTag ;
-                  knora-base:objectDatatypeConstraint xsd:string .                             
+                  knora-base:objectDatatypeConstraint xsd:string .                   
                   
 #
 #  The regular standoff tags
@@ -1189,7 +1203,23 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 										owl:onProperty :standoffTagHasTypeAttribute;
 										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
 										];
-										rdfs:comment "A tag that optionally bears a type attribute" .										
+										rdfs:comment "A tag that optionally bears a type attribute" .
+										
+#
+#  Class StandoffNumerableTag: 
+#       an abstract super class for all tags with the @n and @ed attributes              
+:StandoffNumerableTag  rdf:type owl:Class ;
+				rdfs:subClassOf knora-base:StandoffTag, [
+										rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasNAttribute;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
+										], 
+										[
+										rdf:type owl:Restriction;
+										owl:onProperty :standoffTagHasEdAttribute;
+										owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;
+										];
+										rdfs:comment "A tag that optionally bears an n and a ed attribute" .										
 
 #
 #  The tei text tag
@@ -1274,6 +1304,28 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 			   rdfs:subClassOf :StandoffRenderableTag ;
 			   rdfs:comment "marks a byline as defined by the tei guidelines"@en .                   
 
+#
+#
+#  The tei pb tag.
+#
+#
+:StandoffTeiPbTag rdf:type owl:Class ;
+               rdfs:subClassOf knora-base:StandoffTag;
+			   rdfs:subClassOf :StandoffNumerableTag ;
+			   rdfs:comment "marks a page break in some text witness"@en . 			   
+
+#
+#
+#  The tei cb tag.
+#
+#
+:StandoffTeiCbTag rdf:type owl:Class ;
+               rdfs:subClassOf knora-base:StandoffTag;
+               rdfs:subClassOf :StandoffNumerableTag ;
+			   rdfs:comment "marks a column break in some text witness"@en . 			   
+			   
+			   
+			   
 #
 #
 #  The tei unclear tag.
