@@ -969,6 +969,90 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               rdfs:label "Kolumne"@de ,
               "column"@en .      
 
+
+###########################################              
+#  Personen- und Rezeptionsdatenbank
+###########################################
+# TODO: relate to human:Person and inherit stuff from there
+
+:hasGivenName  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Vorname"@de ,
+                     "first name."@en ;
+          knora-base:subjectClassConstraint :Person;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                     
+
+:hasFamilyName  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Nachname"@de ,
+                     "family name."@en ;
+          knora-base:subjectClassConstraint :Person;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .
+                     
+:hasAlias  rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Alias"@de ,
+                     "alias"@en ;
+          knora-base:subjectClassConstraint :Person;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                     
+                     
+:hasTitle rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Titel"@de ,
+                     "title."@en ;                        
+          knora-base:subjectClassConstraint :Person;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner . 
+                                                
+:hasDescription rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Beschreibung"@de ,
+                     "description."@en ;                        
+          knora-base:subjectClassConstraint :Person;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                
+:hasBirthdate
+	a owl:ObjectProperty;
+	rdfs:label "has birthdate"@en, "hat Geburtsdatum"@de;
+	rdfs:comment """Relating a person to the birthdate of that person."""@en;
+	rdfs:subPropertyOf knora-base:hasValue;	
+	knora-base:subjectClassConstraint :Person;
+    knora-base:objectClassConstraint knora-base:DateValue.
+    
+:hasDeathDate
+	a owl:ObjectProperty;
+	rdfs:label "has death date"@en, "hat Todesdatum"@de;
+	rdfs:comment """Relating a person to the death date of that person."""@en;
+	rdfs:subPropertyOf knora-base:hasValue;	
+	knora-base:subjectClassConstraint :Person;
+    knora-base:objectClassConstraint knora-base:DateValue.      
+
+:Person rdf:type owl:Class ;
+	rdfs:subClassOf knora-base:Resource, foaf:Person,  [ 
+		a owl:Restriction; owl:onProperty :hasBirthdate; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty :hasDeathDate; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty :hasFamilyName; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty :hasGivenName; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty :hasAlias; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty :hasTitle; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
+		a owl:Restriction; owl:onProperty :hasDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger]; 
+	    rdfs:comment "A natural person" ;
+              rdfs:label "Person"@de ,
+              "person"@en .
+
               
 ###########################################
 ## STANDOFF TAGS
