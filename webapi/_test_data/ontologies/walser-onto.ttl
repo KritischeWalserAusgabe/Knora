@@ -1052,7 +1052,42 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	    rdfs:comment "A natural person" ;
               rdfs:label "Person"@de ,
               "person"@en .
+              
+:Periodical rdf:type owl:Class ;
+    rdfs:subClassOf knora-base:Resource ;
+        rdfs:comment "The organizational frame of a periodical publication" ;
+              rdfs:label "Periodikum"@de ,
+              "periodical"@en .
+              
+:Journal rdf:type owl:Class ;
+    rdfs:subClassOf walser:Periodical ;
+        rdfs:comment "A magazine or journal" ;
+              rdfs:label "Zeitschrift"@de ,
+              "journal"@en .              
 
+:Newspaper rdf:type owl:Class ;
+    rdfs:subClassOf walser:Periodical ;
+        rdfs:comment "A newspaper (as a series, not as an object)" ;
+              rdfs:label "Zeitung (als Periodikum, nicht als Nummer)"@de ,
+              "journal"@en .              
+              
+:PeriodicalIssue rdf:type owl:Class ;
+    rdfs:subClassOf walser:textcarrier ;
+        rdfs:comment "An issue of a periodical publication" ;
+              rdfs:label "Nummer eines Periodikus"@de ,
+              "periodical issue"@en .          
+              
+:JournalIssue rdf:type owl:Class ;
+    rdfs:subClassOf walser:PeriodicalIssue ;
+        rdfs:comment "An issue of a journal" ;
+              rdfs:label "Nummer einer Zeitschrift"@de ,
+              "Journal issue"@en .
+
+:NewspaperIssue rdf:type owl:Class ;
+    rdfs:subClassOf walser:PeriodicalIssue ;
+        rdfs:comment "An issue of a newspaper" ;
+              rdfs:label "Nummer einer Zeitschrift"@de ,
+              "Journal issue"@en .              
               
 ###########################################
 ## STANDOFF TAGS
