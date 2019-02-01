@@ -32,23 +32,15 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
 :surface-name rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:hasValue, dcterms:title ;
-      
           rdfs:label "Titel"@de ,
                      "title"@en ;
-
           rdfs:comment "A descriptive title of the surface" ;
-
           knora-base:subjectClassConstraint :surface;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
 
@@ -56,20 +48,13 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:subPropertyOf  knora-base:hasValue ;
           rdfs:label "Bildname"@de ,
                      "image name."@en ;
-
           rdfs:comment "The name of the image of the surface" ;
-
           knora-base:subjectClassConstraint :surface ;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=10" ,
                                   "maxlength=10" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .    
                                                 
@@ -77,20 +62,13 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:subPropertyOf  knora-base:hasValue ;
           rdfs:label "Bildname"@de ,
                      "image name."@en ;
-
           rdfs:comment "The name of the image of the surface" ;
-
           knora-base:subjectClassConstraint :surface ;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=10" ,
                                   "maxlength=10" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                 
                                                                                                                                             
@@ -101,18 +79,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                      "Image description."@en ;
 
           rdfs:comment "A descriptive string to be shown with the image, e.g. the image provenence." ;
-
           knora-base:subjectClassConstraint :surface ;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=10" ,
                                   "maxlength=10" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
 
@@ -123,18 +95,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                      "image copyright."@en ;
 
           rdfs:comment "A copyright string to be shown with the image." ;
-
           knora-base:subjectClassConstraint :surface ;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=10" ,
                                   "maxlength=10" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
                                                                   
@@ -142,68 +108,45 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:subPropertyOf  knora-base:hasValue ;
           rdfs:label "Seitenzahl"@de ,
                      "page no."@en ;
-
           rdfs:comment "The page number of the page (explicit or [assigned by editor])" ;
-
           knora-base:subjectClassConstraint :surface ;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=10" ,
                                   "maxlength=10" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
 
 :surface-sequence-no rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:seqnum ;
-
            rdfs:label "Sequenznummer"@de ,
                       "Numéro de Séquence"@fr ,
                       "Numero di scala"@it ,
                       "Sequence number"@en ;
-
            rdfs:comment """Sequenznummer zur Sortierung der Seiten"""@de ,
                         """Cette \"property\" dénote la position dans un séquence."""@fr ,
                         """This property stands for the position within a set of rdered items (resoucres)"""@en ;
-
            knora-base:subjectClassConstraint :surface ;
-
            knora-base:objectClassConstraint knora-base:IntValue ;
-
            salsah-gui:guiElement salsah-gui:Spinbox ;
-
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner .
                                                 
                                                 
                                                 
 :part-of-textcarrier  rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:isPartOf ;
-
           rdfs:label "Gehört zu Textträger"@de ,
                      "is part of textcarrier."@en ;
-
           rdfs:comment "The textcarrier this page belongs to" ;
-
           knora-base:subjectClassConstraint :surface;
-          
           knora-base:objectClassConstraint :textcarrier ;
-
           salsah-gui:guiElement salsah-gui:Searchbox ;
-
           salsah-gui:guiAttribute "numprops=1" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
           
@@ -285,7 +228,47 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
                      
-                  
+##########################################################
+# common properties of textual objects
+#  TODO: should there be a superclass for textual objects?
+#  TODO: use NIE-INE-Ontologies
+##########################################################
+:hasTitle
+	a owl:ObjectProperty;
+	rdfs:label "has title"@en, "hat Titel"@de;
+	rdfs:comment """Relating a resource to a title (as object) as a textual identifier of the resource."""@en;
+	rdfs:subPropertyOf  knora-base:hasValue, dcterms:title ; # Note: NIE-INE has a super-property hasText
+	knora-base:subjectClassConstraint knora-base:Resource;
+	knora-base:objectClassConstraint knora-base:TextValue;
+	salsah-gui:guiElement salsah-gui:Richtext.             
+	
+:kwa-volume rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "KWA Band"@de ,
+                     "KWA volume"@en ;
+          rdfs:comment "The KWA volume this resource is relevant for" ;
+          knora-base:subjectClassConstraint :textcarrier;
+          knora-base:objectClassConstraint knora-base:Resource ;
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+          salsah-gui:guiAttribute "size=64" ,
+                                  "maxlength=64" ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
+                                                
+:kwa-page-no rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "KWA Seitenzahl"@de ,
+                     "KWA page number"@en ;
+          rdfs:comment "The KWA page number where this resource is described or named" ;
+          knora-base:subjectClassConstraint knora-base:Resource;
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+          salsah-gui:guiAttribute "size=64" ,
+                                  "maxlength=64" ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .	
+                                                
 ###############################################
 ## TEXTCARRIER
 ##############
@@ -295,116 +278,50 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ##
 ## Properties of TEXTCARRIER
 :textcarrier-name rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf   knora-base:hasValue, dcterms:title ;
-      
+          rdfs:subPropertyOf   :hasTitle ;
           rdfs:label "Titel"@de ,
                      "title"@en ;
-
           rdfs:comment "A descriptive title of the textcarrier" ;
-
           knora-base:subjectClassConstraint :textcarrier;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
 
 :textcarrier-description rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:hasValue, dcterms:description ;
-
           rdfs:label "Beschreibung"@de ,
                      "Description"@en ;
-
           rdfs:comment "A description of the textcarrier" ;
-
           knora-base:subjectClassConstraint :textcarrier;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:Textarea ;
-
           salsah-gui:guiAttribute "cols=60" ,
                                        "rows=3" ,
                                        "wrap=soft" ;
 
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
                                                                                    
                                                 
 :textcarrier-kwa-id rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:hasValue, dcterms:identifier ;
-
           rdfs:label "KWA Textträger-Id"@de ,
                      "Kwa textcarrier id"@en ;
-
           rdfs:comment "The Id of the textcarrier in the context of the kwa. A more convenient and stable alternative to the knora-id." ;
-
           knora-base:subjectClassConstraint :textcarrier;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
-                          
-                                                
-:kwa-volume rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "KWA Band"@de ,
-                     "KWA volume"@en ;
-
-          rdfs:comment "The KWA volume this textcarrier is relevant for" ;
-
-          knora-base:subjectClassConstraint :textcarrier;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
-
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-          knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
-                                                
-:kwa-page-no rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "KWA Seitenzahl"@de ,
-                     "KWA page number"@en ;
-
-          rdfs:comment "The KWA page number where this textcarrier is described" ;
-
-          knora-base:subjectClassConstraint :textcarrier;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
-
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                  
+                                                                                                                            
          
 #################
 # Class TEXTCARRIER
@@ -462,24 +379,16 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## Properties of TEXTCONCEPT
          
 :textconcept-title rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf knora-base:hasValue, dcterms:title ;
-      
+          rdfs:subPropertyOf :hasTitle ;
           rdfs:label "Titel"@de ,
                      "title"@en ;
-
           rdfs:comment "A descriptive title for the text concept" ;
-
           knora-base:subjectClassConstraint :textconcept;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
 
@@ -494,7 +403,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger] ;
 					
               rdfs:subClassOf knora-base:Resource  ;
-              rdfs:comment "A concept of a text that can be materialized on various textcarriers as different textmanifests" ;
+              rdfs:comment "A concept of a text that can be materialized on various versions on textcarriers as different textmanifests" ;
               rdfs:label "Textkonzept"@de ,
                           "text concept"@en .
                
@@ -508,141 +417,60 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ##
 ## Properties of TEXTEXPRESSION
 :text-title rdf:type owl:ObjectProperty ;
-         rdfs:subPropertyOf knora-base:hasValue, dcterms:title ;
-      
+         rdfs:subPropertyOf :hasTitle ;
           rdfs:label "Titel"@de ,
                      "title"@en ;
-
           rdfs:comment "The title of the text expression, as found on the textcarrier" ;
-
           knora-base:subjectClassConstraint :textexpression;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .
                                                 
 :text-incipit rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:hasValue ;
-      
           rdfs:label "Incipit"@de ,
                      "incipit"@en ;
-
           rdfs:comment "The incipit of the text expression, as found on the textcarrier" ;
-
           knora-base:subjectClassConstraint :textexpression;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-     
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .                                                
 
 
 :is-textconcept-instance rdf:type owl:ObjectProperty ;
-
            rdfs:subPropertyOf knora-base:hasLinkTo ;
-
            rdfs:label "Realisiert Textkonzept"@de ,                      
                       "Instanciates text-concept"@en ;
-                      
            knora-base:subjectClassConstraint :textexpression;
-          
            knora-base:objectClassConstraint :textconcept ;                      
-
            salsah-gui:guiElement salsah-gui:Searchbox ;
-
            salsah-gui:guiAttribute "numprops=2" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser ,
                                                knora-base:UnknownUser ,
                                                knora-base:ProjectMember ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
 :is-textconcept-instanceValue rdf:type owl:ObjectProperty ;
-
                 rdfs:subPropertyOf knora-base:hasLinkToValue ;
-              
                 rdfs:label "Realisiert Textkonzept"@de ,                      
                 	      "Instanciates text-concept"@en ;
-              
                 knora-base:subjectClassConstraint :textexpression ;
           		knora-base:objectClassConstraint knora-base:LinkValue ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
+            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner . 
-                                                 
-:textexpression-kwa-volume rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "KWA Band"@de ,
-                     "KWA volume"@en ;
-
-          rdfs:comment "The KWA volume of this text" ;
-
-          knora-base:subjectClassConstraint :textexpression;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
-           knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .
-                                                
-:textexpression-kwa-page-no rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "KWA Seitenzahl"@de ,
-                     "KWA page number"@en ;
-
-          rdfs:comment "The KWA page number of this text" ;
-
-          knora-base:subjectClassConstraint :textexpression;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
-           knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .                                                 
-
+                                                 knora-base:Owner .                                                  
 
 ##############
 ## Class TEXTEXPRESSION
@@ -669,12 +497,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger], 									 
 				 [
 					rdf:type owl:Restriction;
-					owl:onProperty :textexpression-kwa-volume;
+					owl:onProperty :kwa-volume;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
 					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
-					owl:onProperty :textexpression-kwa-page-no;
+					owl:onProperty :kwa-page-no;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
 					salsah-gui:guiOrder "6"^^xsd:nonNegativeInteger] ;
 					
@@ -698,77 +526,20 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## Properties of TEXTMANIFEST
 
 :textmanifest-title rdf:type owl:ObjectProperty ;
-         rdfs:subPropertyOf knora-base:hasValue, dcterms:title ;
-      
+         rdfs:subPropertyOf hasTitle ;
           rdfs:label "Titel"@de ,
                      "title"@en ;
-
           rdfs:comment "The title of the manifest text, as found on the textcarrier" ;
-
           knora-base:subjectClassConstraint :textmanifest;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=128" ,
                                   "maxlength=128" ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-           knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultModifyPermission knora-base:Owner ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .                                                                                                                                                                                                                                 
-                                                
-                      
-:text-kwa-volume rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "KWA Band"@de ,
-                     "KWA volume"@en ;
-
-          rdfs:comment "The KWA volume of this text" ;
-
-          knora-base:subjectClassConstraint :textmanifest;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
-           knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .
-                                                
-:text-kwa-page-no rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  knora-base:hasValue ;
-
-          rdfs:label "KWA Seitenzahl"@de ,
-                     "KWA page number"@en ;
-
-          rdfs:comment "The KWA page number of this text" ;
-
-          knora-base:subjectClassConstraint :textmanifest;
-          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-
-          salsah-gui:guiElement salsah-gui:SimpleText ;
-
-          salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
-           knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .                                                 
+                                                                                                                    
                                                  
 ##############
 ## Class TEXTMANIFEST       
@@ -789,12 +560,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					, 									 
 				 [
 					rdf:type owl:Restriction;
-					owl:onProperty :text-kwa-volume;
+					owl:onProperty :kwa-volume;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
 					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
-					owl:onProperty :text-kwa-page-no;
+					owl:onProperty :kwa-page-no;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
 					salsah-gui:guiOrder "6"^^xsd:nonNegativeInteger] ;
 					
@@ -815,8 +586,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           
 :notation-sequence-no rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:seqnum ;
-
-           rdfs:label "Sequenznummer"@de ,
+          rdfs:label "Sequenznummer"@de ,
                       "Numéro de Séquence"@fr ,
                       "Numero di scala"@it ,
                       "Sequence number"@en ;
@@ -824,60 +594,38 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            rdfs:comment """Sequenznummer in der Reihe der Notate des Textmanifests"""@de ,
                         """Cette \"property\" dénote la position dans un séquence."""@fr ,
                         """This property stands for the position within a set of rdered items (resoucres)"""@en ;
-
            knora-base:subjectClassConstraint :column ;
-
            knora-base:objectClassConstraint knora-base:IntValue ;
-
            salsah-gui:guiElement salsah-gui:Spinbox ;
-
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
            
 :on-surface rdf:type owl:ObjectProperty ;
-
            rdfs:subPropertyOf knora-base:hasLinkTo ;
-
            rdfs:label "Auf Textträger-Seite"@de ,                      
                       "On surface"@en ;
-                      
            knora-base:subjectClassConstraint :column;
-          
            knora-base:objectClassConstraint :surface ;                      
-
            salsah-gui:guiElement salsah-gui:Searchbox ;
-
            salsah-gui:guiAttribute "numprops=2" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
 :on-surfaceValue rdf:type owl:ObjectProperty ;
-
                 rdfs:subPropertyOf knora-base:hasLinkToValue ;
-              
                 rdfs:label "In Textkolumne"@de ,                      
                       		"On surface column"@en ;
-              
                 knora-base:subjectClassConstraint :column ;
           		knora-base:objectClassConstraint knora-base:LinkValue ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .    
           		
@@ -887,22 +635,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                      "page no."@en ;
 
           rdfs:comment "The sequence number of the notation on the page" ;
-
           knora-base:subjectClassConstraint :column ;
-          
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:SimpleText ;
-
           salsah-gui:guiAttribute "size=10" ,
                                   "maxlength=10" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .         		
               
@@ -919,18 +659,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                         """This property stands for the position within a set of rdered items (resoucres)"""@en ;
 
            knora-base:subjectClassConstraint :column ;
-
            knora-base:objectClassConstraint knora-base:IntValue ;
-
            salsah-gui:guiElement salsah-gui:Spinbox ;
-
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
                                                 
@@ -973,10 +707,88 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ###########################################              
 #  Personen- und Rezeptionsdatenbank
 ###########################################
-# TODO: relate to human:Person and inherit stuff from there
+# TODO: relate to human:Person and to text: and inherit stuff from there
 
+#
+#  General purpose properties
+#
+# NOTE: these are copied from NIE-INE Ontologies. They are supposed to be replaced as soon as i find time how to
+#       configure shared ontologies and use the NIE-INE ones.
+
+#
+#  Things can have names by which they are (non-exclusively) named
+#
+:hasName  rdf:type owl:ObjectProperty ;
+          rdfs:label "Name"@de ,
+                     "name"@en ;
+          knora-base:subjectClassConstraint knora:Resource;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .      
+
+:hasPreferredName
+	a owl:ObjectProperty;
+	rdfs:label "has preferred name"@en, "hat bevorzugter Name"@de;
+	rdfs:comment """Relating a resource to a preferred name (as object)."""@en;
+	rdfs:subPropertyOf text:hasName;
+	knora-base:subjectClassConstraint knora-base:Resource;
+	knora-base:objectClassConstraint knora-base:TextValue;
+	salsah-gui:guiElement salsah-gui:Richtext.		
+	
+:hidesAgent rdf:type owl:ObjectProperty ;
+            rdfs:subPropertyOf knora-base:hasLinkTo ;
+            rdfs:label "verbirgt"@de ,                      
+                      "hides"@en ;
+            knora-base:subjectClassConstraint :Persona;
+            knora-base:objectClassConstraint :Agent;                      
+            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+            knora-base:hasDefaultModifyPermission knora-base:Owner ;
+            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                 
+                                                 
+:hidesAgentValue rdf:type owl:ObjectProperty ;
+		    rdfs:subPropertyOf knora-base:hasLinkToValue ;
+            rdfs:label "verbirgt"@de ,                      
+                      "hides"@en ;
+            knora-base:subjectClassConstraint :Persona ;
+            knora-base:objectClassConstraint knora-base:LinkValue ;
+            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+            knora-base:hasDefaultModifyPermission knora-base:Owner ;           
+            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .	
+
+:Agent rdf:type owl:Class ;
+	rdfs:subClassOf knora-base:Resource, foaf:Agent, 
+			[ a owl:Restriction; owl:onProperty :hasName; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+			[ a owl:Restriction; owl:onProperty :hasDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger];
+		rdfs:comment "An entity that takes the responsibility for actions such as authorship or editorship of works." ;
+        rdfs:label "Agent"@de ,
+              "agent"@en .                                                 
+                                                 
+:Persona rdf:type owl:Class ;
+	rdfs:subClassOf :Agent, 	
+			[a owl:Restriction; owl:onProperty :hidesAgent; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+			[a owl:Restriction; owl:onProperty :hidesAgentValue; owl:minCardinality "0"^^xsd:nonNegativeInteger];
+		rdfs:comment "A persona is a sign or pseudonym taken by a person or a collective or to act anonymously or in a roleplay fashion." ;
+        rdfs:label "Persona"@de ,
+              "persona"@en .                                  
+              
+:Pseudonym rdf:type owl:Class ;
+	rdfs:subClassOf knora-base:Persona; 
+		rdfs:comment "A pseudonym is a type of persona that an actor takes to publish works." ;
+              rdfs:label "Pseudonym"@de ,
+              "pseudonym"@en .                       
+#
+# this is probably bullshit... can be done with a literal author name property on a publication
+#:AutorAbbreviation rdf:type owl:Class ;
+#	rdfs:subClassOf knora-base:Persona; 
+#		rdfs:comment "A autor abbreviation is a persona consisting of an abbreviation of a persons name." ;
+#              rdfs:label "Pseudonym"@de ,
+#              "pseudonym"@en .               
+              
 :hasGivenName  rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:subPropertyOf  :hasName ;
           rdfs:label "Vorname"@de ,
                      "first name."@en ;
           knora-base:subjectClassConstraint :Person;          
@@ -1004,8 +816,10 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                     
-                     
-:hasTitle rdf:type owl:ObjectProperty ;
+#
+# the weird name results from name collision with book titles
+#
+:hasPersonTitle rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf  knora-base:hasValue ;
           rdfs:label "Titel"@de ,
                      "title."@en ;                        
@@ -1040,19 +854,65 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	knora-base:subjectClassConstraint :Person;
     knora-base:objectClassConstraint knora-base:DateValue.      
 
+#TODO: relate to NIE-INE human:Person    
 :Person rdf:type owl:Class ;
-	rdfs:subClassOf knora-base:Resource, foaf:Person,  [ 
-		a owl:Restriction; owl:onProperty :hasBirthdate; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
-		a owl:Restriction; owl:onProperty :hasDeathDate; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
-		a owl:Restriction; owl:onProperty :hasFamilyName; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
-		a owl:Restriction; owl:onProperty :hasGivenName; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
-		a owl:Restriction; owl:onProperty :hasAlias; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
-		a owl:Restriction; owl:onProperty :hasTitle; owl:minCardinality "0"^^xsd:nonNegativeInteger], [
-		a owl:Restriction; owl:onProperty :hasDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger]; 
+	rdfs:subClassOf :Agent, foaf:Person,  
+	    [a owl:Restriction; owl:onProperty :hasBirthdate; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+		[a owl:Restriction; owl:onProperty :hasDeathDate; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
+		[a owl:Restriction; owl:onProperty :hasFamilyName; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
+		[a owl:Restriction; owl:onProperty :hasGivenName; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
+		[a owl:Restriction; owl:onProperty :hasAlias; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
+		[a owl:Restriction; owl:onProperty :hasPersonTitle; owl:minCardinality "0"^^xsd:nonNegativeInteger];		 
 	    rdfs:comment "A natural person" ;
               rdfs:label "Person"@de ,
               "person"@en .
+                                          
+:PublishingCompany rdf:type owl:Class ;
+	rdfs:subClassOf :Agent;
+	rdfs:comment "A publishing company, i. e. a company publishing books and/or periodicals" ;
+              rdfs:label "Verlag"@de ,
+              "publishing company"@en .
+              
+publication:hasPublisher
+	a owl:ObjectProperty;
+	rdfs:label "has publisher"@en, "hat Verleger"@de;
+	rdfs:comment "Relating a publication to its publisher."@en;
+	rdfs:subPropertyOf knora-base:hasLinkTo;
+	knora-base:subjectClassConstraint publication:Publication;
+	knora-base:objectClassConstraint event:Agent.
 
+publication:hasPublisherValue
+	a owl:ObjectProperty;
+	rdfs:label "has publisher - statement"@en, "hat Verleger - Festlegung"@de;
+	rdfs:comment "Relating a publication to a reification statement of the relation between the publication and its publisher."@en;
+	rdfs:subPropertyOf knora-base:hasLinkToValue;
+	knora-base:subjectClassConstraint publication:Publication;
+	knora-base:objectClassConstraint knora-base:LinkValue.
+		
+publication:hasEditor
+	a owl:ObjectProperty;
+	rdfs:label "has editor"@en, "hat Herausgeber"@de;
+	rdfs:comment "Relating a publication to its editor."@en;
+	rdfs:subPropertyOf knora-base:hasLinkTo;
+	knora-base:subjectClassConstraint publication:Publication;
+	knora-base:objectClassConstraint event:Agent.
+
+publication:hasEditorValue
+	a owl:ObjectProperty;
+	rdfs:label "has editor - statement"@en, "hat Herausgeber - Festlegung"@de;
+	rdfs:comment "Relating a publication to a reification statement of the relation between the publication and its editor."@en;
+	rdfs:subPropertyOf knora-base:hasLinkToValue;
+	knora-base:subjectClassConstraint publication:Publication;
+	knora-base:objectClassConstraint knora-base:LinkValue.	
+              
+:Publication rdf:type owl:Class ;
+	rdfs:subClassOf knora-base:Resource,  
+	[a owl:Restriction; owl:onProperty :hasTitle; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+	[a owl:Restriction; owl:onProperty :hasEditor; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+	[a owl:Restriction; owl:onProperty :hasEditorValue; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+	[a owl:Restriction; owl:onProperty :hasPublisher; owl:minCardinality "0"^^xsd:nonNegativeInteger],
+	[a owl:Restriction; owl:onProperty :hasPublisherValue; owl:minCardinality "0"^^xsd:nonNegativeInteger];              
+              
               
 ###########################################
 ## STANDOFF TAGS
