@@ -247,8 +247,8 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "KWA Band"@de ,
                      "KWA volume"@en ;
           rdfs:comment "The KWA volume this resource is relevant for" ;
-          knora-base:subjectClassConstraint :textcarrier;
-          knora-base:objectClassConstraint knora-base:Resource ;
+          knora-base:subjectClassConstraint knora-base:Resource;
+          knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=64" ,
                                   "maxlength=64" ;
@@ -526,7 +526,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## Properties of TEXTMANIFEST
 
 :textmanifest-title rdf:type owl:ObjectProperty ;
-         rdfs:subPropertyOf hasTitle ;
+          rdfs:subPropertyOf :hasTitle ;
           rdfs:label "Titel"@de ,
                      "title"@en ;
           rdfs:comment "The title of the manifest text, as found on the textcarrier" ;
@@ -719,19 +719,31 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 #  Things can have names by which they are (non-exclusively) named
 #
 :hasName  rdf:type owl:ObjectProperty ;
+		  rdfs:subPropertyOf  knora-base:hasValue ;
           rdfs:label "Name"@de ,
                      "name"@en ;
-          knora-base:subjectClassConstraint knora:Resource;          
+          knora-base:subjectClassConstraint knora-base:Resource;          
           knora-base:objectClassConstraint knora-base:TextValue ;
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .      
 
+# TODO: check if there should be a superclass of stuff carrying this property  (also check NIE-INE-Ontos)                                              
+:hasDescription rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "Beschreibung"@de ,
+                     "description."@en ;                        
+          knora-base:subjectClassConstraint knora-base:Resource;          
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                                                                         
+                                                
 :hasPreferredName
 	a owl:ObjectProperty;
 	rdfs:label "has preferred name"@en, "hat bevorzugter Name"@de;
 	rdfs:comment """Relating a resource to a preferred name (as object)."""@en;
-	rdfs:subPropertyOf text:hasName;
+	rdfs:subPropertyOf :hasName;
 	knora-base:subjectClassConstraint knora-base:Resource;
 	knora-base:objectClassConstraint knora-base:TextValue;
 	salsah-gui:guiElement salsah-gui:Richtext.		
@@ -775,14 +787,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               "persona"@en .                                  
               
 :Pseudonym rdf:type owl:Class ;
-	rdfs:subClassOf knora-base:Persona; 
+	rdfs:subClassOf :Persona; 
 		rdfs:comment "A pseudonym is a type of persona that an actor takes to publish works." ;
               rdfs:label "Pseudonym"@de ,
               "pseudonym"@en .                       
 #
 # this is probably bullshit... can be done with a literal author name property on a publication
 #:AutorAbbreviation rdf:type owl:Class ;
-#	rdfs:subClassOf knora-base:Persona; 
+#	rdfs:subClassOf :Persona; 
 #		rdfs:comment "A autor abbreviation is a persona consisting of an abbreviation of a persons name." ;
 #              rdfs:label "Pseudonym"@de ,
 #              "pseudonym"@en .               
@@ -828,16 +840,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner . 
-                                                
-:hasDescription rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
-          rdfs:label "Beschreibung"@de ,
-                     "description."@en ;                        
-          knora-base:subjectClassConstraint :Person;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                
+                                                                                       
 :hasBirthdate
 	a owl:ObjectProperty;
 	rdfs:label "has birthdate"@en, "hat Geburtsdatum"@de;
@@ -873,36 +876,36 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               rdfs:label "Verlag"@de ,
               "publishing company"@en .
               
-publication:hasPublisher
+:hasPublisher
 	a owl:ObjectProperty;
 	rdfs:label "has publisher"@en, "hat Verleger"@de;
 	rdfs:comment "Relating a publication to its publisher."@en;
 	rdfs:subPropertyOf knora-base:hasLinkTo;
-	knora-base:subjectClassConstraint publication:Publication;
-	knora-base:objectClassConstraint event:Agent.
+	knora-base:subjectClassConstraint :Publication;
+	knora-base:objectClassConstraint :Agent.
 
-publication:hasPublisherValue
+:hasPublisherValue
 	a owl:ObjectProperty;
 	rdfs:label "has publisher - statement"@en, "hat Verleger - Festlegung"@de;
 	rdfs:comment "Relating a publication to a reification statement of the relation between the publication and its publisher."@en;
 	rdfs:subPropertyOf knora-base:hasLinkToValue;
-	knora-base:subjectClassConstraint publication:Publication;
+	knora-base:subjectClassConstraint :Publication;
 	knora-base:objectClassConstraint knora-base:LinkValue.
 		
-publication:hasEditor
+:hasEditor
 	a owl:ObjectProperty;
 	rdfs:label "has editor"@en, "hat Herausgeber"@de;
 	rdfs:comment "Relating a publication to its editor."@en;
 	rdfs:subPropertyOf knora-base:hasLinkTo;
-	knora-base:subjectClassConstraint publication:Publication;
-	knora-base:objectClassConstraint event:Agent.
+	knora-base:subjectClassConstraint :Publication;
+	knora-base:objectClassConstraint :Agent.
 
-publication:hasEditorValue
+:hasEditorValue
 	a owl:ObjectProperty;
 	rdfs:label "has editor - statement"@en, "hat Herausgeber - Festlegung"@de;
 	rdfs:comment "Relating a publication to a reification statement of the relation between the publication and its editor."@en;
 	rdfs:subPropertyOf knora-base:hasLinkToValue;
-	knora-base:subjectClassConstraint publication:Publication;
+	knora-base:subjectClassConstraint :Publication;
 	knora-base:objectClassConstraint knora-base:LinkValue.	
               
 :Publication rdf:type owl:Class ;
@@ -912,7 +915,9 @@ publication:hasEditorValue
 	[a owl:Restriction; owl:onProperty :hasEditorValue; owl:minCardinality "0"^^xsd:nonNegativeInteger],
 	[a owl:Restriction; owl:onProperty :hasPublisher; owl:minCardinality "0"^^xsd:nonNegativeInteger],
 	[a owl:Restriction; owl:onProperty :hasPublisherValue; owl:minCardinality "0"^^xsd:nonNegativeInteger];              
-              
+    rdfs:comment "A publication of some sort" ;
+              rdfs:label "Publikation"@de ,
+              "publication"@en .          
               
 ###########################################
 ## STANDOFF TAGS
