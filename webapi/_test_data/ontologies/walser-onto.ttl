@@ -240,7 +240,24 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	rdfs:subPropertyOf  knora-base:hasValue, dcterms:title ; # Note: NIE-INE has a super-property hasText
 	knora-base:subjectClassConstraint knora-base:Resource;
 	knora-base:objectClassConstraint knora-base:TextValue;
-	salsah-gui:guiElement salsah-gui:Richtext.             
+    salsah-gui:guiElement salsah-gui:SimpleText ;
+    salsah-gui:guiAttribute "size=64" ,
+                                  "maxlength=64" ;
+    knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
+	
+:hasShortCode
+	a owl:ObjectProperty;
+	rdfs:label "has short code"@en, "hat Sigel"@de;
+	rdfs:comment """Relating a resource to a short code as a short identifier of the resource."""@en;
+	rdfs:subPropertyOf  knora-base:hasValue ;
+	knora-base:subjectClassConstraint knora-base:Resource;
+	knora-base:objectClassConstraint knora-base:TextValue;
+    salsah-gui:guiElement salsah-gui:SimpleText ;
+    salsah-gui:guiAttribute "size=10" ,
+                                  "maxlength=10" ;
+    knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .	
 	
 :kwa-volume rdf:type owl:ObjectProperty ;
 	      rdfs:subPropertyOf  knora-base:hasValue ;
@@ -919,92 +936,83 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
               rdfs:label "Publikation"@de ,
               "publication"@en .          
               
+# TODO: make this a subclass publication? Why? Why not?
+#       Add publisher and editor
+:Periodical rdf:type owl:Class ;
+	rdfs:subClassOf knora-base:Resource,  
+	[a owl:Restriction; owl:onProperty :hasTitle; owl:minCardinality "1"^^xsd:nonNegativeInteger],
+	[a owl:Restriction; owl:onProperty :hasShortCode; owl:cardinality "1"^^xsd:nonNegativeInteger],
+	[a owl:Restriction; owl:onProperty :hasDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger];
+    rdfs:comment "A periodical publication medium" ;
+              rdfs:label "Publikation"@de ,
+              "publication"@en .          
+
+:Newspaper rdf:type owl:Class ;
+	rdfs:subClassOf walser:Periodical;  
+    rdfs:comment "A newspaper as periodical publication medium" ;
+              rdfs:label "Zeitung"@de ,
+              "newspaper"@en .
+              
+:Magazine rdf:type owl:Class ;
+	rdfs:subClassOf walser:Periodical;  
+    rdfs:comment "A magazine as periodical publication medium" ;
+              rdfs:label "Zeitschrift"@de ,
+              "magazine"@en .              
+              
 ###########################################
 ## STANDOFF TAGS
 ###########################################
 
 :standoffResourceStartIndex rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:hasValue ;
-
            rdfs:label "Startindex"@de,
                       "starting index"@en ;
-
            rdfs:comment """Startindex des Standoff Tags"""@de ,
                         """starting index of the standoff tag"""@en ;
-
            knora-base:subjectClassConstraint :StandoffResource ;
            knora-base:objectClassConstraint knora-base:IntValue ;
-           
            salsah-gui:guiElement salsah-gui:Spinbox ;
-
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner .
-           
-           
 
 :standoffResourceEndIndex rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:hasValue ;
-
            rdfs:label "Endindex"@de,
                       "end index"@en ;
-
            rdfs:comment """Endindex des Standoff Tags"""@de ,
                         """ending index of the standoff tag"""@en ;
-
            knora-base:subjectClassConstraint :StandoffResource ;
-
            knora-base:objectClassConstraint knora-base:IntValue ;                        
-                        
            salsah-gui:guiElement salsah-gui:Spinbox ;
-
            salsah-gui:guiAttribute "min=0" ,
                                    "max=-1" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner .                        
-                                   
            
            
 :standoffResourceTextResourceReference rdf:type  owl:ObjectProperty ;
            rdfs:subPropertyOf knora-base:hasLinkTo ;
-
            rdfs:label "Referenced text resource"@de ,                      
                       "Referenced text resource"@en ;
-                      
            knora-base:subjectClassConstraint :StandoffResource ;
-          
            knora-base:objectClassConstraint :TextResource;                      
-
            salsah-gui:guiElement salsah-gui:Searchbox ;
-
            salsah-gui:guiAttribute "numprops=2" ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
 :standoffResourceTextResourceReferenceValue rdf:type owl:ObjectProperty ;
-
                 rdfs:subPropertyOf knora-base:hasLinkToValue ;
-              
                 rdfs:label "Referenced text resource"@de ,                      
                       "Referenced text resource"@en ;
-              
                 knora-base:subjectClassConstraint :StandoffResource ;
           		knora-base:objectClassConstraint knora-base:LinkValue ;
-
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .           
            
@@ -1038,29 +1046,19 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
 :textresource-fulltext rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf  knora-base:hasValue ;
-
           rdfs:label "Volltext"@de ,
                      "Full text"@en ;
-
           rdfs:comment "The raw text content of the text resource" ;
-
-          knora-base:subjectClassConstraint :TextResource;
-          
+          knora-base:subjectClassConstraint :TextResource;      
           knora-base:objectClassConstraint knora-base:TextValue ;
-
           salsah-gui:guiElement salsah-gui:Textarea ;
-
           salsah-gui:guiAttribute "cols=60" ,
                                        "rows=3" ,
                                        "wrap=soft" ;
-
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-
-           knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-
-           knora-base:hasDefaultModifyPermission knora-base:Owner ;
-           
-           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+          knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+          knora-base:hasDefaultModifyPermission knora-base:Owner ;    
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .                                    
               
 :TextResource rdf:type owl:Class ; 
