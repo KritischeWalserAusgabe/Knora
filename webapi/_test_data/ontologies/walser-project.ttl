@@ -32,8 +32,9 @@
 # ## ###########################################
 # ## <http://data.knora.org/users/28282ef89df3e2fd3d0551b6e9d1310a>
 
-<http://data.knora.org/users/28282ef89df3e2fd3d0551b6e9d1310a> a knora-base:User ;
-	knora-base:email "kwa-admin" ;
+<http://rdfh.ch/users/28282ef89df3e2fd3d0551b6e9d1310a> a knora-base:User ;
+    knora-base:email "kwa-admin@localhost" ;
+	knora-base:username "kwa-admin" ;
 	knora-base:familyName "kwa" ;
 	knora-base:givenName "admin" ;
 	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M=" ;
@@ -43,8 +44,9 @@
 	knora-base:isInSystemAdminGroup "false"^^xsd:boolean ;
 	knora-base:isInProjectAdminGroup <http://data.knora.org/projects/kwa> .		
 	
-<http://data.knora.org/users/ffc678e388ae99b7aeae8cff223c1598> a knora-base:User ;
-	knora-base:email "KWA_APP_USER"^^xsd:string ; 
+<http://rdfh.ch/users/ffc678e388ae99b7aeae8cff223c1598> a knora-base:User ;
+	knora-base:email "KWA_APP_USER@localhost"^^xsd:string ; 
+	knora-base:username "KWA_APP_USER" ;
 	knora-base:familyName "kwa"^^xsd:string ; 
 	knora-base:givenName "application"^^xsd:string ; 
 	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M="^^xsd:string ; 
@@ -53,8 +55,9 @@
 	knora-base:isInProject <http://data.knora.org/projects/kwa> ; 
 	knora-base:isInSystemAdminGroup "false"^^xsd:boolean .
 	
-<http://data.knora.org/users/44b82f0207466b5dedaa8baff0af7487> a knora-base:User ;
+<http://rdfh.ch/users/44b82f0207466b5dedaa8baff0af7487> a knora-base:User ;
 	knora-base:email "matthias.spruenglin@unibas.ch" ;
+	knora-base:username "matthias.spruenglin" ;
 	knora-base:familyName "Sprünglin" ;
 	knora-base:givenName "Matthias" ;
 	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M=" ;	
@@ -64,8 +67,9 @@
 	knora-base:isInProjectAdminGroup <http://data.knora.org/projects/kwa> ;
 	knora-base:isInSystemAdminGroup "false"^^xsd:boolean .
 	
-<http://data.knora.org/users/33943bb05161080a5c5f8045e5937f48> a knora-base:User ;
+<http://rdfh.ch/users/33943bb05161080a5c5f8045e5937f48> a knora-base:User ;
 	knora-base:email "caroline.socha@unibas.ch" ;
+	knora-base:username "matthias.spruenglin@unibas.ch" ;
 	knora-base:familyName "Socha" ;
 	knora-base:givenName "Caroline" ;
 	knora-base:password "$e0801$/vibgimf7ID/JZJaqpjuGKUY4g3qBq9wv/eRFSOaChB/zPEbHI98geYBoKgq0JVoTjOk1jQDbwGI1h6uH09t3g==$xYtQSlyysiWQuI9jr86du+P35Fb9uLaYG1tgeXYsY6M=" ;

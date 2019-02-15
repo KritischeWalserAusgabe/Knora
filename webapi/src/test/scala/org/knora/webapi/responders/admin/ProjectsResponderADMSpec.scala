@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -25,7 +25,6 @@ package org.knora.webapi.responders.admin
 
 import java.util.UUID
 
-import akka.actor.Props
 import akka.actor.Status.Failure
 import akka.testkit.{ImplicitSender, TestActorRef}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -33,9 +32,6 @@ import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.projectsmessages._
 import org.knora.webapi.messages.admin.responder.usersmessages.UserInformationTypeADM
 import org.knora.webapi.messages.store.triplestoremessages._
-import org.knora.webapi.messages.v1.responder.ontologymessages.{LoadOntologiesRequest, LoadOntologiesResponse}
-import org.knora.webapi.responders.{RESPONDER_MANAGER_ACTOR_NAME, ResponderManager}
-import org.knora.webapi.store.{STORE_MANAGER_ACTOR_NAME, StoreManager}
 import org.knora.webapi.util.{MutableTestIri, StringFormatter}
 
 import scala.concurrent.duration._
@@ -55,26 +51,10 @@ object ProjectsResponderADMSpec {
   */
 class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config) with ImplicitSender {
 
-    private implicit val executionContext = system.dispatcher
-    private implicit val stringFormatter = StringFormatter.getGeneralInstance
+    private implicit val stringFormatter: StringFormatter = StringFormatter.getGeneralInstance
     private val timeout = 5.seconds
 
     private val rootUser= SharedTestDataADM.rootUser
-
-    private val actorUnderTest = TestActorRef[ProjectsResponderADM]
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
-
-    val rdfDataObjects = List()
-
-    "Load test data" in {
-
-        storeManager ! ResetTriplestoreContent(rdfDataObjects)
-        expectMsg(300.seconds, ResetTriplestoreContentACK())
-
-        responderManager ! LoadOntologiesRequest(SharedTestDataADM.rootUser)
-        expectMsg(10.seconds, LoadOntologiesResponse())
-    }
 
     "The ProjectsResponderADM" when {
 
@@ -82,7 +62,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
 
             "return information for every project" in {
 
-                actorUnderTest ! ProjectsGetRequestADM(rootUser)
+                responderManager ! ProjectsGetRequestADM(rootUser)
                 val received = expectMsgType[ProjectsGetResponseADM](timeout)
 
                 assert(received.projects.contains(SharedTestDataADM.imagesProject))
@@ -92,7 +72,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             "return information about a project identified by IRI" in {
 
                 /* Incunabula project */
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = Some(SharedTestDataADM.incunabulaProject.id),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -101,7 +81,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
                 expectMsg(ProjectGetResponseADM(SharedTestDataADM.incunabulaProject))
 
                 /* Images project */
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = Some(SharedTestDataADM.imagesProject.id),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -110,7 +90,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
                 expectMsg(ProjectGetResponseADM(SharedTestDataADM.imagesProject))
 
                 /* 'SystemProject' */
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = Some(SharedTestDataADM.systemProject.id),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -121,7 +101,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return information about a project identified by shortname" in {
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = None,
                     maybeShortname = Some(SharedTestDataADM.incunabulaProject.shortname),
                     maybeShortcode = None,
@@ -132,7 +112,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
 
             "return 'NotFoundException' when the project IRI is unknown" in {
 
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = Some("http://rdfh.ch/projects/notexisting"),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -143,7 +123,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFoundException' when the project shortname is unknown " in {
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = None,
                     maybeShortname = Some("wrongshortname"),
                     maybeShortcode = None,
@@ -153,13 +133,66 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFoundException' when the project shortcode is unknown " in {
-                actorUnderTest ! ProjectGetRequestADM(
+                responderManager ! ProjectGetRequestADM(
                     maybeIri = None,
                     maybeShortname = None,
                     maybeShortcode = Some("wrongshortcode"),
                     requestingUser = SharedTestDataADM.rootUser
                 )
                 expectMsg(Failure(NotFoundException(s"Project 'wrongshortcode' not found")))
+            }
+        }
+
+        "used to query project's restricted view settings" should {
+
+            val expectedResult = ProjectRestrictedViewSettingsADM(size = Some("!512,512"), watermark = Some("path_to_image"))
+
+            "return restricted view settings using project IRI" in {
+                responderManager ! ProjectRestrictedViewSettingsGetADM(
+                    identifier = ProjectIdentifierADM(iri = Some(SharedTestDataADM.imagesProject.id)),
+                    requestingUser = SharedTestDataADM.rootUser
+                )
+                expectMsg(Some(expectedResult))
+            }
+
+            "return restricted view settings using project SHORTNAME" in {
+                responderManager ! ProjectRestrictedViewSettingsGetADM(
+                    identifier = ProjectIdentifierADM(shortname = Some(SharedTestDataADM.imagesProject.shortname)),
+                    requestingUser = SharedTestDataADM.rootUser
+                )
+                expectMsg(Some(expectedResult))
+            }
+
+            "return restricted view settings using project SHORTCODE" in {
+                responderManager ! ProjectRestrictedViewSettingsGetADM(
+                    identifier = ProjectIdentifierADM(shortcode = Some(SharedTestDataADM.imagesProject.shortcode)),
+                    requestingUser = SharedTestDataADM.rootUser
+                )
+                expectMsg(Some(expectedResult))
+            }
+
+            "return 'NotFoundException' when the project IRI is unknown" in {
+                responderManager ! ProjectRestrictedViewSettingsGetRequestADM(
+                    identifier = ProjectIdentifierADM(iri = Some("http://rdfh.ch/projects/notexisting")),
+                    requestingUser = SharedTestDataADM.rootUser
+                )
+                expectMsg(Failure(NotFoundException(s"Project 'http://rdfh.ch/projects/notexisting' not found.")))
+            }
+
+            "return 'NotFoundException' when the project SHORTCODE is unknown" in {
+                responderManager ! ProjectRestrictedViewSettingsGetRequestADM(
+                    identifier = ProjectIdentifierADM(shortcode = Some("9999")),
+                    requestingUser = SharedTestDataADM.rootUser
+                )
+                expectMsg(Failure(NotFoundException(s"Project '9999' not found.")))
+            }
+
+            "return 'NotFoundException' when the project SHORTNAME is unknown" in {
+                responderManager ! ProjectRestrictedViewSettingsGetRequestADM(
+                    identifier = ProjectIdentifierADM(shortname = Some("wrongshortname")),
+                    requestingUser = SharedTestDataADM.rootUser
+                )
+                expectMsg(Failure(NotFoundException(s"Project 'wrongshortname' not found.")))
             }
 
         }
@@ -169,7 +202,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             val newProjectIri = new MutableTestIri
 
             "CREATE a project and return the project info if the supplied shortname is unique" in {
-                actorUnderTest ! ProjectCreateRequestADM(
+                responderManager ! ProjectCreateRequestADM(
                     CreateProjectApiRequestADM(
                         shortname = "newproject",
                         shortcode = "111c", // lower case
@@ -195,7 +228,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "CREATE a project and return the project info if the supplied shortname and shortcode is unique" in {
-                actorUnderTest ! ProjectCreateRequestADM(
+                responderManager ! ProjectCreateRequestADM(
                     CreateProjectApiRequestADM(
                         shortname = "newproject2",
                         shortcode = "1112",
@@ -220,7 +253,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return a 'DuplicateValueException' during creation if the supplied project shortname is not unique" in {
-                actorUnderTest ! ProjectCreateRequestADM(
+                responderManager ! ProjectCreateRequestADM(
                     CreateProjectApiRequestADM(
                         shortname = "newproject",
                         shortcode = "111C",
@@ -238,7 +271,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return a 'DuplicateValueException' during creation if the supplied project shortname is unique but the shortcode is not" in {
-                actorUnderTest ! ProjectCreateRequestADM(
+                responderManager ! ProjectCreateRequestADM(
                     CreateProjectApiRequestADM(
                         shortname = "newproject3",
                         shortcode = "111C",
@@ -257,7 +290,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
 
             "return 'BadRequestException' if project 'shortname' during creation is missing" in {
 
-                actorUnderTest ! ProjectCreateRequestADM(
+                responderManager ! ProjectCreateRequestADM(
                     CreateProjectApiRequestADM(
                         shortname = "",
                         shortcode = "1114",
@@ -276,7 +309,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
 
             "return 'BadRequestException' if project 'shortcode' during creation is missing" in {
 
-                actorUnderTest ! ProjectCreateRequestADM(
+                responderManager ! ProjectCreateRequestADM(
                     CreateProjectApiRequestADM(
                         shortname = "newproject4",
                         shortcode = "",
@@ -294,7 +327,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "UPDATE a project" in {
-                actorUnderTest ! ProjectChangeRequestADM(
+                responderManager ! ProjectChangeRequestADM(
                     projectIri = newProjectIri.get,
                     changeProjectRequest = ChangeProjectApiRequestADM(
                         shortname = None,
@@ -320,7 +353,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' if a not existing project IRI is submitted during update" in {
-                actorUnderTest ! ProjectChangeRequestADM(
+                responderManager ! ProjectChangeRequestADM(
                     projectIri = "http://rdfh.ch/projects/notexisting",
                     changeProjectRequest = ChangeProjectApiRequestADM(longname = Some("new long name")),
                     SharedTestDataADM.rootUser,
@@ -375,7 +408,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
         "used to query members" should {
 
             "return all members of a project identified by IRI" in {
-                actorUnderTest ! ProjectMembersGetRequestADM(
+                responderManager ! ProjectMembersGetRequestADM(
                     maybeIri = Some(SharedTestDataADM.imagesProject.id),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -395,7 +428,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return all members of a project identified by shortname" in {
-                actorUnderTest ! ProjectMembersGetRequestADM(
+                responderManager ! ProjectMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = Some(SharedTestDataADM.imagesProject.shortname),
                     maybeShortcode = None,
@@ -415,7 +448,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return all members of a project identified by shortcode" in {
-                actorUnderTest ! ProjectMembersGetRequestADM(
+                responderManager ! ProjectMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = None,
                     maybeShortcode = Some(SharedTestDataADM.imagesProject.shortcode),
@@ -435,7 +468,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project IRI is unknown (project membership)" in {
-                actorUnderTest ! ProjectMembersGetRequestADM(
+                responderManager ! ProjectMembersGetRequestADM(
                     maybeIri = Some("http://rdfh.ch/projects/notexisting"),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -445,7 +478,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project shortname is unknown (project membership)" in {
-                actorUnderTest ! ProjectMembersGetRequestADM(
+                responderManager ! ProjectMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = Some("wrongshortname"),
                     maybeShortcode = None,
@@ -455,7 +488,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project shortcode is unknown (project membership)" in {
-                actorUnderTest ! ProjectMembersGetRequestADM(
+                responderManager ! ProjectMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = None,
                     maybeShortcode = Some("wrongshortcode"),
@@ -465,7 +498,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return all project admin members of a project identified by IRI" in {
-                actorUnderTest ! ProjectAdminMembersGetRequestADM(
+                responderManager ! ProjectAdminMembersGetRequestADM(
                     maybeIri = Some(SharedTestDataADM.imagesProject.id),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -483,7 +516,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return all project admin members of a project identified by shortname" in {
-                actorUnderTest ! ProjectAdminMembersGetRequestADM(
+                responderManager ! ProjectAdminMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = Some(SharedTestDataADM.imagesProject.shortname),
                     maybeShortcode = None,
@@ -501,7 +534,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return all project admin members of a project identified by shortcode" in {
-                actorUnderTest ! ProjectAdminMembersGetRequestADM(
+                responderManager ! ProjectAdminMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = None,
                     maybeShortcode = Some(SharedTestDataADM.imagesProject.shortcode),
@@ -519,7 +552,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project IRI is unknown (project admin membership)" in {
-                actorUnderTest ! ProjectAdminMembersGetRequestADM(
+                responderManager ! ProjectAdminMembersGetRequestADM(
                     maybeIri = Some("http://rdfh.ch/projects/notexisting"),
                     maybeShortname = None,
                     maybeShortcode = None,
@@ -529,7 +562,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project shortname is unknown (project admin membership)" in {
-                actorUnderTest ! ProjectAdminMembersGetRequestADM(
+                responderManager ! ProjectAdminMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = Some("wrongshortname"),
                     maybeShortcode = None,
@@ -539,7 +572,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project shortcode is unknown (project admin membership)" in {
-                actorUnderTest ! ProjectAdminMembersGetRequestADM(
+                responderManager ! ProjectAdminMembersGetRequestADM(
                     maybeIri = None,
                     maybeShortname = None,
                     maybeShortcode = Some("wrongshortcode"),
@@ -552,13 +585,13 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
         "used to query keywords" should {
 
             "return all unique keywords for all projects" in {
-                actorUnderTest ! ProjectsKeywordsGetRequestADM(SharedTestDataADM.rootUser)
+                responderManager ! ProjectsKeywordsGetRequestADM(SharedTestDataADM.rootUser)
                 val received: ProjectsKeywordsGetResponseADM = expectMsgType[ProjectsKeywordsGetResponseADM](timeout)
                 received.keywords.size should be (18)
             }
 
             "return all keywords for a single project" in {
-                actorUnderTest ! ProjectKeywordsGetRequestADM(
+                responderManager ! ProjectKeywordsGetRequestADM(
                     projectIri = SharedTestDataADM.incunabulaProject.id,
                     requestingUser = SharedTestDataADM.rootUser
                 )
@@ -567,7 +600,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return empty list for a project without keywords" in {
-                actorUnderTest ! ProjectKeywordsGetRequestADM(
+                responderManager ! ProjectKeywordsGetRequestADM(
                     projectIri = SharedTestDataADM.anythingProject.id,
                     requestingUser = SharedTestDataADM.rootUser
                 )
@@ -576,7 +609,7 @@ class ProjectsResponderADMSpec extends CoreSpec(ProjectsResponderADMSpec.config)
             }
 
             "return 'NotFound' when the project IRI is unknown" in {
-                actorUnderTest ! ProjectKeywordsGetRequestADM(
+                responderManager ! ProjectKeywordsGetRequestADM(
                     projectIri = "http://rdfh.ch/projects/notexisting",
                     SharedTestDataADM.rootUser
                 )

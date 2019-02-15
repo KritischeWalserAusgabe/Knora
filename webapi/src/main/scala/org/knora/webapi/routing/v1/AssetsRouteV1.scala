@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -23,24 +23,18 @@ import java.awt.image.BufferedImage
 import java.awt.{Color, Font, Graphics}
 import java.io.{ByteArrayOutputStream, File}
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.model.{HttpEntity, HttpResponse, MediaTypes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import javax.imageio.ImageIO
-import org.knora.webapi.SettingsImpl
-import org.knora.webapi.routing.Authenticator
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData}
 
 /**
   * A route used for faking the image server.
   */
-object AssetsRouteV1 extends Authenticator {
+class AssetsRouteV1(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-        implicit val system = _system
-        implicit val executionContext = system.dispatcher
-        implicit val timeout = settings.defaultTimeout
+    override def knoraApiPath: Route = {
 
         path("v1" / "assets" / Remaining) { assetId =>
             get {

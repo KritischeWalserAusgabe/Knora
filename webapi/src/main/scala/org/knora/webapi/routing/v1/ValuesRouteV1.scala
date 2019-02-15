@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -22,40 +22,38 @@ package org.knora.webapi.routing.v1
 import java.io.File
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
+import akka.pattern._
 import akka.http.scaladsl.model.Multipart
 import akka.http.scaladsl.model.Multipart.BodyPart
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.FileInfo
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.FileIO
 import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
-import org.knora.webapi.messages.v1.responder.sipimessages.{SipiResponderConversionFileRequestV1, SipiResponderConversionPathRequestV1}
+import org.knora.webapi.messages.store.sipimessages.{SipiConversionFileRequestV1, SipiConversionPathRequestV1}
+import org.knora.webapi.messages.v1.responder.resourcemessages.{ResourceInfoGetRequestV1, ResourceInfoResponseV1}
 import org.knora.webapi.messages.v1.responder.valuemessages.ApiValueV1JsonProtocol._
 import org.knora.webapi.messages.v1.responder.valuemessages._
-import org.knora.webapi.routing.{Authenticator, RouteUtilV1}
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV1}
 import org.knora.webapi.util.standoff.StandoffTagUtilV2.TextWithStandoffTagsV2
-import org.knora.webapi.util.{DateUtilV1, FileUtil, StringFormatter}
+import org.knora.webapi.util.{DateUtilV1, FileUtil}
 
 import scala.concurrent.{Future, Promise}
 
 /**
   * Provides a spray-routing function for API routes that deal with values.
   */
-object ValuesRouteV1 extends Authenticator {
+class ValuesRouteV1(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, loggingAdapter: LoggingAdapter): Route = {
-        implicit val system: ActorSystem = _system
-        implicit val materializer = ActorMaterializer()
-        implicit val executionContext = system.dispatcher
-        implicit val timeout = settings.defaultTimeout
-        val responderManager = system.actorSelection("/user/responderManager")
-        val stringFormatter = StringFormatter.getGeneralInstance
+    /* needed for dealing with files in the request */
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-        def makeVersionHistoryRequestMessage(iris: Seq[IRI], userProfile: UserADM): ValueVersionHistoryGetRequestV1 = {
+    def knoraApiPath: Route = {
+
+        def makeVersionHistoryRequestMessage(iris: Seq[IRI], userADM: UserADM): ValueVersionHistoryGetRequestV1 = {
             if (iris.length != 3) throw BadRequestException("Version history request requires resource IRI, property IRI, and current value IRI")
 
             val Seq(resourceIriStr, propertyIriStr, currentValueIriStr) = iris
@@ -68,11 +66,11 @@ object ValuesRouteV1 extends Authenticator {
                 resourceIri = resourceIri,
                 propertyIri = propertyIri,
                 currentValueIri = currentValueIri,
-                userProfile = userProfile
+                userProfile = userADM
             )
         }
 
-        def makeLinkValueGetRequestMessage(iris: Seq[IRI], userProfile: UserADM): LinkValueGetRequestV1 = {
+        def makeLinkValueGetRequestMessage(iris: Seq[IRI], userADM: UserADM): LinkValueGetRequestV1 = {
             if (iris.length != 3) throw BadRequestException("Link value request requires subject IRI, predicate IRI, and object IRI")
 
             val Seq(subjectIriStr, predicateIriStr, objectIriStr) = iris
@@ -85,11 +83,11 @@ object ValuesRouteV1 extends Authenticator {
                 subjectIri = subjectIri,
                 predicateIri = predicateIri,
                 objectIri = objectIri,
-                userProfile = userProfile
+                userProfile = userADM
             )
         }
 
-        def makeCreateValueRequestMessage(apiRequest: CreateValueApiRequestV1, userProfile: UserADM): Future[CreateValueRequestV1] = {
+        def makeCreateValueRequestMessage(apiRequest: CreateValueApiRequestV1, userADM: UserADM): Future[CreateValueRequestV1] = {
             val resourceIri = stringFormatter.validateAndEscapeIri(apiRequest.res_id, throw BadRequestException(s"Invalid resource IRI ${apiRequest.res_id}"))
             val propertyIri = stringFormatter.validateAndEscapeIri(apiRequest.prop, throw BadRequestException(s"Invalid property IRI ${apiRequest.prop}"))
 
@@ -115,10 +113,10 @@ object ValuesRouteV1 extends Authenticator {
                                     xml = richtext.xml.get,
                                     mappingIri = mappingIri,
                                     acceptStandoffLinksToClientIDs = false,
-                                    userProfile = userProfile,
+                                    userProfile = userADM,
                                     settings = settings,
                                     responderManager = responderManager,
-                                    log = loggingAdapter
+                                    log = log
                                 )
 
                                 // collect the resource references from the linking standoff nodes
@@ -187,12 +185,12 @@ object ValuesRouteV1 extends Authenticator {
                     propertyIri = propertyIri,
                     value = value,
                     comment = commentStr.map(str => stringFormatter.toSparqlEncodedString(str, throw BadRequestException(s"Invalid comment: '$str'"))),
-                    userProfile = userProfile,
+                    userProfile = userADM,
                     apiRequestID = UUID.randomUUID
                 )
         }
 
-        def makeAddValueVersionRequestMessage(valueIriStr: IRI, apiRequest: ChangeValueApiRequestV1, userProfile: UserADM): Future[ChangeValueRequestV1] = {
+        def makeAddValueVersionRequestMessage(valueIriStr: IRI, apiRequest: ChangeValueApiRequestV1, userADM: UserADM): Future[ChangeValueRequestV1] = {
             val valueIri = stringFormatter.validateAndEscapeIri(valueIriStr, throw BadRequestException(s"Invalid value IRI: $valueIriStr"))
 
             for {
@@ -217,10 +215,10 @@ object ValuesRouteV1 extends Authenticator {
                                     xml = richtext.xml.get,
                                     mappingIri = mappingIri,
                                     acceptStandoffLinksToClientIDs = false,
-                                    userProfile = userProfile,
+                                    userProfile = userADM,
                                     settings = settings,
                                     responderManager = responderManager,
-                                    log = loggingAdapter
+                                    log = log
                                 )
 
                                 // collect the resource references from the linking standoff nodes
@@ -287,54 +285,56 @@ object ValuesRouteV1 extends Authenticator {
                 valueIri = valueIri,
                 value = value,
                 comment = commentStr.map(str => stringFormatter.toSparqlEncodedString(str, throw BadRequestException(s"Invalid comment: '$str'"))),
-                userProfile = userProfile,
+                userProfile = userADM,
                 apiRequestID = UUID.randomUUID
             )
         }
 
-        def makeChangeCommentRequestMessage(valueIriStr: IRI, comment: Option[String], userProfile: UserADM): ChangeCommentRequestV1 = {
+        def makeChangeCommentRequestMessage(valueIriStr: IRI, comment: Option[String], userADM: UserADM): ChangeCommentRequestV1 = {
             ChangeCommentRequestV1(
                 valueIri = stringFormatter.validateAndEscapeIri(valueIriStr, throw BadRequestException(s"Invalid value IRI: $valueIriStr")),
                 comment = comment.map(str => stringFormatter.toSparqlEncodedString(str, throw BadRequestException(s"Invalid comment: '$str'"))),
-                userProfile = userProfile,
+                userProfile = userADM,
                 apiRequestID = UUID.randomUUID
             )
         }
 
-        def makeDeleteValueRequest(valueIriStr: IRI, deleteComment: Option[String], userProfile: UserADM): DeleteValueRequestV1 = {
+        def makeDeleteValueRequest(valueIriStr: IRI, deleteComment: Option[String], userADM: UserADM): DeleteValueRequestV1 = {
             DeleteValueRequestV1(
                 valueIri = stringFormatter.validateAndEscapeIri(valueIriStr, throw BadRequestException(s"Invalid value IRI: $valueIriStr")),
                 deleteComment = deleteComment.map(comment => stringFormatter.toSparqlEncodedString(comment, throw BadRequestException(s"Invalid comment: '$comment'"))),
-                userProfile = userProfile,
+                userProfile = userADM,
                 apiRequestID = UUID.randomUUID
             )
         }
 
-        def makeGetValueRequest(valueIriStr: IRI, userProfile: UserADM): ValueGetRequestV1 = {
+        def makeGetValueRequest(valueIriStr: IRI, userADM: UserADM): ValueGetRequestV1 = {
             ValueGetRequestV1(
                 stringFormatter.validateAndEscapeIri(valueIriStr, throw BadRequestException(s"Invalid value IRI: $valueIriStr")),
-                userProfile
+                userADM
             )
         }
 
-        def makeChangeFileValueRequest(resIriStr: IRI, apiRequest: Option[ChangeFileValueApiRequestV1], multipartConversionRequest: Option[SipiResponderConversionPathRequestV1], userProfile: UserADM) = {
+        def makeChangeFileValueRequest(resIriStr: IRI, projectShortcode: String, apiRequest: Option[ChangeFileValueApiRequestV1], multipartConversionRequest: Option[SipiConversionPathRequestV1], userADM: UserADM): ChangeFileValueRequestV1 = {
             if (apiRequest.nonEmpty && multipartConversionRequest.nonEmpty) throw BadRequestException("File information is present twice, only one is allowed.")
 
             val resourceIri = stringFormatter.validateAndEscapeIri(resIriStr, throw BadRequestException(s"Invalid resource IRI: $resIriStr"))
 
             if (apiRequest.nonEmpty) {
                 // GUI-case
-                val fileRequest = SipiResponderConversionFileRequestV1(
+                val fileRequest = SipiConversionFileRequestV1(
                     originalFilename = stringFormatter.toSparqlEncodedString(apiRequest.get.file.originalFilename, throw BadRequestException(s"The original filename is invalid: '${apiRequest.get.file.originalFilename}'")),
                     originalMimeType = stringFormatter.toSparqlEncodedString(apiRequest.get.file.originalMimeType, throw BadRequestException(s"The original MIME type is invalid: '${apiRequest.get.file.originalMimeType}'")),
+                    projectShortcode = projectShortcode,
                     filename = stringFormatter.toSparqlEncodedString(apiRequest.get.file.filename, throw BadRequestException(s"Invalid filename: '${apiRequest.get.file.filename}'")),
-                    userProfile = userProfile.asUserProfileV1
+                    userProfile = userADM.asUserProfileV1
                 )
+
                 ChangeFileValueRequestV1(
                     resourceIri = resourceIri,
                     file = fileRequest,
                     apiRequestID = UUID.randomUUID,
-                    userProfile = userProfile)
+                    userProfile = userADM)
             }
             else if (multipartConversionRequest.nonEmpty) {
                 // non GUI-case
@@ -342,7 +342,7 @@ object ValuesRouteV1 extends Authenticator {
                     resourceIri = resourceIri,
                     file = multipartConversionRequest.get,
                     apiRequestID = UUID.randomUUID,
-                    userProfile = userProfile)
+                    userProfile = userADM)
             } else {
                 // no file information was provided
                 throw BadRequestException("A file value change was requested but no file information was provided")
@@ -354,16 +354,17 @@ object ValuesRouteV1 extends Authenticator {
         path("v1" / "values" / "history" / Segments) { iris =>
             get {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val requestMessage = makeVersionHistoryRequestMessage(iris = iris, userProfile = userProfile)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                    } yield makeVersionHistoryRequestMessage(iris = iris, userADM = userADM)
 
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        loggingAdapter
+                        log
                     )
                 }
             }
@@ -371,80 +372,86 @@ object ValuesRouteV1 extends Authenticator {
             post {
                 entity(as[CreateValueApiRequestV1]) { apiRequest =>
                     requestContext =>
-                        val userProfile = getUserADM(requestContext)
-                        val requestMessageFuture = makeCreateValueRequestMessage(apiRequest = apiRequest, userProfile = userProfile)
+                        val requestMessageFuture = for {
+                            userADM <- getUserADM(requestContext)
+                            request <- makeCreateValueRequestMessage(apiRequest = apiRequest, userADM = userADM)
+                        } yield request
 
                         RouteUtilV1.runJsonRouteWithFuture(
                             requestMessageFuture,
                             requestContext,
                             settings,
                             responderManager,
-                            loggingAdapter
+                            log
                         )
                 }
             }
         } ~ path("v1" / "values" / Segment) { valueIriStr =>
             get {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val requestMessage = makeGetValueRequest(valueIriStr = valueIriStr, userProfile = userProfile)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                    } yield makeGetValueRequest(valueIriStr = valueIriStr, userADM = userADM)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        loggingAdapter
+                        log
                     )
                 }
             } ~ put {
                 entity(as[ChangeValueApiRequestV1]) { apiRequest =>
                     requestContext =>
-                        val userProfile = getUserADM(requestContext)
-
                         // In API v1, you cannot change a value and its comment in a single request. So we know that here,
                         // we are getting a request to change either the value or the comment, but not both.
-                        val requestMessageFuture = apiRequest match {
-                            case ChangeValueApiRequestV1(_, _, _, _, _, _, _, _, _, _, _, _, Some(comment)) => Future(makeChangeCommentRequestMessage(valueIriStr = valueIriStr, comment = Some(comment), userProfile = userProfile))
-                            case _ => makeAddValueVersionRequestMessage(valueIriStr = valueIriStr, apiRequest = apiRequest, userProfile = userProfile)
-                        }
+                        val requestMessageFuture = for {
+                            userADM <- getUserADM(requestContext)
+                            request <- apiRequest match {
+                                case ChangeValueApiRequestV1(_, _, _, _, _, _, _, _, _, _, _, _, Some(comment)) => FastFuture.successful(makeChangeCommentRequestMessage(valueIriStr = valueIriStr, comment = Some(comment), userADM = userADM))
+                                case _ => makeAddValueVersionRequestMessage(valueIriStr = valueIriStr, apiRequest = apiRequest, userADM = userADM)
+                            }
+                        } yield request
 
                         RouteUtilV1.runJsonRouteWithFuture(
                             requestMessageFuture,
                             requestContext,
                             settings,
                             responderManager,
-                            loggingAdapter
+                            log
                         )
                 }
             } ~ delete {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val params = requestContext.request.uri.query().toMap
-                    val deleteComment = params.get("deleteComment")
-                    val requestMessage = makeDeleteValueRequest(valueIriStr = valueIriStr, deleteComment = deleteComment, userProfile = userProfile)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                        params = requestContext.request.uri.query().toMap
+                        deleteComment = params.get("deleteComment")
+                    } yield makeDeleteValueRequest(valueIriStr = valueIriStr, deleteComment = deleteComment, userADM = userADM)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        loggingAdapter
+                        log
                     )
                 }
             }
         } ~ path("v1" / "valuecomments" / Segment) { valueIriStr =>
             delete {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val requestMessage = makeChangeCommentRequestMessage(valueIriStr = valueIriStr, comment = None, userProfile = userProfile)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                    } yield makeChangeCommentRequestMessage(valueIriStr = valueIriStr, comment = None, userADM = userADM)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        loggingAdapter
+                        log
                     )
                 }
             }
@@ -452,40 +459,53 @@ object ValuesRouteV1 extends Authenticator {
             // Link value request requires 3 URL path segments: subject IRI, predicate IRI, and object IRI
             get {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val requestMessage = makeLinkValueGetRequestMessage(iris = iris, userProfile = userProfile)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                    } yield makeLinkValueGetRequestMessage(iris = iris, userADM = userADM)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
                         responderManager,
-                        loggingAdapter
+                        log
                     )
                 }
             }
-        } ~ path("v1" / "filevalue" / Segment) { (resIriStr: IRI) =>
+        } ~ path("v1" / "filevalue" / Segment) { resIriStr: IRI =>
             put {
                 entity(as[ChangeFileValueApiRequestV1]) { apiRequest =>
                     requestContext =>
-                        val userProfile = getUserADM(requestContext)
-                        val requestMessage = makeChangeFileValueRequest(resIriStr = resIriStr, apiRequest = Some(apiRequest), multipartConversionRequest = None, userProfile = userProfile)
 
-                        RouteUtilV1.runJsonRoute(
+                        val requestMessage = for {
+                            userADM <- getUserADM(requestContext)
+                            resourceIri = stringFormatter.validateAndEscapeIri(resIriStr, throw BadRequestException(s"Invalid resource IRI: $resIriStr"))
+                            resourceInfoResponse <- (responderManager ? ResourceInfoGetRequestV1(resourceIri, userADM)).mapTo[ResourceInfoResponseV1]
+                            projectShortcode = resourceInfoResponse.resource_info.getOrElse(throw NotFoundException(s"Resource not found: $resourceIri")).project_shortcode
+
+                        } yield makeChangeFileValueRequest(
+                            resIriStr = resIriStr,
+                            projectShortcode = projectShortcode,
+                            apiRequest = Some(apiRequest),
+                            multipartConversionRequest = None,
+                            userADM = userADM
+                        )
+
+                        RouteUtilV1.runJsonRouteWithFuture(
                             requestMessage,
                             requestContext,
                             settings,
                             responderManager,
-                            loggingAdapter
+                            log
                         )
                 }
             } ~ put {
                 entity(as[Multipart.FormData]) { formdata =>
                     requestContext =>
 
-                        loggingAdapter.debug("/v1/filevalue - PUT - Multipart.FormData - Route")
+                        log.debug("/v1/filevalue - PUT - Multipart.FormData - Route")
 
-                        val userProfile = getUserADM(requestContext)
+
 
                         val FILE_PART = "file"
 
@@ -503,12 +523,12 @@ object ValuesRouteV1 extends Authenticator {
                         val allPartsFuture: Future[Map[Name, Any]] = formdata.parts.mapAsync[(Name, Any)](1) {
                             case b: BodyPart =>
                                 if (b.name == FILE_PART) {
-                                    loggingAdapter.debug(s"inside allPartsFuture - processing $FILE_PART")
+                                    log.debug(s"inside allPartsFuture - processing $FILE_PART")
                                     val filename = b.filename.getOrElse(throw BadRequestException(s"Filename is not given"))
                                     val tmpFile = FileUtil.createTempFile(settings)
                                     val written = b.entity.dataBytes.runWith(FileIO.toPath(tmpFile.toPath))
                                     written.map { written =>
-                                        loggingAdapter.debug(s"written result: ${written.wasSuccessful}, ${b.filename.get}, ${tmpFile.getAbsolutePath}")
+                                        log.debug(s"written result: ${written.wasSuccessful}, ${b.filename.get}, ${tmpFile.getAbsolutePath}")
                                         receivedFile.success(tmpFile)
                                         (b.name, FileInfo(b.name, filename, b.entity.contentType))
                                     }
@@ -518,6 +538,7 @@ object ValuesRouteV1 extends Authenticator {
                         }.runFold(Map.empty[Name, Any])((map, tuple) => map + tuple)
 
                         val requestMessageFuture = for {
+                            userADM <- getUserADM(requestContext)
                             allParts <- allPartsFuture
                             sourcePath <- receivedFile.future
                             // get the file info containing the original filename and content type.
@@ -525,21 +546,32 @@ object ValuesRouteV1 extends Authenticator {
                             originalFilename = fileInfo.fileName
                             originalMimeType = fileInfo.contentType.toString
 
-                            sipiConvertPathRequest = SipiResponderConversionPathRequestV1(
+                            resourceIri = stringFormatter.validateAndEscapeIri(resIriStr, throw BadRequestException(s"Invalid resource IRI: $resIriStr"))
+                            resourceInfoResponse <- (responderManager ? ResourceInfoGetRequestV1(resourceIri, userADM)).mapTo[ResourceInfoResponseV1]
+                            projectShortcode = resourceInfoResponse.resource_info.getOrElse(throw NotFoundException(s"Resource not found: $resourceIri")).project_shortcode
+
+                            sipiConvertPathRequest = SipiConversionPathRequestV1(
                                 originalFilename = stringFormatter.toSparqlEncodedString(originalFilename, throw BadRequestException(s"The original filename is invalid: '$originalFilename'")),
                                 originalMimeType = stringFormatter.toSparqlEncodedString(originalMimeType, throw BadRequestException(s"The original MIME type is invalid: '$originalMimeType'")),
+                                projectShortcode = projectShortcode,
                                 source = sourcePath,
-                                userProfile = userProfile.asUserProfileV1
+                                userProfile = userADM.asUserProfileV1
                             )
 
-                        } yield makeChangeFileValueRequest(resIriStr = resIriStr, apiRequest = None, multipartConversionRequest = Some(sipiConvertPathRequest), userProfile = userProfile)
+                        } yield makeChangeFileValueRequest(
+                            resIriStr = resIriStr,
+                            projectShortcode = projectShortcode,
+                            apiRequest = None,
+                            multipartConversionRequest = Some(sipiConvertPathRequest),
+                            userADM = userADM
+                        )
 
                         RouteUtilV1.runJsonRouteWithFuture(
                             requestMessageFuture,
                             requestContext,
                             settings,
                             responderManager,
-                            loggingAdapter
+                            log
                         )
                 }
             }

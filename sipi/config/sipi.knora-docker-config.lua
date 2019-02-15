@@ -1,4 +1,4 @@
--- Copyright © 2015-2018 the contributors (see Contributors.md).
+-- Copyright © 2015-2019 the contributors (see Contributors.md).
 --
 -- This file is part of Knora.
 --
@@ -26,9 +26,10 @@ sipi = {
     -- userid = '_www',
 
     --
-    -- sipi's hostname as reported in the thumbnail response, default is "localhost"
+    -- Sipi's hostname as returned in the thumbnail response, default is "localhost".
+    -- If sipi is run behind a proxy, then this external FQDN needs to be set here.
     --
-    -- hostname = 'localhost',
+    hostname = 'localhost',
 
     --
     -- port number the server is listening to
@@ -76,7 +77,7 @@ sipi = {
     -- for certain prefixes *not* to use subdirs. A list of these prefix-directories
     -- can be given with this configuration parameter.
     --
-    subdir_excludes = { "tmp", "thumbs"},
+    subdir_excludes = { "knora", "thumbs" },
 
     --
     -- Lua script which is executed on initialization of the Lua interpreter
@@ -116,7 +117,7 @@ sipi = {
     --
     -- Path to Knora Application
     --
-    knora_path = 'webapihost',
+    knora_path = 'webapi',
 
     --
     -- Port of Knora Application
@@ -124,7 +125,20 @@ sipi = {
     knora_port = '3333',
 
     --
-    -- loglevel, one of "EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFORMATIONAL", "DEBUG"
+    -- The secret for generating JWT's (JSON Web Tokens) (42 characters)
+    --
+    jwt_secret = 'UP 4888, nice 4-8-4 steam engine',
+    --            12345678901234567890123456789012
+
+    --
+    -- Name of the logfile (a ".txt" is added...)
+    --
+    -- logfile = "sipi.log",
+
+
+    --
+    -- loglevel, one of "DEBUG", "INFO", "NOTICE", "WARNING", "ERR",
+    -- "CRIT", "ALERT", "EMERG"
     --
     loglevel = "DEBUG"
 
@@ -166,13 +180,19 @@ routes = {
     },
     {
         method = 'POST',
-        route = '/Knora_login',
-        script = 'Knora_login.lua'
+        route = '/upload',
+        script = 'upload.lua'
     },
     {
         method = 'POST',
-        route = '/Knora_logout',
-        script = 'Knora_logout.lua'
+        route = '/store',
+        script = 'store.lua'
+    },
+    {
+        method = 'DELETE',
+        route = '/delete_temp_file',
+        script = 'delete_temp_file.lua'
     }
 
 }
+

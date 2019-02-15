@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,7 +21,6 @@ package org.knora.webapi.responders.v1
 
 import java.util.UUID
 
-import akka.actor.Status
 import akka.http.scaladsl.util.FastFuture
 import akka.pattern._
 import org.knora.webapi._
@@ -30,8 +29,8 @@ import org.knora.webapi.messages.store.triplestoremessages._
 import org.knora.webapi.messages.v1.responder.projectmessages.{ProjectInfoByIRIGetV1, ProjectInfoV1}
 import org.knora.webapi.messages.v1.responder.usermessages.UserProfileTypeV1.UserProfileType
 import org.knora.webapi.messages.v1.responder.usermessages._
-import org.knora.webapi.responders.Responder
-import org.knora.webapi.util.ActorUtil._
+import org.knora.webapi.responders.Responder.handleUnexpectedMessage
+import org.knora.webapi.responders.{Responder, ResponderData}
 import org.knora.webapi.util.{CacheUtil, KnoraIdUtil}
 
 import scala.concurrent.Future
@@ -39,7 +38,7 @@ import scala.concurrent.Future
 /**
   * Provides information about Knora users to other responders.
   */
-class UsersResponderV1 extends Responder {
+class UsersResponderV1(responderData: ResponderData) extends Responder(responderData) {
 
     // Creates IRIs for new Knora user objects.
     val knoraIdUtil = new KnoraIdUtil
@@ -50,22 +49,20 @@ class UsersResponderV1 extends Responder {
     val USER_PROFILE_CACHE_NAME = "userProfileCache"
 
     /**
-      * Receives a message extending [[org.knora.webapi.messages.v1.responder.usermessages.UsersResponderRequestV1]], and returns a message of type [[UserProfileV1]]
-      * [[Status.Failure]]. If a serious error occurs (i.e. an error that isn't the client's fault), this
-      * method first returns `Failure` to the sender, then throws an exception.
+      * Receives a message of type [[UsersResponderRequestV1]], and returns an appropriate response message.
       */
-    def receive = {
-        case UsersGetV1() => future2Message(sender(), usersGetV1, log)
-        case UsersGetRequestV1(userProfileV1) => future2Message(sender(), usersGetRequestV1(userProfileV1), log)
-        case UserDataByIriGetV1(userIri, short) => future2Message(sender(), userDataByIriGetV1(userIri, short), log)
-        case UserProfileByIRIGetV1(userIri, profileType) => future2Message(sender(), userProfileByIRIGetV1(userIri, profileType), log)
-        case UserProfileByIRIGetRequestV1(userIri, profileType, userProfile) => future2Message(sender(), userProfileByIRIGetRequestV1(userIri, profileType, userProfile), log)
-        case UserProfileByEmailGetV1(email, profileType) => future2Message(sender(), userProfileByEmailGetV1(email, profileType), log)
-        case UserProfileByEmailGetRequestV1(email, profileType, userProfile) => future2Message(sender(), userProfileByEmailGetRequestV1(email, profileType, userProfile), log)
-        case UserProjectMembershipsGetRequestV1(userIri, userProfile, apiRequestID) => future2Message(sender(), userProjectMembershipsGetRequestV1(userIri, userProfile, apiRequestID), log)
-        case UserProjectAdminMembershipsGetRequestV1(userIri, userProfile, apiRequestID) => future2Message(sender(), userProjectAdminMembershipsGetRequestV1(userIri, userProfile, apiRequestID), log)
-        case UserGroupMembershipsGetRequestV1(userIri, userProfile, apiRequestID) => future2Message(sender(), userGroupMembershipsGetRequestV1(userIri, userProfile, apiRequestID), log)
-        case other => handleUnexpectedMessage(sender(), other, log, this.getClass.getName)
+    def receive(msg: UsersResponderRequestV1) = msg match {
+        case UsersGetV1(userProfile) => usersGetV1(userProfile)
+        case UsersGetRequestV1(userProfileV1) => usersGetRequestV1(userProfileV1)
+        case UserDataByIriGetV1(userIri, short) => userDataByIriGetV1(userIri, short)
+        case UserProfileByIRIGetV1(userIri, profileType) => userProfileByIRIGetV1(userIri, profileType)
+        case UserProfileByIRIGetRequestV1(userIri, profileType, userProfile) => userProfileByIRIGetRequestV1(userIri, profileType, userProfile)
+        case UserProfileByEmailGetV1(email, profileType) => userProfileByEmailGetV1(email, profileType)
+        case UserProfileByEmailGetRequestV1(email, profileType, userProfile) => userProfileByEmailGetRequestV1(email, profileType, userProfile)
+        case UserProjectMembershipsGetRequestV1(userIri, userProfile, apiRequestID) => userProjectMembershipsGetRequestV1(userIri, userProfile, apiRequestID)
+        case UserProjectAdminMembershipsGetRequestV1(userIri, userProfile, apiRequestID) => userProjectAdminMembershipsGetRequestV1(userIri, userProfile, apiRequestID)
+        case UserGroupMembershipsGetRequestV1(userIri, userProfile, apiRequestID) => userGroupMembershipsGetRequestV1(userIri, userProfile, apiRequestID)
+        case other => handleUnexpectedMessage(other, log, this.getClass.getName)
     }
 
 
@@ -74,11 +71,17 @@ class UsersResponderV1 extends Responder {
       *
       * @return all the users as a sequence of [[UserDataV1]].
       */
-    private def usersGetV1: Future[Seq[UserDataV1]] = {
+    private def usersGetV1(userProfileV1: UserProfileV1): Future[Seq[UserDataV1]] = {
 
         //log.debug("usersGetV1")
 
         for {
+            _ <- Future(
+                if (!userProfileV1.permissionData.isSystemAdmin) {
+                    throw ForbiddenException("SystemAdmin permissions are required.")
+                }
+            )
+
             sparqlQueryString <- Future(queries.sparql.v1.txt.getUsers(
                 triplestore = settings.triplestoreType
             ).toString())
@@ -118,7 +121,7 @@ class UsersResponderV1 extends Responder {
       */
     private def usersGetRequestV1(userProfileV1: UserProfileV1): Future[UsersGetResponseV1] = {
         for {
-            maybeUsersListToReturn <- usersGetV1
+            maybeUsersListToReturn <- usersGetV1(userProfileV1)
             result = maybeUsersListToReturn match {
                 case users: Seq[UserDataV1] if users.nonEmpty => UsersGetResponseV1(users = users)
                 case _ => throw NotFoundException(s"No users found")
@@ -204,6 +207,11 @@ class UsersResponderV1 extends Responder {
       */
     private def userProfileByIRIGetRequestV1(userIRI: IRI, profileType: UserProfileType, userProfile: UserProfileV1): Future[UserProfileResponseV1] = {
         for {
+            _ <- Future(
+                if (!userProfile.permissionData.isSystemAdmin && !userProfile.userData.user_id.contains(userIRI)) {
+                    throw ForbiddenException("SystemAdmin permissions are required.")
+                }
+            )
             maybeUserProfileToReturn <- userProfileByIRIGetV1(userIRI, profileType)
             result = maybeUserProfileToReturn match {
                 case Some(up) => UserProfileResponseV1(up)

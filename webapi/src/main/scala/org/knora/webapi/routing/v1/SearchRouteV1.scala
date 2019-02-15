@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,15 +19,13 @@
 
 package org.knora.webapi.routing.v1
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
 import org.knora.webapi.messages.v1.responder.searchmessages.{ExtendedSearchGetRequestV1, FulltextSearchGetRequestV1, SearchComparisonOperatorV1}
-import org.knora.webapi.routing.{Authenticator, RouteUtilV1}
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV1}
 import org.knora.webapi.util.StringFormatter
-import org.knora.webapi.{BadRequestException, IRI, SettingsImpl}
+import org.knora.webapi.{BadRequestException, IRI}
 
 import scala.language.postfixOps
 
@@ -36,14 +34,14 @@ import scala.language.postfixOps
 /**
   * Provides a spray-routing function for API routes that deal with search.
   */
-object SearchRouteV1 extends Authenticator {
+class SearchRouteV1(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
     /**
       * The default number of rows to show in search results.
       */
     private val defaultShowNRows = 25
 
-    def makeExtendedSearchRequestMessage(userProfile: UserADM, reverseParams: Map[String, Seq[String]]): ExtendedSearchGetRequestV1 = {
+    def makeExtendedSearchRequestMessage(userADM: UserADM, reverseParams: Map[String, Seq[String]]): ExtendedSearchGetRequestV1 = {
         val stringFormatter = StringFormatter.getGeneralInstance
 
         // Spray returns the parameters in reverse order, so reverse them before processing, because the JavaScript GUI expects the order to be preserved.
@@ -131,13 +129,13 @@ object SearchRouteV1 extends Authenticator {
             propertyIri = propertyIri,
             compareProps = compop,
             searchValue = searchval, // not processed (escaped) yet
-            userProfile = userProfile,
+            userProfile = userADM,
             showNRows = showNRows,
             startAt = startAt
         )
     }
 
-    def makeFulltextSearchRequestMessage(userProfile: UserADM, searchval: String, params: Map[String, String]): FulltextSearchGetRequestV1 = {
+    def makeFulltextSearchRequestMessage(userADM: UserADM, searchval: String, params: Map[String, String]): FulltextSearchGetRequestV1 = {
         val stringFormatter = StringFormatter.getGeneralInstance
 
         params.get("searchtype") match {
@@ -176,27 +174,24 @@ object SearchRouteV1 extends Authenticator {
             searchValue = searchString, // save
             filterByRestype = restypeIri,
             filterByProject = projectIri,
-            userProfile = userProfile,
+            userProfile = userADM,
             showNRows = showNRows,
             startAt = startAt
         )
     }
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-        implicit val system = _system
-        implicit val executionContext = system.dispatcher
-        implicit val timeout = settings.defaultTimeout
-        val responderManager = system.actorSelection("/user/responderManager")
+    def knoraApiPath: Route = {
 
         path("v1" / "search" /) {
             // in the original API, there is a slash after "search": "http://www.salsah.org/api/search/?searchtype=extended"
             get {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val params: Map[String, Seq[String]] = requestContext.request.uri.query().toMultiMap
-                    val requestMessage = makeExtendedSearchRequestMessage(userProfile, params)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                        params: Map[String, Seq[String]] = requestContext.request.uri.query().toMultiMap
+                    } yield makeExtendedSearchRequestMessage(userADM, params)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
@@ -205,14 +200,16 @@ object SearchRouteV1 extends Authenticator {
                     )
                 }
             }
-        } ~ path("v1" / "search" / Segment) { searchval => // TODO: if a space is encoded as a "+", this is not converted back to a space
+        } ~
+        path("v1" / "search" / Segment) { searchval => // TODO: if a space is encoded as a "+", this is not converted back to a space
             get {
                 requestContext => {
-                    val userProfile = getUserADM(requestContext)
-                    val params: Map[String, String] = requestContext.request.uri.query().toMap
-                    val requestMessage = makeFulltextSearchRequestMessage(userProfile, searchval, params)
+                    val requestMessage = for {
+                        userADM <- getUserADM(requestContext)
+                        params: Map[String, String] = requestContext.request.uri.query().toMap
+                    } yield makeFulltextSearchRequestMessage(userADM, searchval, params)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,

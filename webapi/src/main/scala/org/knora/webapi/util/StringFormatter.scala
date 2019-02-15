@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -20,7 +20,9 @@
 package org.knora.webapi.util
 
 import java.text.ParseException
-import java.time.Instant
+import java.time._
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAccessor
 import java.util.concurrent.ConcurrentHashMap
 
 import com.google.gwt.safehtml.shared.UriUtils._
@@ -31,14 +33,15 @@ import org.joda.time.format.DateTimeFormat
 import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.projectsmessages.ProjectADM
 import org.knora.webapi.messages.v1.responder.projectmessages.ProjectInfoV1
-import org.knora.webapi.messages.v2.responder.standoffmessages.StandoffDataTypeClasses
 import org.knora.webapi.messages.v2.responder.KnoraContentV2
+import org.knora.webapi.messages.v2.responder.standoffmessages.StandoffDataTypeClasses
 import org.knora.webapi.twirl.StandoffTagV2
 import org.knora.webapi.util.JavaUtil.Optional
-import spray.json.JsonParser
+import spray.json._
 
 import scala.util.control.Exception._
 import scala.util.matching.Regex
+import scala.util.{Failure, Success, Try}
 
 /**
   * Provides instances of [[StringFormatter]], as well as string formatting constants.
@@ -51,10 +54,10 @@ object StringFormatter {
     // A non-printing delimiter character, Unicode INFORMATION SEPARATOR TWO, that should never occur in data.
     val INFORMATION_SEPARATOR_TWO = '\u001E'
 
-    // A non-printing delimiter character, Unicode INFORMATION SEPARATOR TWO, that should never occur in data.
+    // A non-printing delimiter character, Unicode INFORMATION SEPARATOR THREE, that should never occur in data.
     val INFORMATION_SEPARATOR_THREE = '\u001D'
 
-    // A non-printing delimiter character, Unicode INFORMATION SEPARATOR TWO, that should never occur in data.
+    // A non-printing delimiter character, Unicode INFORMATION SEPARATOR FOUR, that should never occur in data.
     val INFORMATION_SEPARATOR_FOUR = '\u001C'
 
     // a separator to be inserted in the XML to separate nodes from one another
@@ -101,6 +104,36 @@ object StringFormatter {
       * Common Era (equivalent to AD)
       */
     val Era_CE: String = "CE"
+
+    /**
+      * String representation of the name of the Gregorian calendar.
+      */
+    val CalendarGregorian: String = "GREGORIAN"
+
+    /**
+      * String representation of the name of the Julian calendar.
+      */
+    val CalendarJulian: String = "JULIAN"
+
+    /**
+      * String representation of day precision in a date.
+      */
+    val PrecisionDay: String = "DAY"
+
+    /**
+      * String representation of month precision in a date.
+      */
+    val PrecisionMonth: String = "MONTH"
+
+    /**
+      * String representation of year precision in a date.
+      */
+    val PrecisionYear: String = "YEAR"
+
+    /**
+      * The version number of the current version of Knora's ARK URL format.
+      */
+    val ArkVersion: String = "1"
 
     /**
       * A container for an XML import namespace and its prefix label.
@@ -205,8 +238,8 @@ object StringFormatter {
     /**
       * The instance of [[StringFormatter]] that can be used as soon as the JVM starts, but
       * can't parse project-specific API v2 ontology IRIs. This instance is used
-      * only to initialise the hard-coded API v2 ontologies [[org.knora.webapi.messages.v2.responder.ontologymessages.KnoraApiV2Simple]]
-      * and [[org.knora.webapi.messages.v2.responder.ontologymessages.KnoraApiV2WithValueObjects]].
+      * only to initialise the hard-coded API v2 ontologies [[org.knora.webapi.messages.v2.responder.ontologymessages.KnoraApiV2SimpleTransformationRules]]
+      * and [[org.knora.webapi.messages.v2.responder.ontologymessages.KnoraApiV2WithValueObjectsTransformationRules]].
       */
     private val instanceForConstantOntologies = new StringFormatter(None)
 
@@ -235,7 +268,7 @@ object StringFormatter {
         this.synchronized {
             generalInstance match {
                 case Some(_) => ()
-                case None => generalInstance = Some(new StringFormatter(Some(settings.externalKnoraApiHostPort)))
+                case None => generalInstance = Some(new StringFormatter(Some(settings)))
             }
         }
     }
@@ -247,7 +280,7 @@ object StringFormatter {
         this.synchronized {
             generalInstance match {
                 case Some(_) => ()
-                case None => generalInstance = Some(new StringFormatter(Some("0.0.0.0:3333")))
+                case None => generalInstance = Some(new StringFormatter(maybeSettings = None, initForTest = true))
             }
         }
     }
@@ -279,6 +312,8 @@ object StringFormatter {
       * @param projectCode    the IRI's project code, if any.
       * @param ontologyName   the IRI's ontology name, if any.
       * @param entityName     the IRI's entity name, if any.
+      * @param resourceID     if this is a resource IRI or value IRI, its resource ID.
+      * @param valueID        if this is a value IRI, its value ID.
       * @param ontologySchema the IRI's ontology schema, or `None` if it is not a Knora definition IRI.
       * @param isBuiltInDef   `true` if the IRI refers to a built-in Knora ontology or ontology entity.
       */
@@ -286,8 +321,11 @@ object StringFormatter {
                                     projectCode: Option[String] = None,
                                     ontologyName: Option[String] = None,
                                     entityName: Option[String] = None,
+                                    resourceID: Option[String] = None,
+                                    valueID: Option[String] = None,
                                     ontologySchema: Option[OntologySchema],
-                                    isBuiltInDef: Boolean = false)
+                                    isBuiltInDef: Boolean = false,
+                                    sharedOntology: Boolean = false)
 
     /**
       * A cache that maps IRI strings to [[SmartIri]] instances. To keep the cache from getting too large,
@@ -353,6 +391,16 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
     def isKnoraDataIri: Boolean
 
     /**
+      * Returns `true` if this is a Knora resource IRI.
+      */
+    def isKnoraResourceIri: Boolean
+
+    /**
+      * Returns `true` if this is a Knora value IRI.
+      */
+    def isKnoraValueIri: Boolean
+
+    /**
       * Returns `true` if this is a Knora ontology or entity IRI.
       */
     def isKnoraDefinitionIri: Boolean
@@ -363,6 +411,11 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
       * @return
       */
     def isKnoraBuiltInDefinitionIri: Boolean
+
+    /**
+      * Returns `true` if this IRI belongs to a shared ontology.
+      */
+    def isKnoraSharedDefinitionIri: Boolean
 
     /**
       * Returns `true` if this is an internal Knora ontology or entity IRI.
@@ -402,6 +455,16 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
     def getProjectCode: Option[String]
 
     /**
+      * Returns the IRI's resource ID, if any.
+      */
+    def getResourceID: Option[String]
+
+    /**
+      * Returns the IRI's value ID, if any.
+      */
+    def getValueID: Option[String]
+
+    /**
       * If this is an ontology entity IRI, returns its ontology IRI.
       */
     def getOntologyFromEntity: SmartIri
@@ -434,8 +497,8 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
       * `errorFun`.
       *
       * @param allowedSchema the schema to be allowed.
-      * @param errorFun a function that throws an exception. It will be called if the IRI has a different schema
-      *                 to the one specified.
+      * @param errorFun      a function that throws an exception. It will be called if the IRI has a different schema
+      *                      to the one specified.
       * @return the same IRI
       */
     def checkApiV2Schema(allowedSchema: ApiV2Schema, errorFun: => Nothing): SmartIri
@@ -467,10 +530,17 @@ sealed trait SmartIri extends Ordered[SmartIri] with KnoraContentV2[SmartIri] {
     /**
       * If this is the IRI of a link property, returns the IRI of the corresponding link value property. Throws
       * [[DataConversionException]] if this IRI is not a Knora entity IRI.
-      *
-      * @return
       */
     def fromLinkPropToLinkValueProp: SmartIri
+
+    /**
+      * If this is a Knora data IRI representing a resource, returns the corresponding ARK URL. Throws
+      * [[DataConversionException]] if this IRI is not a Knora resource IRI.
+      *
+      * @param maybeTimestamp an optional timestamp indicating the point in the resource's version history that the ARK URL should
+      *                       cite.
+      */
+    def fromResourceIriToArkUrl(maybeTimestamp: Option[Instant] = None): String
 
     override def equals(obj: scala.Any): Boolean = {
         // See the comment at the top of the SmartIri trait.
@@ -520,9 +590,31 @@ object IriConversions {
 /**
   * Handles string parsing, formatting, conversion, and validation.
   */
-class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
+class StringFormatter private(val maybeSettings: Option[SettingsImpl], initForTest: Boolean = false) {
 
     import StringFormatter._
+
+    // The host and port number that this Knora server is running on, and that should be used
+    // when constructing IRIs for project-specific ontologies.
+    private val knoraApiHostAndPort: Option[String] = if (initForTest) {
+        Some("0.0.0.0:3333")
+    } else {
+        maybeSettings.map(_.externalKnoraApiHostPort)
+    }
+
+    // The protocol and host that the ARK resolver is running on.
+    private val arkResolver: Option[String] = if (initForTest) {
+        Some("http://0.0.0.0:3336")
+    } else {
+        maybeSettings.map(_.arkResolver)
+    }
+
+    // The DaSCH's ARK assigned number.
+    private val arkAssignedNumber: Option[Int] = if (initForTest) {
+        Some(72163)
+    } else {
+        maybeSettings.map(_.arkAssignedNumber)
+    }
 
     // Valid URL schemes.
     private val schemes = Array("http", "https")
@@ -533,19 +625,21 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     // The hostname used in internal Knora IRIs.
     private val InternalIriHostname = "www.knora.org"
 
-    // The hostname used in built-in Knora API v2 IRIs.
-    private val BuiltInKnoraApiHostname = "api.knora.org"
+    // The hostname used in built-in and shared Knora API v2 IRIs.
+    private val CentralKnoraApiHostname = "api.knora.org"
 
     // The strings that Knora data IRIs can start with.
     private val DataIriStarts: Set[String] = Set(
-        "http://" + KnoraIdUtil.IriDomain + "/",
-        "http://data.knora.org/"
+        "http://" + KnoraIdUtil.IriDomain + "/"
     )
+
+    // The project code of the default shared ontologies project.
+    private val DefaultSharedOntologiesProjectCode = "0000"
 
     // The beginnings of Knora definition IRIs that we know we can cache.
     private val KnoraDefinitionIriStarts = (Set(
         InternalIriHostname,
-        BuiltInKnoraApiHostname
+        CentralKnoraApiHostname
     ) ++ knoraApiHostAndPort).map(hostname => "http://" + hostname)
 
     // The beginnings of all definition IRIs that we know we can cache.
@@ -560,24 +654,24 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     private val versionSegmentWords = Set("simple", "v2")
 
     // Reserved words that cannot be used in project-specific ontology names.
-    private val reservedIriWords = Set("knora", "ontology", "rdf", "rdfs", "owl", "xsd", "schema") ++ versionSegmentWords
+    private val reservedIriWords = Set("knora", "ontology", "rdf", "rdfs", "owl", "xsd", "schema", "shared") ++ versionSegmentWords
 
     // The expected format of a Knora date.
     // Calendar:YYYY[-MM[-DD]][ EE][:YYYY[-MM[-DD]][ EE]]
     // EE being the era: one of BC or AD
     private val KnoraDateRegex: Regex = ("""^(GREGORIAN|JULIAN)""" +
-        CalendarSeparator + // calendar name
-        """(?:[1-9][0-9]{0,3})(""" + // year
-        PrecisionSeparator +
-        """(?!00)[0-9]{1,2}(""" + // month
-        PrecisionSeparator +
-        """(?!00)[0-9]{1,2})?)?( BC| AD| BCE| CE)?(""" + // day
-        CalendarSeparator + // separator if a period is given
-        """(?:[1-9][0-9]{0,3})(""" + // year 2
-        PrecisionSeparator +
-        """(?!00)[0-9]{1,2}(""" + // month 2
-        PrecisionSeparator +
-        """(?!00)[0-9]{1,2})?)?( BC| AD| BCE| CE)?)?$""").r // day 2
+            CalendarSeparator + // calendar name
+            """(?:[1-9][0-9]{0,3})(""" + // year
+            PrecisionSeparator +
+            """(?!00)[0-9]{1,2}(""" + // month
+            PrecisionSeparator +
+            """(?!00)[0-9]{1,2})?)?( BC| AD| BCE| CE)?(""" + // day
+            CalendarSeparator + // separator if a period is given
+            """(?:[1-9][0-9]{0,3})(""" + // year 2
+            PrecisionSeparator +
+            """(?!00)[0-9]{1,2}(""" + // month 2
+            PrecisionSeparator +
+            """(?!00)[0-9]{1,2})?)?( BC| AD| BCE| CE)?)?$""").r // day 2
 
     // The expected format of a datetime.
     private val dateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss"
@@ -623,10 +717,10 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
     // A regex for the URL path of an API v2 ontology (built-in or project-specific).
     private val ApiV2OntologyUrlPathRegex: Regex = (
-        "^" + "/ontology/((" +
-            ProjectIDPattern + ")/)?(" + NCNamePattern + ")(" +
-            OntologyConstants.KnoraApiV2WithValueObjects.VersionSegment + "|" + OntologyConstants.KnoraApiV2Simple.VersionSegment + ")$"
-        ).r
+            "^" + "/ontology/((" +
+                    ProjectIDPattern + ")/)?(" + NCNamePattern + ")(" +
+                    OntologyConstants.KnoraApiV2WithValueObjects.VersionSegment + "|" + OntologyConstants.KnoraApiV2Simple.VersionSegment + ")$"
+            ).r
 
     // The start of the IRI of a project-specific API v2 ontology that is served by this API server.
     private val MaybeProjectSpecificApiV2OntologyStart: Option[String] = knoraApiHostAndPort match {
@@ -636,23 +730,22 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
     // A regex for a project-specific XML import namespace.
     private val ProjectSpecificXmlImportNamespaceRegex: Regex = (
-        "^" + OntologyConstants.KnoraXmlImportV1.ProjectSpecificXmlImportNamespace.XmlImportNamespaceStart + "(" +
-            ProjectIDPattern + ")/(" + NCNamePattern + ")" +
-            OntologyConstants.KnoraXmlImportV1.ProjectSpecificXmlImportNamespace.XmlImportNamespaceEnd + "$"
-        ).r
+            "^" + OntologyConstants.KnoraXmlImportV1.ProjectSpecificXmlImportNamespace.XmlImportNamespaceStart +
+                    "(shared/)?((" + ProjectIDPattern + ")/)?(" + NCNamePattern + ")" +
+                    OntologyConstants.KnoraXmlImportV1.ProjectSpecificXmlImportNamespace.XmlImportNamespaceEnd + "$"
+            ).r
 
     // In XML import data, a property from another ontology is referred to as prefixLabel__localName. The prefix label
     // may start with a project ID (prefixed with 'p') and a hyphen. This regex parses that pattern.
     private val PropertyFromOtherOntologyInXmlImportRegex: Regex = (
-
-        "^(p(" + ProjectIDPattern + ")-)(" + NCNamePattern + ")__(" + NCNamePattern + ")$"
-        ).r
+            "^(p(" + ProjectIDPattern + ")-)?(" + NCNamePattern + ")__(" + NCNamePattern + ")$"
+            ).r
 
     // In XML import data, a standoff link tag that refers to a resource described in the import must have the
     // form defined by this regex.
     private val StandoffLinkReferenceToClientIDForResourceRegex: Regex = (
-        "^ref:(" + NCNamePattern + ")$"
-        ).r
+            "^ref:(" + NCNamePattern + ")$"
+            ).r
 
     private val ApiVersionNumberRegex: Regex = "^v[0-9]+.*$".r
 
@@ -663,6 +756,45 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     // Parses an object of salsa-gui:guiAttribute.
     private val SalsahGuiAttributeRegex: Regex =
         """^(\p{L}+)=(.+)$""".r
+
+    // A regex for matching a string containing an email address.
+    private val EmailAddressRegex: Regex =
+        """^.+@.+$""".r
+
+    // A regex sub-pattern matching the random IDs generated by KnoraIdUtil, which are Base64-encoded
+    // using the "URL and Filename safe" Base 64 alphabet, without padding, as specified in Table 2 of
+    // RFC 4648.
+    private val Base64UrlPattern = "[A-Za-z0-9_-]+"
+
+    // Calculates check digits for resource IDs in ARK URLs.
+    private val base64UrlCheckDigit = new Base64UrlCheckDigit
+
+    // A regex that matches a Knora resource IRI.
+    private val ResourceIriRegex: Regex = ("^http://" + KnoraIdUtil.IriDomain + "/(" + ProjectIDPattern + ")/(" + Base64UrlPattern + ")$").r
+
+    // A regex that matches a Knora values IRI.
+    private val ValueIriRegex: Regex = ("^http://" + KnoraIdUtil.IriDomain + "/(" + ProjectIDPattern + ")/(" + Base64UrlPattern + ")/values/(" + Base64UrlPattern + ")$").r
+
+    // A DateTimeFormatter that parses and formats Knora ARK timestamps.
+    private val ArkTimestampFormat = DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss[nnnnnnnnn]X").withZone(ZoneId.of("UTC"))
+
+    /**
+      * A regex that matches a valid username
+      * - 4 - 50 characters long
+      * - Only contains alphanumeric characters, underscore and dot.
+      * - Underscore and dot can't be at the end or start of a username
+      * - Underscore or dot can't be used multiple times in a row
+      */
+    private val UsernameRegex: Regex =
+        """^(?=.{4,50}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$""".r
+
+    /**
+      * A regex that matches a valid project shortname
+      * - 4 - 50 characters long
+      * - Only contains alphanumeric characters.
+      */
+    private val ProjectShortnameRegex: Regex =
+        """^(?=.{4,50}$)[a-zA-Z0-9]+$""".r
 
     /**
       * The information that is stored about non-Knora IRIs.
@@ -723,10 +855,38 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
             case None =>
                 // Parse the IRI from scratch.
-                if (isKnoraDataIriStr(iri) ||
-                    iri.startsWith(OntologyConstants.NamedGraphs.DataNamedGraphStart) ||
-                    iri == OntologyConstants.NamedGraphs.KnoraExplicitNamedGraph) {
-                    // This is a Knora data or named graph IRI. Nothing else to do.
+                if (DataIriStarts.exists(startStr => iri.startsWith(startStr))) {
+                    // This is a Knora data IRI. What sort of data IRI is it?
+                    iri match {
+                        case ResourceIriRegex(projectCode: String, resourceID: String) =>
+                            // It's a resource IRI.
+                            SmartIriInfo(
+                                iriType = KnoraDataIri,
+                                ontologySchema = None,
+                                projectCode = Some(projectCode),
+                                resourceID = Some(resourceID)
+                            )
+
+                        case ValueIriRegex(projectCode: String, resourceID: String, valueID: String) =>
+                            // It's a value IRI.
+                            SmartIriInfo(
+                                iriType = KnoraDataIri,
+                                ontologySchema = None,
+                                projectCode = Some(projectCode),
+                                resourceID = Some(resourceID),
+                                valueID = Some(valueID)
+                            )
+
+                        case _ =>
+                            // It's some other kind of data IRI; nothing else to do.
+                            SmartIriInfo(
+                                iriType = KnoraDataIri,
+                                ontologySchema = None
+                            )
+                    }
+                } else if (iri.startsWith(OntologyConstants.NamedGraphs.DataNamedGraphStart) ||
+                        iri == OntologyConstants.NamedGraphs.KnoraExplicitNamedGraph) {
+                    // Nothing else to do.
                     SmartIriInfo(
                         iriType = KnoraDataIri,
                         ontologySchema = None
@@ -757,7 +917,7 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
                     val (ontologySchema: Option[OntologySchema], hasProjectSpecificHostname: Boolean) = hostname match {
                         case InternalIriHostname => (Some(InternalSchema), false)
-                        case BuiltInKnoraApiHostname => (Some(parseApiV2VersionSegments(segments)), false)
+                        case CentralKnoraApiHostname => (Some(parseApiV2VersionSegments(segments)), false)
 
                         case _ =>
                             // If our StringFormatter instance was initialised with the Knora API server's hostname,
@@ -794,34 +954,47 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
                             case None => throw AssertionException("Unreachable code")
                         }
 
-                        // Make a Vector containing just the optional project code and the ontology name.
-                        val projectCodeAndOntologyName: Vector[String] = segments.slice(2, segments.length - versionSegmentsLength)
+                        // Make a Vector containing just the optional 'shared' specification, the optional project code, and the ontology name.
+                        val ontologyPath: Vector[String] = segments.slice(2, segments.length - versionSegmentsLength)
 
-                        if (projectCodeAndOntologyName.isEmpty || projectCodeAndOntologyName.length > 2) {
+                        if (ontologyPath.isEmpty || ontologyPath.length > 3) {
                             errorFun
                         }
 
-                        if (projectCodeAndOntologyName.exists(segment => versionSegmentWords.contains(segment))) {
+                        if (ontologyPath.exists(segment => versionSegmentWords.contains(segment))) {
                             errorFun
                         }
 
-                        // Extract the project code.
-                        val projectCode: Option[String] = if (projectCodeAndOntologyName.length == 2) {
-                            Some(validateProjectShortcode(projectCodeAndOntologyName.head, errorFun))
+                        // Determine whether the ontology is shared, and get its project code, if any.
+                        val (sharedOntology: Boolean, projectCode: Option[String]) = if (ontologyPath.head == "shared") {
+                            if (ontologyPath.length == 2) {
+                                (true, Some(DefaultSharedOntologiesProjectCode)) // default shared ontologies project
+                            } else if (ontologyPath.length == 3) {
+                                (true, Some(validateProjectShortcode(ontologyPath(1), errorFun))) // other shared ontologies project
+                            } else {
+                                errorFun
+                            }
+                        } else if (ontologyPath.length == 2) {
+                            (false, Some(validateProjectShortcode(ontologyPath.head, errorFun))) // non-shared ontology with project code
                         } else {
-                            None
+                            (false, None) // built-in ontology
                         }
 
                         // Extract the ontology name.
-                        val ontologyName = projectCodeAndOntologyName.last
+                        val ontologyName = ontologyPath.last
                         val hasBuiltInOntologyName = isBuiltInOntologyName(ontologyName)
 
                         if (!hasBuiltInOntologyName) {
                             validateProjectSpecificOntologyName(ontologyName, errorFun)
                         }
 
-                        if ((hasProjectSpecificHostname && hasBuiltInOntologyName) ||
-                            (hostname == BuiltInKnoraApiHostname && !hasBuiltInOntologyName)) {
+                        // If the IRI has the hostname for project-specific ontologies, it can't refer to a built-in or shared ontology.
+                        if (hasProjectSpecificHostname && (hasBuiltInOntologyName || sharedOntology)) {
+                            errorFun
+                        }
+
+                        // If the IRI has the hostname for built-in and shared ontologies, it must refer to a built-in or shared ontology.
+                        if (hostname == CentralKnoraApiHostname && !(hasBuiltInOntologyName || sharedOntology)) {
                             errorFun
                         }
 
@@ -836,7 +1009,8 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
                             ontologyName = Some(ontologyName),
                             entityName = entityName,
                             ontologySchema = ontologySchema,
-                            isBuiltInDef = hasBuiltInOntologyName
+                            isBuiltInDef = hasBuiltInOntologyName,
+                            sharedOntology = sharedOntology
                         )
                     } else {
                         UnknownIriInfo
@@ -853,6 +1027,8 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
         override def isKnoraDataIri: Boolean = iriInfo.iriType == KnoraDataIri
 
         override def isKnoraDefinitionIri: Boolean = iriInfo.iriType == KnoraDefinitionIri
+
+        override def isKnoraSharedDefinitionIri: Boolean = isKnoraDefinitionIri && iriInfo.sharedOntology
 
         override def isKnoraInternalDefinitionIri: Boolean = iriInfo.iriType == KnoraDefinitionIri && iriInfo.ontologySchema.contains(InternalSchema)
 
@@ -872,6 +1048,10 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
         override def isKnoraEntityIri: Boolean = iriInfo.iriType == KnoraDefinitionIri && iriInfo.entityName.nonEmpty
 
         override def getProjectCode: Option[String] = iriInfo.projectCode
+
+        override def getResourceID: Option[String] = iriInfo.resourceID
+
+        override def getValueID: Option[String] = iriInfo.valueID
 
         lazy val ontologyFromEntity: SmartIri = if (isKnoraOntologyIri) {
             throw DataConversionException(s"$iri is not a Knora entity IRI")
@@ -1009,17 +1189,16 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
         private def externalToInternalEntityIri: SmartIri = {
             // Construct the string representation of this IRI in the target schema.
-            val ontologyName = getOntologyName
+            val internalOntologyName = externalToInternalOntologyName(getOntologyName)
             val entityName = getEntityName
 
-            val internalOntologyIri = new StringBuilder(OntologyConstants.KnoraInternal.InternalOntologyStart)
+            val internalOntologyIri = makeInternalOntologyIriStr(
+                internalOntologyName = internalOntologyName,
+                isShared = iriInfo.sharedOntology,
+                projectCode = iriInfo.projectCode
+            )
 
-            iriInfo.projectCode match {
-                case Some(projectCode) => internalOntologyIri.append('/').append(projectCode).append('/')
-                case None => internalOntologyIri.append('/')
-            }
-
-            val convertedIriStr = internalOntologyIri.append(externalToInternalOntologyName(ontologyName)).append("#").append(entityName).toString
+            val convertedIriStr = new StringBuilder(internalOntologyIri).append("#").append(entityName).toString
 
             // Get it from the cache, or construct it and cache it if it's not there.
             getOrCacheSmartIri(
@@ -1027,7 +1206,7 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
                 creationFun = {
                     () =>
                         val convertedSmartIriInfo = iriInfo.copy(
-                            ontologyName = Some(externalToInternalOntologyName(getOntologyName)),
+                            ontologyName = Some(internalOntologyName),
                             ontologySchema = Some(InternalSchema)
                         )
 
@@ -1069,6 +1248,19 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
 
             val convertedIriStr: IRI = if (isKnoraBuiltInDefinitionIri) {
                 OntologyConstants.KnoraApi.ApiOntologyStart + internalToExternalOntologyName(ontologyName) + versionSegment
+            } else if (isKnoraSharedDefinitionIri) {
+                val externalOntologyIri = new StringBuilder(OntologyConstants.KnoraApi.ApiOntologyStart).append("shared/")
+
+                iriInfo.projectCode match {
+                    case Some(projectCode) =>
+                        if (projectCode != DefaultSharedOntologiesProjectCode) {
+                            externalOntologyIri.append(projectCode).append('/')
+                        }
+
+                    case None => ()
+                }
+
+                externalOntologyIri.append(ontologyName).append(versionSegment).toString
             } else {
                 val projectSpecificApiV2OntologyStart = MaybeProjectSpecificApiV2OntologyStart match {
                     case Some(ontologyStart) => ontologyStart
@@ -1105,6 +1297,7 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
         private lazy val asInternalOntologyIri: SmartIri = {
             val convertedIriStr = makeInternalOntologyIriStr(
                 internalOntologyName = externalToInternalOntologyName(getOntologyName),
+                isShared = iriInfo.sharedOntology,
                 projectCode = iriInfo.projectCode
             )
 
@@ -1185,6 +1378,48 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
         }
 
         override def fromLinkPropToLinkValueProp: SmartIri = asLinkValueProp
+
+        override def isKnoraResourceIri: Boolean = {
+            if (!isKnoraDataIri) {
+                false
+            } else {
+                (iriInfo.projectCode, iriInfo.resourceID, iriInfo.valueID) match {
+                    case (Some(_), Some(_), None) => true
+                    case _ => false
+                }
+            }
+        }
+
+        override def isKnoraValueIri: Boolean = {
+            if (!isKnoraDataIri) {
+                false
+            } else {
+                (iriInfo.projectCode, iriInfo.resourceID, iriInfo.valueID) match {
+                    case (Some(_), Some(_), Some(_)) => true
+                    case _ => false
+                }
+            }
+        }
+
+        override def fromResourceIriToArkUrl(maybeTimestamp: Option[Instant] = None): String = {
+            if (!isKnoraResourceIri) {
+                throw DataConversionException(s"IRI $iri is not a Knora resource IRI")
+            }
+
+            val arkUrlTry = Try {
+                makeArkUrl(
+                    projectID = iriInfo.projectCode.get,
+                    resourceID = iriInfo.resourceID.get,
+                    maybeTimestamp = maybeTimestamp
+                )
+
+            }
+
+            arkUrlTry match {
+                case Success(arkUrl) => arkUrl
+                case Failure(ex) => throw DataConversionException(s"Can't generate ARK URL for IRI <$iri>: ${ex.getMessage}")
+            }
+        }
     }
 
     /**
@@ -1322,21 +1557,12 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     }
 
     /**
-      * Returns `true` if an IRI string looks like a Knora data IRI.
-      *
-      * @param iri the IRI to be checked.
-      */
-    def isKnoraDataIriStr(iri: IRI): Boolean = {
-        DataIriStarts.exists(startStr => iri.startsWith(startStr))
-    }
-
-    /**
       * Returns `true` if an IRI string looks like a Knora project IRI
       *
       * @param iri the IRI to be checked.
       */
     def isKnoraProjectIriStr(iri: IRI): Boolean = {
-        iri.startsWith("http://" + KnoraIdUtil.IriDomain + "/projects/")
+        isIri(iri) && iri.startsWith("http://" + KnoraIdUtil.IriDomain + "/projects/")
     }
 
     /**
@@ -1345,7 +1571,16 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
       * @param iri the IRI to be checked.
       */
     def isKnoraListIriStr(iri: IRI): Boolean = {
-        iri.startsWith("http://" + KnoraIdUtil.IriDomain + "/lists/")
+        isIri(iri) && iri.startsWith("http://" + KnoraIdUtil.IriDomain + "/lists/")
+    }
+
+    /**
+      * Returns `true` if an IRI string looks like a Knora user IRI.
+      *
+      * @param iri the IRI to be checked.
+      */
+    def isKnoraUserIriStr(iri: IRI): Boolean = {
+        isIri(iri) && iri.startsWith("http://" + KnoraIdUtil.IriDomain + "/users/")
     }
 
     /**
@@ -1432,6 +1667,16 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
             SparqlEscapeOutput,
             SparqlEscapeInput
         )
+    }
+
+    /**
+      * Encodes a string for use in JSON, and encloses it in quotation marks.
+      *
+      * @param s the string to be encoded.
+      * @return the encoded string.
+      */
+    def toJsonEncodedString(s: String): String = {
+        JsString(s).compactPrint
     }
 
     /**
@@ -1557,9 +1802,23 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
       */
     def toInstant(s: String, errorFun: => Nothing): Instant = {
         try {
+            // Try parsing it as an ISO 8601 UTC date.
             Instant.parse(s)
         } catch {
-            case _: Exception => errorFun
+            case _: Exception =>
+                // Try parsing it as a Knora ARK timestamp.
+                try {
+                    OffsetDateTime.parse(s, ArkTimestampFormat).toInstant
+                } catch {
+                    case _: Exception =>
+                        // Try parsing it as an ISO 8601 date with an offset.
+                        try {
+                            val creationAccessor: TemporalAccessor = DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(s)
+                            Instant.from(creationAccessor)
+                        } catch {
+                            case _: Exception => errorFun
+                        }
+                }
         }
     }
 
@@ -1668,6 +1927,22 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     }
 
     /**
+      * Converts a string to a boolean.
+      *
+      * @param s        the string to be converted.
+      * @param errorFun a function that throws an exception. It will be called if the string cannot be parsed
+      *                 as a boolean value.
+      * @return a Boolean.
+      */
+    def toBoolean(s: String, errorFun: => Nothing): Boolean = {
+        try {
+            s.toBoolean
+        } catch {
+            case _: IllegalArgumentException => errorFun
+        }
+    }
+
+    /**
       * Checks that a string is a valid XML [[https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-NCName NCName]].
       *
       * @param ncName   the string to be checked.
@@ -1732,15 +2007,23 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
       * @param projectCode          the project code.
       * @return the ontology IRI.
       */
-    private def makeInternalOntologyIriStr(internalOntologyName: String, projectCode: Option[String]): IRI = {
+    private def makeInternalOntologyIriStr(internalOntologyName: String, isShared: Boolean, projectCode: Option[String]): IRI = {
         val internalOntologyIri = new StringBuilder(OntologyConstants.KnoraInternal.InternalOntologyStart)
 
-        projectCode match {
-            case Some(code) => internalOntologyIri.append('/').append(code).append('/')
-            case None => internalOntologyIri.append('/')
+        if (isShared) {
+            internalOntologyIri.append("/shared")
         }
 
-        internalOntologyIri.append(internalOntologyName).toString
+        projectCode match {
+            case Some(code) =>
+                if (code != DefaultSharedOntologiesProjectCode) {
+                    internalOntologyIri.append('/').append(code)
+                }
+
+            case None => ()
+        }
+
+        internalOntologyIri.append('/').append(internalOntologyName).toString
     }
 
     /**
@@ -1751,8 +2034,8 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
       * @param projectCode          the project code.
       * @return the ontology IRI.
       */
-    def makeProjectSpecificInternalOntologyIri(internalOntologyName: String, projectCode: String): SmartIri = {
-        toSmartIri(makeInternalOntologyIriStr(internalOntologyName, Some(projectCode)))
+    def makeProjectSpecificInternalOntologyIri(internalOntologyName: String, isShared: Boolean, projectCode: String): SmartIri = {
+        toSmartIri(makeInternalOntologyIriStr(internalOntologyName, isShared, Some(projectCode)))
     }
 
     /**
@@ -1796,8 +2079,16 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     def internalOntologyIriToXmlNamespaceInfoV1(internalOntologyIri: SmartIri): XmlImportNamespaceInfoV1 = {
         val namespace = new StringBuilder(OntologyConstants.KnoraXmlImportV1.ProjectSpecificXmlImportNamespace.XmlImportNamespaceStart)
 
+        if (internalOntologyIri.isKnoraSharedDefinitionIri) {
+            namespace.append("shared/")
+        }
+
         internalOntologyIri.getProjectCode match {
-            case Some(projectCode) => namespace.append(projectCode).append('/')
+            case Some(projectCode) =>
+                if (projectCode != DefaultSharedOntologiesProjectCode) {
+                    namespace.append(projectCode).append('/')
+                }
+
             case None => ()
         }
 
@@ -1816,9 +2107,17 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
       */
     def xmlImportNamespaceToInternalOntologyIriV1(namespace: String, errorFun: => Nothing): SmartIri = {
         namespace match {
-            case ProjectSpecificXmlImportNamespaceRegex(projectCode, ontologyName) if !isBuiltInOntologyName(ontologyName) =>
+            case ProjectSpecificXmlImportNamespaceRegex(Optional(maybeShared), _, Optional(maybeProjectCode), ontologyName) if !isBuiltInOntologyName(ontologyName) =>
+                val isShared = maybeShared.nonEmpty
+
+                val projectCode = maybeProjectCode match {
+                    case Some(code) => code
+                    case None => if (isShared) DefaultSharedOntologiesProjectCode else errorFun
+                }
+
                 makeProjectSpecificInternalOntologyIri(
                     internalOntologyName = externalToInternalOntologyName(ontologyName),
+                    isShared = isShared,
                     projectCode = projectCode
                 )
 
@@ -1851,8 +2150,24 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
       */
     def toPropertyIriFromOtherOntologyInXmlImport(prefixLabelAndLocalName: String): Option[IRI] = {
         prefixLabelAndLocalName match {
-            case PropertyFromOtherOntologyInXmlImportRegex(_, projectID, prefixLabel, localName) =>
-                Some(s"${OntologyConstants.KnoraInternal.InternalOntologyStart}/$projectID/$prefixLabel#$localName")
+            case PropertyFromOtherOntologyInXmlImportRegex(_, Optional(maybeProjectID), prefixLabel, localName) =>
+                maybeProjectID match {
+                    case Some(projectID) =>
+                        // Is this ia shared ontology?
+                        // TODO: when multiple shared project ontologies are supported, this will need to be done differently.
+                        if (projectID == DefaultSharedOntologiesProjectCode) {
+                            Some(s"${OntologyConstants.KnoraInternal.InternalOntologyStart}/shared/$prefixLabel#$localName")
+                        } else {
+                            Some(s"${OntologyConstants.KnoraInternal.InternalOntologyStart}/$projectID/$prefixLabel#$localName")
+                        }
+
+                    case None =>
+                        if (prefixLabel == OntologyConstants.KnoraXmlImportV1.KnoraXmlImportNamespacePrefixLabel) {
+                            Some(s"${OntologyConstants.KnoraBase.KnoraBasePrefixExpansion}$localName")
+                        } else {
+                            throw BadRequestException(s"Invalid prefix label and local name: $prefixLabelAndLocalName")
+                        }
+                }
 
             case _ => None
         }
@@ -1924,6 +2239,81 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
     }
 
     /**
+      * Given the project IRI, checks if it is in a valid format.
+      *
+      * @param iri the project's IRI.
+      * @return the IRI of the project.
+      */
+    def validateProjectIri(iri: IRI, errorFun: => Nothing): IRI = {
+        if (isKnoraProjectIriStr(iri)) {
+            iri
+        } else {
+            errorFun
+        }
+    }
+
+    /**
+      * Check that the supplied IRI represents a valid project IRI.
+      *
+      * @param iri      the string to be checked.
+      * @param errorFun a function that throws an exception. It will be called if the string does not represent a valid
+      *                 project IRI.
+      * @return the same string but escaped.
+      */
+    def validateAndEscapeProjectIri(iri: IRI, errorFun: => Nothing): IRI = {
+        if (isKnoraProjectIriStr(iri)) {
+            toSparqlEncodedString(iri, errorFun)
+        } else {
+            errorFun
+        }
+    }
+
+    /**
+      * Check that an optional string represents a valid project IRI.
+      *
+      * @param maybeString the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    project IRI.
+      * @return the same optional string but escaped.
+      */
+    def validateAndEscapeOptionalProjectIri(maybeString: Option[String], errorFun: => Nothing): Option[String] = {
+        maybeString match {
+            case Some(s) => Some(validateAndEscapeProjectIri(s, errorFun))
+            case None => None
+        }
+    }
+
+    /**
+      * Check that the string represents a valid project shortname.
+      *
+      * @param value    the string to be checked.
+      * @param errorFun a function that throws an exception. It will be called if the string does not represent a valid
+      *                 project shortname.
+      * @return the same string.
+      */
+    def validateAndEscapeProjectShortname(value: String, errorFun: => Nothing): String = {
+        ProjectShortnameRegex.findFirstIn(value) match {
+            case Some(shortname) => toSparqlEncodedString(shortname, errorFun)
+            case None => errorFun
+        }
+    }
+
+    /**
+      * Check that an optional string represents a valid project shortname.
+      *
+      * @param maybeString the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    project shortname.
+      * @return the same optional string.
+      */
+    def validateAndEscapeOptionalProjectShortname(maybeString: Option[String], errorFun: => Nothing): Option[String] = {
+        maybeString match {
+            case Some(s) => Some(validateAndEscapeProjectShortname(s, errorFun))
+            case None => None
+        }
+    }
+
+    /**
       * Given the project shortcode, checks if it is in a valid format, and converts it to upper case.
       *
       * @param shortcode the project's shortcode.
@@ -1936,5 +2326,204 @@ class StringFormatter private(val knoraApiHostAndPort: Option[String]) {
         }
     }
 
+    /**
+      * Given the project shortcode, checks if it is in a valid format, and converts it to upper case.
+      *
+      * @param shortcode the project's shortcode.
+      * @return the shortcode in upper case.
+      */
+    def validateProjectShortcodeOption(shortcode: String): Option[String] = {
+        ProjectIDRegex.findFirstIn(shortcode.toUpperCase) match {
+            case Some(value) => Some(value)
+            case None => None
+        }
+    }
 
+    /**
+      * Check that a string represents a valid project shortcode.
+      *
+      * @param shortcode the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    project shortcode.
+      * @return the same string.
+      */
+    def validateAndEscapeProjectShortcode(shortcode: String, errorFun: => Nothing): String = {
+        ProjectIDRegex.findFirstIn(shortcode.toUpperCase) match {
+            case Some(definedShortcode) => toSparqlEncodedString(definedShortcode, errorFun)
+            case None => errorFun
+        }
+    }
+
+    /**
+      * Check that an optional string represents a valid project shortcode.
+      *
+      * @param maybeString the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    project shortcode.
+      * @return the same optional string.
+      */
+    def validateAndEscapeOptionalProjectShortcode(maybeString: Option[String], errorFun: => Nothing): Option[String] = {
+        maybeString match {
+            case Some(s) => Some(validateAndEscapeProjectShortcode(s, errorFun))
+            case None => None
+        }
+    }
+
+    /**
+      * Check that the supplied IRI represents a valid user IRI.
+      *
+      * @param iri      the string to be checked.
+      * @param errorFun a function that throws an exception. It will be called if the string does not represent a valid
+      *                 user IRI.
+      * @return the same string.
+      */
+    def validateUserIri(iri: IRI, errorFun: => Nothing): IRI = {
+        if (isKnoraUserIriStr(iri)) {
+            iri
+        } else {
+            errorFun
+        }
+    }
+
+    /**
+      * Check that the supplied IRI represents a valid user IRI.
+      *
+      * @param iri      the string to be checked.
+      * @param errorFun a function that throws an exception. It will be called if the string does not represent a valid
+      *                 user IRI.
+      * @return the same string but escaped.
+      */
+    def validateAndEscapeUserIri(iri: IRI, errorFun: => Nothing): String = {
+        if (isKnoraUserIriStr(iri)) {
+            toSparqlEncodedString(iri, errorFun)
+        } else {
+            errorFun
+        }
+    }
+
+    /**
+      * Check that an optional string represents a valid user IRI.
+      *
+      * @param maybeString the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    user IRI.
+      * @return the same optional string.
+      */
+    def validateAndEscapeOptionalUserIri(maybeString: Option[String], errorFun: => Nothing): Option[String] = {
+        maybeString match {
+            case Some(s) => Some(validateAndEscapeUserIri(s, errorFun))
+            case None => None
+        }
+    }
+
+    /**
+      * Given an email address, checks if it is in a valid format.
+      *
+      * @param email the email.
+      * @return the email
+      */
+    def validateEmail(email: String): Option[String] = {
+        EmailAddressRegex.findFirstIn(email)
+    }
+
+    /**
+      * Given an email address, checks if it is in a valid format.
+      *
+      * @param email the email.
+      * @return the email
+      */
+    def validateEmailAndThrow(email: String, errorFun: => Nothing): String = {
+        EmailAddressRegex.findFirstIn(email) match {
+            case Some(value) => value
+            case None => errorFun
+        }
+    }
+
+    /**
+      * Check that an optional string represents a valid email address.
+      *
+      * @param maybeString the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    email address.
+      * @return the same optional string.
+      */
+    def validateAndEscapeOptionalEmail(maybeString: Option[String], errorFun: => Nothing): Option[String] = {
+        maybeString match {
+            case Some(s) => Some(toSparqlEncodedString(validateEmailAndThrow(s, errorFun), errorFun))
+            case None => None
+        }
+    }
+
+    /**
+      * Check that the string represents a valid username.
+      *
+      * @param value    the string to be checked.
+      * @param errorFun a function that throws an exception. It will be called if the string does not represent a valid
+      *                 username.
+      * @return the same string.
+      */
+    def validateAndEscapeUsername(value: String, errorFun: => Nothing): String = {
+        UsernameRegex.findFirstIn(value) match {
+            case Some(username) => toSparqlEncodedString(username, errorFun)
+            case None => errorFun
+        }
+    }
+
+    /**
+      * Check that an optional string represents a valid username.
+      *
+      * @param maybeString the optional string to be checked.
+      * @param errorFun    a function that throws an exception. It will be called if the string does not represent a valid
+      *                    username.
+      * @return the same optional string.
+      */
+    def validateAndEscapeOptionalUsername(maybeString: Option[String], errorFun: => Nothing): Option[String] = {
+        maybeString match {
+            case Some(s) => Some(validateAndEscapeUsername(s, errorFun))
+            case None => None
+        }
+    }
+
+    /**
+      * Generates an ARK URL for a resource as per [[https://tools.ietf.org/html/draft-kunze-ark-18]].
+      *
+      * @param projectID      the shortcode of the project that the resource belongs to.
+      * @param resourceID     the resource's ID (the last component of its IRI).
+      * @param maybeTimestamp a timestamp indicating the point in the resource's version history that the ARK URL should
+      *                       cite.
+      * @return an ARK URL that can be resolved to obtain the resource.
+      */
+    private def makeArkUrl(projectID: String, resourceID: String, maybeTimestamp: Option[Instant] = None): String = {
+        val (resolver: String, assignedNumber: Int) = (arkResolver, arkAssignedNumber) match {
+            case (Some(definedHost: String), Some(definedAssignedNumber: Int)) => (definedHost, definedAssignedNumber)
+            case _ => throw AssertionException(s"StringFormatter has not been initialised with system settings")
+        }
+
+        // Calculate a check digit for the resource ID.
+
+        val checkDigitTry: Try[String] = Try {
+            base64UrlCheckDigit.calculate(resourceID)
+        }
+
+        val checkDigit: String = checkDigitTry match {
+            case Success(digit) => digit
+            case Failure(ex) => throw DataConversionException(ex.getMessage)
+        }
+
+        val resourceIDWithCheckDigit = resourceID + checkDigit
+
+        // Escape '-' as '=' in the resource ID and check digit, because '-' can be ignored in ARK URLs.
+        val escapedResourceIDWithCheckDigit = resourceIDWithCheckDigit.replace('-', '=')
+
+        val arkUrlWithoutTimestamp = s"$resolver/ark:/$assignedNumber/$ArkVersion/$projectID/$escapedResourceIDWithCheckDigit"
+
+        maybeTimestamp match {
+            case Some(timestamp) =>
+                // Format the timestamp and append it to the URL as an ARK object variant.
+                arkUrlWithoutTimestamp + "." + ArkTimestampFormat.format(timestamp)
+
+            case None =>
+                arkUrlWithoutTimestamp
+        }
+    }
 }

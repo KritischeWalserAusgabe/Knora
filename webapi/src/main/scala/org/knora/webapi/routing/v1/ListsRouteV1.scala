@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,41 +19,40 @@
 
 package org.knora.webapi.routing.v1
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import org.knora.webapi.BadRequestException
 import org.knora.webapi.messages.v1.responder.listmessages._
-import org.knora.webapi.routing.{Authenticator, RouteUtilV1}
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV1}
 import org.knora.webapi.util.StringFormatter
-import org.knora.webapi.{BadRequestException, SettingsImpl}
 
 /**
-  * Provides a spray-routing function for API routes that deal with lists.
+  * Provides API routes that deal with lists.
   */
-object ListsRouteV1 extends Authenticator {
+class ListsRouteV1(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-        implicit val system: ActorSystem = _system
-        implicit val executionContext = system.dispatcher
-        implicit val timeout = settings.defaultTimeout
-        val responderManager = system.actorSelection("/user/responderManager")
+    def knoraApiPath: Route = {
+
         val stringFormatter = StringFormatter.getGeneralInstance
 
         path("v1" / "hlists" / Segment) { iri =>
             get {
                 requestContext =>
-                    val userProfile = getUserProfileV1(requestContext)
-                    val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
 
-                    val requestMessage = requestContext.request.uri.query().get("reqtype") match {
-                        case Some("node") => NodePathGetRequestV1(listIri, userProfile)
-                        case Some(reqtype) => throw BadRequestException(s"Invalid reqtype: $reqtype")
-                        case None => HListGetRequestV1(listIri, userProfile)
-                    }
+                    val requestMessageFuture = for {
+                            userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                            listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
 
-                    RouteUtilV1.runJsonRoute(
-                        requestMessage,
+                            requestMessage = requestContext.request.uri.query().get("reqtype") match {
+                              case Some("node") => NodePathGetRequestV1(listIri, userProfile)
+                              case Some(reqtype) => throw BadRequestException(s"Invalid reqtype: $reqtype")
+                              case None => HListGetRequestV1(listIri, userProfile)
+                          }
+                        } yield requestMessage
+
+
+                    RouteUtilV1.runJsonRouteWithFuture(
+                        requestMessageFuture,
                         requestContext,
                         settings,
                         responderManager,
@@ -61,26 +60,28 @@ object ListsRouteV1 extends Authenticator {
                     )
             }
         } ~
-            path("v1" / "selections" / Segment) { iri =>
-                get {
-                    requestContext =>
-                        val userProfile = getUserProfileV1(requestContext)
-                        val selIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
+        path("v1" / "selections" / Segment) { iri =>
+            get {
+                requestContext =>
+                    val requestMessageFuture = for {
+                            userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                            selIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
 
-                        val requestMessage = requestContext.request.uri.query().get("reqtype") match {
+                            requestMessage = requestContext.request.uri.query().get("reqtype") match {
                             case Some("node") => NodePathGetRequestV1(selIri, userProfile)
                             case Some(reqtype) => throw BadRequestException(s"Invalid reqtype: $reqtype")
                             case None => SelectionGetRequestV1(selIri, userProfile)
                         }
+                    } yield requestMessage
 
-                        RouteUtilV1.runJsonRoute(
-                            requestMessage,
-                            requestContext,
-                            settings,
-                            responderManager,
-                            log
-                        )
-                }
+                    RouteUtilV1.runJsonRouteWithFuture(
+                        requestMessageFuture,
+                        requestContext,
+                        settings,
+                        responderManager,
+                        log
+                    )
             }
+        }
     }
 }

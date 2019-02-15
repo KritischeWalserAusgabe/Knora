@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,44 +21,32 @@ package org.knora.webapi.routing.v1
 
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.util.Timeout
 import org.apache.commons.validator.routines.UrlValidator
 import org.knora.webapi._
 import org.knora.webapi.messages.v1.responder.usermessages._
-import org.knora.webapi.routing.{Authenticator, RouteUtilV1}
-import org.knora.webapi.util.StringFormatter
-
-import scala.concurrent.ExecutionContextExecutor
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV1}
 
 /**
   * Provides a spray-routing function for API routes that deal with lists.
   */
-object UsersRouteV1 extends Authenticator {
+class UsersRouteV1(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
     private val schemes = Array("http", "https")
     private val urlValidator = new UrlValidator(schemes)
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-
-
-        implicit val system: ActorSystem = _system
-        implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-        implicit val timeout: Timeout = settings.defaultTimeout
-        val responderManager = system.actorSelection("/user/responderManager")
-        val stringFormatter = StringFormatter.getGeneralInstance
+    def knoraApiPath: Route = {
 
         path("v1" / "users") {
             get {
                 /* return all users */
                 requestContext =>
-                    val userProfile: UserProfileV1 = getUserProfileV1(requestContext)
-                    val requestMessage = UsersGetRequestV1(userProfile)
+                    val requestMessage = for {
+                        userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                    } yield UsersGetRequestV1(userProfile)
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
@@ -72,16 +60,20 @@ object UsersRouteV1 extends Authenticator {
                 /* return a single user identified by iri or email */
                 parameters("identifier" ? "iri") { (identifier: String) =>
                     requestContext =>
-                        val userProfile: UserProfileV1 = getUserProfileV1(requestContext)
 
                             /* check if email or iri was supplied */
                             val requestMessage = if (identifier == "email") {
-                                UserProfileByEmailGetRequestV1(value, UserProfileTypeV1.RESTRICTED, userProfile)
+                                for {
+                                    userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                                } yield UserProfileByEmailGetRequestV1(value, UserProfileTypeV1.RESTRICTED, userProfile)
                             } else {
-                                val userIri = stringFormatter.validateAndEscapeIri(value, throw BadRequestException(s"Invalid user IRI $value"))
-                                UserProfileByIRIGetRequestV1(userIri, UserProfileTypeV1.RESTRICTED, userProfile)
+                                for {
+                                    userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                                    userIri = stringFormatter.validateAndEscapeIri(value, throw BadRequestException(s"Invalid user IRI $value"))
+                                } yield UserProfileByIRIGetRequestV1(userIri, UserProfileTypeV1.RESTRICTED, userProfile)
                             }
-                            RouteUtilV1.runJsonRoute(
+
+                            RouteUtilV1.runJsonRouteWithFuture(
                                 requestMessage,
                                 requestContext,
                                 settings,
@@ -95,17 +87,17 @@ object UsersRouteV1 extends Authenticator {
             get {
                 /* get user's project memberships */
                 requestContext =>
-                    val userProfile: UserProfileV1 = getUserProfileV1(requestContext)
 
-                    val checkedUserIri = stringFormatter.validateAndEscapeIri(userIri, throw BadRequestException(s"Invalid user IRI $userIri"))
-
-                    val requestMessage = UserProjectMembershipsGetRequestV1(
+                    val requestMessage = for {
+                        userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                        checkedUserIri = stringFormatter.validateAndEscapeIri(userIri, throw BadRequestException(s"Invalid user IRI $userIri"))
+                    } yield UserProjectMembershipsGetRequestV1(
                         userIri = checkedUserIri,
                         userProfileV1 = userProfile,
                         apiRequestID = UUID.randomUUID()
                     )
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
@@ -118,17 +110,17 @@ object UsersRouteV1 extends Authenticator {
             get {
                 /* get user's project admin memberships */
                 requestContext =>
-                    val userProfile: UserProfileV1 = getUserProfileV1(requestContext)
 
-                    val checkedUserIri = stringFormatter.validateAndEscapeIri(userIri, throw BadRequestException(s"Invalid user IRI $userIri"))
-
-                    val requestMessage = UserProjectAdminMembershipsGetRequestV1(
+                    val requestMessage = for {
+                        userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                        checkedUserIri = stringFormatter.validateAndEscapeIri(userIri, throw BadRequestException(s"Invalid user IRI $userIri"))
+                    } yield UserProjectAdminMembershipsGetRequestV1(
                         userIri = checkedUserIri,
                         userProfileV1 = userProfile,
                         apiRequestID = UUID.randomUUID()
                     )
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
@@ -141,17 +133,17 @@ object UsersRouteV1 extends Authenticator {
             get {
                 /* get user's group memberships */
                 requestContext =>
-                    val userProfile = getUserProfileV1(requestContext)
 
-                    val checkedUserIri = stringFormatter.validateAndEscapeIri(userIri, throw BadRequestException(s"Invalid user IRI $userIri"))
-
-                    val requestMessage = UserGroupMembershipsGetRequestV1(
+                    val requestMessage = for {
+                        userProfile <- getUserADM(requestContext).map(_.asUserProfileV1)
+                        checkedUserIri = stringFormatter.validateAndEscapeIri(userIri, throw BadRequestException(s"Invalid user IRI $userIri"))
+                    } yield UserGroupMembershipsGetRequestV1(
                         userIri = checkedUserIri,
                         userProfileV1 = userProfile,
                         apiRequestID = UUID.randomUUID()
                     )
 
-                    RouteUtilV1.runJsonRoute(
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,

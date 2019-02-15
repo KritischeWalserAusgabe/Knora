@@ -1,41 +1,24 @@
+-- Copyright © 2015-2019 the contributors (see Contributors.md).
 --
--- Copyright © 2016 Lukas Rosenthaler, Andrea Bianco, Benjamin Geer,
--- Ivan Subotic, Tobias Schweizer, André Kilchenmann, and André Fatton.
--- This file is part of Sipi.
--- Sipi is free software: you can redistribute it and/or modify
+-- This file is part of Knora.
+--
+-- Knora is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU Affero General Public License as published
 -- by the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
--- Sipi is distributed in the hope that it will be useful,
+--
+-- Knora is distributed in the hope that it will be useful,
 -- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
--- Additional permission under GNU AGPL version 3 section 7:
--- If you modify this Program, or any covered work, by linking or combining
--- it with Kakadu (or a modified version of that library), containing parts
--- covered by the terms of the Kakadu Software Licence, the licensors of this
--- Program grant you additional permission to convey the resulting work.
--- See the GNU Affero General Public License for more details.
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU Affero General Public License for more details.
+--
 -- You should have received a copy of the GNU Affero General Public
--- License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
+-- License along with Knora.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Knora GUI-case: Sipi has already saved the file that is supposed to be converted
 -- the file was saved to: config.imgroot .. '/tmp/' (route make_thumbnail)
 
 require "send_response"
-
-
---
--- check if knora directory is available. needs to be created before sipi is started,
--- so that sipi can create the directory sublevels on startup.
---
-knoraDir = config.imgroot .. '/knora/'
-local success, exists = server.fs.exists(knoraDir)
-if not exists then
-    local errorMsg = "Directory " .. knoraDir .. " not found. Please make sure it exists before starting sipi."
-    send_error(500, errorMsg)
-    server.log(errorMsg, server.loglevel.LOG_ERR)
-    return -1
-end
 
 success, errmsg = server.setBuffer()
 if not success then
@@ -45,15 +28,34 @@ end
 
 if server.post == nil then
     send_error(400, PARAMETERS_INCORRECT)
-
     return
+end
+
+--
+-- check if the project directory is available. it needs to be created before sipi is started,
+-- so that sipi can create the directory sublevels on startup.
+--
+
+prefix = server.post['prefix']
+
+if prefix == nil then
+    send_error(400, PARAMETERS_INCORRECT)
+    return
+end
+
+projectDir = config.imgroot .. '/' .. prefix .. '/'
+
+local success, exists = server.fs.exists(projectDir)
+if not exists then
+    local errorMsg = "Directory " .. projectDir .. " not found. Please make sure it exists before starting Sipi."
+    send_error(500, errorMsg)
+    server.log(errorMsg, server.loglevel.LOG_ERR)
+    return -1
 end
 
 originalFilename = server.post['originalfilename']
 originalMimetype = server.post['originalmimetype']
-
 filename = server.post['filename']
-
 
 -- check if all the expected params are set
 if originalFilename == nil or originalMimetype == nil or filename == nil then
@@ -63,8 +65,15 @@ end
 
 -- file with name given in param "filename" has been saved by make_thumbnail.lua beforehand
 tmpDir = config.imgroot .. '/tmp/'
-sourcePath = tmpDir .. filename
 
+local success, hashed_filename = helper.filename_hash(filename)
+
+if not success then
+    send_error(500, hashed_filename)
+    return
+end
+
+sourcePath = tmpDir .. hashed_filename
 
 -- check if source is readable
 success, readable = server.fs.is_readable(sourcePath)
@@ -74,7 +83,7 @@ if not success then
 end
 if not readable then
 
-    send_error(500, FILE_NOT_READBLE .. sourcePath)
+    send_error(500, FILE_NOT_READABLE .. sourcePath)
 
     return
 end
@@ -126,7 +135,7 @@ fullImgName = baseName .. '.jpx'
 success, newFilePath = helper.filename_hash(fullImgName);
 if not success then
     server.sendStatus(500)
-    server.log(gaga, server.loglevel.error)
+    server.log(gaga, server.loglevel.LOG_ERR)
     return false
 end
 
@@ -135,7 +144,7 @@ if not success then
     server.log("fullImg:dims() failed: " .. fullDIms, server.loglevel.LOG_ERR)
     return
 end
-fullImg:write(knoraDir .. newFilePath)
+fullImg:write(projectDir .. newFilePath)
 
 -- create thumbnail (jpg)
 success, thumbImg = SipiImage.new(sourcePath, { size = config.thumb_size })
@@ -159,13 +168,14 @@ thumbImgName = baseName .. '.jpg'
 success, newThumbPath = helper.filename_hash(thumbImgName);
 if not success then
     server.sendStatus(500)
-    server.log(gaga, server.loglevel.error)
+    server.log("Unable to generate filename hash for " .. thumbImgName, server.loglevel.LOG_ERR)
     return false
 end
 
-success, errmsg = thumbImg:write(knoraDir .. newThumbPath)
+fullThumbPath = projectDir .. newThumbPath
+success, errmsg = thumbImg:write(fullThumbPath)
 if not success then
-    server.log("thumbImg:write failed: " .. errmsg, server.loglevel.LOG_ERR)
+    server.log("Unable to write " .. fullThumbPath, server.loglevel.LOG_ERR)
     return
 end
 

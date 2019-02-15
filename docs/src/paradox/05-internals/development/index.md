@@ -1,5 +1,5 @@
 <!---
-Copyright © 2015-2018 the contributors (see Contributors.md).
+Copyright © 2015-2019 the contributors (see Contributors.md).
 
 This file is part of Knora.
 
@@ -26,10 +26,13 @@ License along with Knora.  If not, see <http://www.gnu.org/licenses/>.
 - [Overview](overview.md)
 - [Starting Fuseki 3](fuseki.md)
 - [Starting GraphDB](graphdb.md)
+- [Build and Running](building-and-running.md)
 - [Build Process](build-process.md)
 - [Setup IntelliJ for development of Knora](intellij-config.md)
 - [Testing](testing.md)
 - [Docker Cheat Sheet](docker-cheat-sheet.md)
 - [Monitoring Knora](monitoring.md)
+- [Profiling Knora](profiling.md)
+- [Starting the Knora Stack inside Docker Container](docker-compose.md)
 
 @@@

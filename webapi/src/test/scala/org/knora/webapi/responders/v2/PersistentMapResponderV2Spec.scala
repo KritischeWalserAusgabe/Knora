@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,15 +21,9 @@ package org.knora.webapi.responders.v2
 
 import java.util.{Base64, UUID}
 
-import akka.actor.Props
 import akka.testkit._
 import org.knora.webapi._
-import org.knora.webapi.messages.store.triplestoremessages.{ResetTriplestoreContent, ResetTriplestoreContentACK}
-import org.knora.webapi.messages.v2.responder.SuccessResponseV2
-import org.knora.webapi.messages.v2.responder.ontologymessages.LoadOntologiesRequestV2
 import org.knora.webapi.messages.v2.responder.persistentmapmessages._
-import org.knora.webapi.responders._
-import org.knora.webapi.store._
 
 import scala.concurrent.duration._
 
@@ -70,29 +64,14 @@ class PersistentMapResponderV2Spec extends CoreSpec() with ImplicitSender {
 
     import PersistentMapResponderV2Spec._
 
-    // Construct the actors needed for this test.
-    private val actorUnderTest = TestActorRef[PersistentMapResponderV2]
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
-
-    val rdfDataObjects = List()
-
     // The default timeout for receiving reply messages from actors.
     private val timeout = 10.seconds
-
-    "Load test data" in {
-        storeManager ! ResetTriplestoreContent(rdfDataObjects)
-        expectMsg(300.seconds, ResetTriplestoreContentACK())
-
-        responderManager ! LoadOntologiesRequestV2(KnoraSystemInstances.Users.SystemUser)
-        expectMsgType[SuccessResponseV2](10.seconds)
-    }
 
     "The persistent map responder" should {
         "store a persistent map entry, creating the map, then read the entry" in {
             val mapEntryKey = "key1"
 
-            actorUnderTest ! PersistentMapEntryPutRequestV2(
+            responderManager ! PersistentMapEntryPutRequestV2(
                 mapPath = testMap1Path,
                 mapEntryKey = mapEntryKey,
                 mapEntryValue = testMap1Data(mapEntryKey),
@@ -101,7 +80,7 @@ class PersistentMapResponderV2Spec extends CoreSpec() with ImplicitSender {
 
             expectMsg(timeout, PersistentMapEntryPutResponseV2())
 
-            actorUnderTest ! PersistentMapEntryGetRequestV2(
+            responderManager ! PersistentMapEntryGetRequestV2(
                 mapPath = testMap1Path,
                 mapEntryKey = mapEntryKey
             )
@@ -116,7 +95,7 @@ class PersistentMapResponderV2Spec extends CoreSpec() with ImplicitSender {
             for (index <- 2 to 4) {
                 val mapEntryKey = s"key$index"
 
-                actorUnderTest ! PersistentMapEntryPutRequestV2(
+                responderManager ! PersistentMapEntryPutRequestV2(
                     mapPath = testMap1Path,
                     mapEntryKey = mapEntryKey,
                     mapEntryValue = testMap1Data(mapEntryKey),
@@ -126,7 +105,7 @@ class PersistentMapResponderV2Spec extends CoreSpec() with ImplicitSender {
                 expectMsg(timeout, PersistentMapEntryPutResponseV2())
             }
 
-            actorUnderTest ! PersistentMapGetRequestV2(mapPath = testMap1Path)
+            responderManager ! PersistentMapGetRequestV2(mapPath = testMap1Path)
 
             expectMsgPF(timeout) {
                 case persistentMap: PersistentMapV2 =>
@@ -141,14 +120,14 @@ class PersistentMapResponderV2Spec extends CoreSpec() with ImplicitSender {
         }
 
         "delete a persistent map" in {
-            actorUnderTest ! PersistentMapDeleteRequestV2(
+            responderManager ! PersistentMapDeleteRequestV2(
                 mapPath = testMap1Path,
                 apiRequestID = UUID.randomUUID
             )
 
             expectMsg(timeout, PersistentMapDeleteResponseV2())
 
-            actorUnderTest ! PersistentMapGetRequestV2(mapPath = testMap1Path)
+            responderManager ! PersistentMapGetRequestV2(mapPath = testMap1Path)
 
             expectMsgPF(timeout) {
                 case msg: akka.actor.Status.Failure => msg.cause.isInstanceOf[NotFoundException] should ===(true)

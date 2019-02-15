@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -20,7 +20,8 @@
 package org.knora.webapi.messages.v2.routing.authenticationmessages
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import org.knora.webapi.BadRequestException
+import org.knora.webapi.{BadRequestException, IRI}
+import org.knora.webapi.messages.admin.responder.usersmessages.UserIdentifierADM
 import spray.json._
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -29,14 +30,28 @@ import spray.json._
 /**
   * Represents an API request payload that asks the Knora API server to authenticate the user and create a JWT token
   *
-  * @param email    the user's email.
-  * @param password the user's password.
+  * @param identifier   the user's IRI, username, or email.
+  * @param password     the user's password.
   */
-case class LoginApiRequestPayloadV2(email: String,
-                                    password: String) {
+case class LoginApiRequestPayloadV2(iri: Option[IRI] = None,
+                                    email: Option[String] = None,
+                                    username: Option[String] = None,
+                                    password: String
+                                   ) {
 
-    // email and password need to be supplied
-    if (email.isEmpty || password.isEmpty) throw BadRequestException("Both email and password need to be supplied.")
+    val parametersCount: Int = List(
+        iri,
+        email,
+        username
+    ).flatten.size
+
+    // something needs to be set
+    if (parametersCount == 0) throw BadRequestException("Empty user identifier is not allowed.")
+
+    if (parametersCount > 1) throw BadRequestException("Only one option allowed for user identifier.")
+
+    // Password needs to be supplied
+    if (password.isEmpty) throw BadRequestException("Password needs to be supplied.")
 }
 
 /**
@@ -45,12 +60,12 @@ case class LoginApiRequestPayloadV2(email: String,
 sealed abstract class KnoraCredentialsV2()
 
 /**
-  * Represents email/password credentials that a user can supply within the authorization header or as URL parameters.
+  * Represents id/password credentials that a user can supply within the authorization header or as URL parameters.
   *
-  * @param email    the supplied email.
-  * @param password the supplied password.
+  * @param identifier   the supplied id.
+  * @param password     the supplied password.
   */
-case class KnoraPasswordCredentialsV2(email: String, password: String) extends KnoraCredentialsV2
+case class KnoraPasswordCredentialsV2(identifier: UserIdentifierADM, password: String) extends KnoraCredentialsV2
 
 /**
   * Represents token credentials that a user can supply withing the authorization header or as URL parameters.
@@ -67,6 +82,14 @@ case class KnoraTokenCredentialsV2(token: String) extends KnoraCredentialsV2
   */
 case class KnoraSessionCredentialsV2(token: String) extends KnoraCredentialsV2
 
+/**
+  * Represents a response Knora returns when communicating with the 'v2/authentication' route during the 'login' operation.
+  *
+  * @param token is the returned json web token.
+  */
+case class LoginResponse(token: String)
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // JSON formatting
@@ -75,6 +98,6 @@ case class KnoraSessionCredentialsV2(token: String) extends KnoraCredentialsV2
   * A spray-json protocol for generating Knora API v2 JSON for property values.
   */
 trait AuthenticationV2JsonProtocol extends DefaultJsonProtocol with NullOptions with SprayJsonSupport {
-
-    implicit val loginApiRequestPayloadV2Format: RootJsonFormat[LoginApiRequestPayloadV2] = jsonFormat2(LoginApiRequestPayloadV2)
+    implicit val loginApiRequestPayloadV2Format: RootJsonFormat[LoginApiRequestPayloadV2] = jsonFormat(LoginApiRequestPayloadV2, "iri", "email", "username", "password")
+    implicit val SessionResponseFormat: RootJsonFormat[LoginResponse] = jsonFormat1(LoginResponse.apply)
 }

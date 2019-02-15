@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,28 +19,33 @@
 
 package org.knora.webapi.routing.v2
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
+import java.util.UUID
+
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.util.Timeout
-import org.knora.webapi.messages.v2.responder.resourcemessages.{ResourceTEIGetRequestV2, ResourcesGetRequestV2, ResourcesPreviewGetRequestV2}
-import org.knora.webapi.routing.{Authenticator, RouteUtilV2}
+import org.knora.webapi._
+import org.knora.webapi.messages.v2.responder.resourcemessages._
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV2}
 import org.knora.webapi.util.IriConversions._
+import org.knora.webapi.util.jsonld.{JsonLDDocument, JsonLDUtil}
 import org.knora.webapi.util.{SmartIri, StringFormatter}
-import org.knora.webapi.{BadRequestException, IRI, InternalSchema, SettingsImpl}
 
-import scala.concurrent.ExecutionContextExecutor
-import scala.language.postfixOps
+import scala.concurrent.Future
 
 /**
   * Provides a routing function for API v2 routes that deal with resources.
   */
-object ResourcesRouteV2 extends Authenticator {
+class ResourcesRouteV2(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
     private val Text_Property = "textProperty"
     private val Mapping_Iri = "mappingIri"
     private val GravsearchTemplate_Iri = "gravsearchTemplateIri"
     private val TEIHeader_XSLT_IRI = "teiHeaderXSLTIri"
+    private val Depth = "depth"
+    private val ExcludeProperty = "excludeProperty"
+    private val Direction = "direction"
+    private val Inbound = "inbound"
+    private val Outbound = "outbound"
+    private val Both = "both"
 
     /**
       * Gets the Iri of the property that represents the text of the resource.
@@ -54,10 +59,10 @@ object ResourcesRouteV2 extends Authenticator {
 
         textProperty match {
             case Some(textPropIriStr: String) =>
-                val externalResourceClassIri = textPropIriStr.toSmartIriWithErr(throw BadRequestException(s"Invalid property IRI: $textPropIriStr"))
+                val externalResourceClassIri = textPropIriStr.toSmartIriWithErr(throw BadRequestException(s"Invalid property IRI: <$textPropIriStr>"))
 
                 if (!externalResourceClassIri.isKnoraApiV2EntityIri) {
-                    throw BadRequestException(s"$textPropIriStr is not a valid knora-api property IRI")
+                    throw BadRequestException(s"<$textPropIriStr> is not a valid knora-api property IRI")
                 }
 
                 externalResourceClassIri.toOntologySchema(InternalSchema)
@@ -78,7 +83,7 @@ object ResourcesRouteV2 extends Authenticator {
 
         mappingIriStr match {
             case Some(mapping: String) =>
-                Some(stringFormatter.validateAndEscapeIri(mapping, throw BadRequestException(s"Invalid mapping IRI: '$mapping'")))
+                Some(stringFormatter.validateAndEscapeIri(mapping, throw BadRequestException(s"Invalid mapping IRI: <$mapping>")))
 
             case None => None
         }
@@ -96,7 +101,7 @@ object ResourcesRouteV2 extends Authenticator {
 
         gravsearchTemplateIriStr match {
             case Some(gravsearch: String) =>
-                Some(stringFormatter.validateAndEscapeIri(gravsearch, throw BadRequestException(s"Invalid template IRI: '$gravsearch'")))
+                Some(stringFormatter.validateAndEscapeIri(gravsearch, throw BadRequestException(s"Invalid template IRI: <$gravsearch>")))
 
             case None => None
         }
@@ -114,36 +119,116 @@ object ResourcesRouteV2 extends Authenticator {
 
         headerXSLTIriStr match {
             case Some(xslt: String) =>
-                Some(stringFormatter.validateAndEscapeIri(xslt, throw BadRequestException(s"Invalid XSLT IRI: '$xslt'")))
+                Some(stringFormatter.validateAndEscapeIri(xslt, throw BadRequestException(s"Invalid XSLT IRI: <$xslt>")))
 
             case None => None
         }
     }
 
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-        implicit val system: ActorSystem = _system
-        implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-        implicit val timeout: Timeout = settings.defaultTimeout
-        val responderManager = system.actorSelection("/user/responderManager")
-        val stringFormatter = StringFormatter.getGeneralInstance
+    def knoraApiPath: Route = {
 
-        path("v2" / "resources" / Segments) { (resIris: Seq[String]) =>
+        path("v2" / "resources") {
+            post {
+                entity(as[String]) { jsonRequest =>
+                    requestContext => {
+                        val requestDoc: JsonLDDocument = JsonLDUtil.parseJsonLD(jsonRequest)
+
+                        val requestMessageFuture: Future[CreateResourceRequestV2] = for {
+                            requestingUser <- getUserADM(requestContext)
+                            requestMessage: CreateResourceRequestV2 <- CreateResourceRequestV2.fromJsonLD(
+                                requestDoc,
+                                apiRequestID = UUID.randomUUID,
+                                requestingUser = requestingUser,
+                                responderManager = responderManager,
+                                storeManager = storeManager,
+                                settings = settings,
+                                log = log
+                            )
+                        } yield requestMessage
+
+                        RouteUtilV2.runRdfRouteWithFuture(
+                            requestMessageFuture,
+                            requestContext,
+                            settings,
+                            responderManager,
+                            log,
+                            ApiV2WithValueObjects
+                        )
+                    }
+                }
+            } ~ put {
+                entity(as[String]) { jsonRequest =>
+                    requestContext => {
+                        val requestDoc: JsonLDDocument = JsonLDUtil.parseJsonLD(jsonRequest)
+
+                        val requestMessageFuture: Future[UpdateResourceMetadataRequestV2] = for {
+                            requestingUser <- getUserADM(requestContext)
+                            requestMessage: UpdateResourceMetadataRequestV2 <- UpdateResourceMetadataRequestV2.fromJsonLD(
+                                requestDoc,
+                                apiRequestID = UUID.randomUUID,
+                                requestingUser = requestingUser,
+                                responderManager = responderManager,
+                                storeManager = storeManager,
+                                settings = settings,
+                                log = log
+                            )
+                        } yield requestMessage
+
+                        RouteUtilV2.runRdfRouteWithFuture(
+                            requestMessageFuture,
+                            requestContext,
+                            settings,
+                            responderManager,
+                            log,
+                            ApiV2WithValueObjects
+                        )
+                    }
+                }
+            }
+        } ~ path("v2" / "resources" / Segments) { resIris: Seq[String] =>
             get {
                 requestContext => {
-                    val requestingUser = getUserADM(requestContext)
 
                     if (resIris.size > settings.v2ResultsPerPage) throw BadRequestException(s"List of provided resource Iris exceeds limit of ${settings.v2ResultsPerPage}")
 
                     val resourceIris: Seq[IRI] = resIris.map {
                         resIri: String =>
-                            stringFormatter.validateAndEscapeIri(resIri, throw BadRequestException(s"Invalid resource IRI: '$resIri'"))
+                            stringFormatter.validateAndEscapeIri(resIri, throw BadRequestException(s"Invalid resource IRI: <$resIri>"))
                     }
 
-                    val requestMessage = ResourcesGetRequestV2(resourceIris = resourceIris, requestingUser = requestingUser)
+                    val requestMessageFuture: Future[ResourcesGetRequestV2] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ResourcesGetRequestV2(resourceIris = resourceIris, requestingUser = requestingUser)
 
-                    RouteUtilV2.runRdfRoute(
-                        requestMessage,
+                    // #use-requested-schema
+                    RouteUtilV2.runRdfRouteWithFuture(
+                        requestMessageFuture,
+                        requestContext,
+                        settings,
+                        responderManager,
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
+                    )
+                    // #use-requested-schema
+                }
+            }
+        } ~ path("v2" / "resourcespreview" / Segments) { resIris: Seq[String] =>
+            get {
+                requestContext => {
+                    if (resIris.size > settings.v2ResultsPerPage) throw BadRequestException(s"List of provided resource Iris exceeds limit of ${settings.v2ResultsPerPage}")
+
+                    val resourceIris: Seq[IRI] = resIris.map {
+                        resIri: String =>
+                            stringFormatter.validateAndEscapeIri(resIri, throw BadRequestException(s"Invalid resource IRI: <$resIri>"))
+                    }
+
+                    val requestMessageFuture: Future[ResourcesPreviewGetRequestV2] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ResourcesPreviewGetRequestV2(resourceIris = resourceIris, requestingUser = requestingUser)
+
+                    RouteUtilV2.runRdfRouteWithFuture(
+                        requestMessageFuture,
                         requestContext,
                         settings,
                         responderManager,
@@ -152,37 +237,11 @@ object ResourcesRouteV2 extends Authenticator {
                     )
                 }
             }
-        } ~ path("v2" / "resourcespreview" / Segments) { (resIris: Seq[String]) =>
+        } ~ path("v2" / "tei" / Segment) { resIri: String =>
             get {
                 requestContext => {
-                    val requestingUser = getUserADM(requestContext)
 
-                    if (resIris.size > settings.v2ResultsPerPage) throw BadRequestException(s"List of provided resource Iris exceeds limit of ${settings.v2ResultsPerPage}")
-
-                    val resourceIris: Seq[IRI] = resIris.map {
-                        resIri: String =>
-                            stringFormatter.validateAndEscapeIri(resIri, throw BadRequestException(s"Invalid resource IRI: '$resIri'"))
-                    }
-
-                    val requestMessage = ResourcesPreviewGetRequestV2(resourceIris = resourceIris, requestingUser = requestingUser)
-
-                    RouteUtilV2.runRdfRoute(
-                        requestMessage,
-                        requestContext,
-                        settings,
-                        responderManager,
-                        log,
-                        RouteUtilV2.getOntologySchema(requestContext)
-                    )
-                }
-            }
-
-        } ~ path("v2" / "tei" / Segment) { (resIri: String) =>
-            get {
-                requestContext => {
-                    val requestingUser = getUserADM(requestContext)
-
-                    val resourceIri = stringFormatter.validateAndEscapeIri(resIri, throw BadRequestException(s"Invalid resource IRI: '$resIri'"))
+                    val resourceIri: IRI = stringFormatter.validateAndEscapeIri(resIri, throw BadRequestException(s"Invalid resource IRI: <$resIri>"))
 
                     val params: Map[String, String] = requestContext.request.uri.query().toMap
 
@@ -195,7 +254,9 @@ object ResourcesRouteV2 extends Authenticator {
 
                     val headerXSLTIri = getHeaderXSLTIriFromParams(params)
 
-                    val requestMessage = ResourceTEIGetRequestV2(
+                    val requestMessageFuture: Future[ResourceTEIGetRequestV2] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ResourceTEIGetRequestV2(
                         resourceIri = resourceIri,
                         textProperty = textProperty,
                         mappingIri = mappingIri,
@@ -205,7 +266,7 @@ object ResourcesRouteV2 extends Authenticator {
                     )
 
                     RouteUtilV2.runTEIXMLRoute(
-                        requestMessage,
+                        requestMessageFuture,
                         requestContext,
                         settings,
                         responderManager,
@@ -214,10 +275,82 @@ object ResourcesRouteV2 extends Authenticator {
                     )
                 }
             }
+        } ~ path("v2" / "graph" / Segment) { resIriStr: String =>
+            get {
+                requestContext => {
+                    val resourceIri: IRI = stringFormatter.validateAndEscapeIri(resIriStr, throw BadRequestException(s"Invalid resource IRI: <$resIriStr>"))
+                    val params: Map[String, String] = requestContext.request.uri.query().toMap
+                    val depth: Int = params.get(Depth).map(_.toInt).getOrElse(settings.defaultGraphDepth)
 
+                    if (depth < 1) {
+                        throw BadRequestException(s"$Depth must be at least 1")
+                    }
+
+                    if (depth > settings.maxGraphDepth) {
+                        throw BadRequestException(s"$Depth cannot be greater than ${settings.maxGraphDepth}")
+                    }
+
+                    val direction: String = params.getOrElse(Direction, Outbound)
+                    val excludeProperty: Option[SmartIri] = params.get(ExcludeProperty).map(propIriStr => propIriStr.toSmartIriWithErr(throw BadRequestException(s"Invalid property IRI: <$propIriStr>")))
+
+                    val (inbound: Boolean, outbound: Boolean) = direction match {
+                        case Inbound => (true, false)
+                        case Outbound => (false, true)
+                        case Both => (true, true)
+                        case other => throw BadRequestException(s"Invalid direction: $other")
+                    }
+
+                    val requestMessageFuture: Future[GraphDataGetRequestV2] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield GraphDataGetRequestV2(
+                        resourceIri = resourceIri,
+                        depth = depth,
+                        inbound = inbound,
+                        outbound = outbound,
+                        excludeProperty = excludeProperty,
+                        requestingUser = requestingUser
+                    )
+
+                    RouteUtilV2.runRdfRouteWithFuture(
+                        requestMessageFuture,
+                        requestContext,
+                        settings,
+                        responderManager,
+                        log,
+                        RouteUtilV2.getOntologySchema(requestContext)
+                    )
+                }
+            }
+        } ~ path ("v2" / "resources" / "delete") {
+            post {
+                entity(as[String]) { jsonRequest =>
+                    requestContext => {
+                        val requestDoc: JsonLDDocument = JsonLDUtil.parseJsonLD(jsonRequest)
+
+                        val requestMessageFuture: Future[DeleteResourceRequestV2] = for {
+                            requestingUser <- getUserADM(requestContext)
+                            requestMessage: DeleteResourceRequestV2 <- DeleteResourceRequestV2.fromJsonLD(
+                                requestDoc,
+                                apiRequestID = UUID.randomUUID,
+                                requestingUser = requestingUser,
+                                responderManager = responderManager,
+                                storeManager = storeManager,
+                                settings = settings,
+                                log = log
+                            )
+                        } yield requestMessage
+
+                        RouteUtilV2.runRdfRouteWithFuture(
+                            requestMessageFuture,
+                            requestContext,
+                            settings,
+                            responderManager,
+                            log,
+                            ApiV2WithValueObjects
+                        )
+                    }
+                }
+            }
         }
-
     }
-
-
 }

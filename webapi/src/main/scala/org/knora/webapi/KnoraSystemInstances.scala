@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -36,6 +36,7 @@ object KnoraSystemInstances {
           */
         val AnonymousUser = UserADM(
             id = OntologyConstants.KnoraBase.AnonymousUser,
+            username = "anonymous",
             email = "anonymous@localhost",
             password = None,
             token = None,
@@ -54,6 +55,7 @@ object KnoraSystemInstances {
           */
         val SystemUser = UserADM(
             id = OntologyConstants.KnoraBase.SystemUser,
+            username = "system",
             email = "system@localhost",
             password = None,
             token  = None,

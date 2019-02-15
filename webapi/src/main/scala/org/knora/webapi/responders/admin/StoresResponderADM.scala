@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,30 +21,33 @@ package org.knora.webapi.responders.admin
 
 import akka.pattern._
 import org.knora.webapi._
-import org.knora.webapi.messages.admin.responder.storesmessages.{ResetTriplestoreContentRequestADM, ResetTriplestoreContentResponseADM}
+import org.knora.webapi.messages.admin.responder.storesmessages.{ResetTriplestoreContentRequestADM, ResetTriplestoreContentResponseADM, StoreResponderRequestADM}
 import org.knora.webapi.messages.app.appmessages.GetAllowReloadOverHTTPState
 import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, ResetTriplestoreContent, ResetTriplestoreContentACK}
 import org.knora.webapi.messages.v1.responder.ontologymessages.{LoadOntologiesRequest, LoadOntologiesResponse}
-import org.knora.webapi.responders.Responder
-import org.knora.webapi.util.ActorUtil._
+import org.knora.webapi.responders.Responder.handleUnexpectedMessage
+import org.knora.webapi.responders.{Responder, ResponderData}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 /**
   * This responder is used by [[org.knora.webapi.routing.admin.StoreRouteADM]], for piping through HTTP requests to the
   * 'Store Module'
   */
-class StoresResponderADM extends Responder {
+class StoresResponderADM(responderData: ResponderData) extends Responder(responderData) {
+
 
     /**
       * A user representing the Knora API server, used in those cases where a user is required.
       */
     private val systemUser = KnoraSystemInstances.Users.SystemUser
 
-    def receive = {
-        case ResetTriplestoreContentRequestADM(rdfDataObjects: Seq[RdfDataObject]) => future2Message(sender(), resetTriplestoreContent(rdfDataObjects), log)
-        case other => handleUnexpectedMessage(sender(), other, log, this.getClass.getName)
+    /**
+      * Receives a message extending [[StoreResponderRequestADM]], and returns an appropriate response message.
+      */
+    def receive(msg: StoreResponderRequestADM) = msg match {
+        case ResetTriplestoreContentRequestADM(rdfDataObjects: Seq[RdfDataObject]) => resetTriplestoreContent(rdfDataObjects)
+        case other => handleUnexpectedMessage(other, log, this.getClass.getName)
     }
 
     /**
@@ -55,23 +58,19 @@ class StoresResponderADM extends Responder {
       */
     private def resetTriplestoreContent(rdfDataObjects: Seq[RdfDataObject]): Future[ResetTriplestoreContentResponseADM] = {
 
-        log.info(s"resetTriplestoreContent - called")
-        log.debug(s"resetTriplestoreContent called with: {}", rdfDataObjects.toString)
-        val allowReloadOverHTTP = Await.result(applicationStateActor ? GetAllowReloadOverHTTPState(), 1.second).asInstanceOf[Boolean]
-        log.debug(s"StartupFlags.allowReloadOverHTTP = {}", allowReloadOverHTTP)
+        log.debug(s"resetTriplestoreContent - called")
 
         for {
             value: Boolean <- (applicationStateActor ? GetAllowReloadOverHTTPState()).mapTo[Boolean]
             _ = if (!value) {
-                //println("resetTriplestoreContent - will throw ForbiddenException")
                 throw ForbiddenException("The ResetTriplestoreContent operation is not allowed. Did you start the server with the right flag?")
             }
 
             resetResponse <- (storeManager ? ResetTriplestoreContent(rdfDataObjects)).mapTo[ResetTriplestoreContentACK]
-            _ = log.info(s"resetTriplestoreContent - triplestore reset done - {}", resetResponse.toString)
+            _ = log.debug(s"resetTriplestoreContent - triplestore reset done - {}", resetResponse.toString)
 
             loadOntologiesResponse <- (responderManager ? LoadOntologiesRequest(systemUser)).mapTo[LoadOntologiesResponse]
-            _ = log.info(s"resetTriplestoreContent - load ontology done - {}", loadOntologiesResponse.toString)
+            _ = log.debug(s"resetTriplestoreContent - load ontology done - {}", loadOntologiesResponse.toString)
 
             result = ResetTriplestoreContentResponseADM(message = "success")
 

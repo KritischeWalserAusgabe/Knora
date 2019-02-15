@@ -1,4 +1,4 @@
--- Copyright © 2015-2018 the contributors (see Contributors.md).
+-- Copyright © 2015-2019 the contributors (see Contributors.md).
 --
 -- This file is part of Knora.
 --
@@ -26,9 +26,10 @@ sipi = {
     -- userid = '_www',
 
     --
-    -- sipi's hostname as reported in the thumbnail response, default is "localhost"
+    -- Sipi's hostname as returned in the thumbnail response, default is "localhost".
+    -- If sipi is run behind a proxy, then this external FQDN needs to be set here.
     --
-    -- hostname = 'localhost',
+    hostname = 'localhost',
 
     --
     -- port number the server is listening to
@@ -52,7 +53,7 @@ sipi = {
     -- expected to be urlencoded. Both will be decoded. That is, "/" will be recoignized and expanded
     -- in the final path the image file!
     --
-    imgroot = '../../Sipi/images', -- make sure that this directory exists
+    imgroot = './images', -- make sure that this directory exists
 
     --
     -- If FALSE, the prefix is not used to build the path to the image files
@@ -76,7 +77,7 @@ sipi = {
     -- for certain prefixes *not* to use subdirs. A list of these prefix-directories
     -- can be given with this configuration parameter.
     --
-    subdir_excludes = { "tmp", "thumbs"},
+    subdir_excludes = { "knora", "thumbs" },
 
     --
     -- Lua script which is executed on initialization of the Lua interpreter
@@ -86,7 +87,7 @@ sipi = {
     --
     -- path to the caching directory
     --
-    cachedir = '../../Sipi/cache',
+    cachedir = './cache',
 
     --
     -- maximal size of the cache
@@ -114,9 +115,15 @@ sipi = {
     tmpdir = '/tmp',
 
     --
+    -- Maximum age of temporary files, in seconds (requires Knora's upload.lua).
+    -- Defaults to 86400 seconds (1 day).
+    --
+    max_temp_file_age = 86400,
+
+    --
     -- Path to Knora Application
     --
-    knora_path = 'webapihost',
+    knora_path = 'localhost',
 
     --
     -- Port of Knora Application
@@ -124,10 +131,16 @@ sipi = {
     knora_port = '3333',
 
     --
-    -- loglevel, one of "EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFORMATIONAL", "DEBUG"
+    -- loglevel, one of "DEBUG", "INFO", "NOTICE", "WARNING", "ERR",
+    -- "CRIT", "ALERT", "EMERG"
     --
-    loglevel = "DEBUG"
+    loglevel = "DEBUG",
 
+    --
+    -- The secret for generating JWT's (JSON Web Tokens) (42 characters)
+    --
+    jwt_secret = 'UP 4888, nice 4-8-4 steam engine',
+    --            12345678901234567890123456789012
 }
 
 
@@ -135,7 +148,7 @@ fileserver = {
     --
     -- directory where the documents for the normal webserver are located
     --
-    docroot = '../../Sipi/server',
+    docroot = './server',
 
     --
     -- route under which the normal webserver shouöd respond to requests
@@ -166,13 +179,32 @@ routes = {
     },
     {
         method = 'POST',
-        route = '/Knora_login',
-        script = 'Knora_login.lua'
+        route = '/upload',
+        script = 'upload.lua'
     },
     {
         method = 'POST',
-        route = '/Knora_logout',
-        script = 'Knora_logout.lua'
+        route = '/store',
+        script = 'store.lua'
+    },
+    {
+        method = 'DELETE',
+        route = '/delete_temp_file',
+        script = 'delete_temp_file.lua'
+    },
+    {
+        method = 'GET',
+        route = '/test_functions',
+        script = 'test_functions.lua'
+    },
+    {
+        method = 'GET',
+        route = '/test_mediatype',
+        script = 'test_mediatype.lua'
+    },
+    {
+        method = 'GET',
+        route = '/test_knora_session_cookie',
+        script = 'test_knora_session_cookie.lua'
     }
-
 }

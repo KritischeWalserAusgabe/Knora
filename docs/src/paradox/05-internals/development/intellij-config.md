@@ -1,5 +1,5 @@
 <!---
-Copyright © 2015-2018 the contributors (see Contributors.md).
+Copyright © 2015-2019 the contributors (see Contributors.md).
 
 This file is part of Knora.
 
@@ -68,6 +68,19 @@ configuration'](figures/app-config-setup.png)
   - Click on a line-number to add a breakpoint
 
 ![screenshot 'set a breakpoint'](figures/breakpoint.png)
+
+## Use a Remote Debugger with Intellij
+
+- edit configurations (Run -> Edit Configurations...)
+- add a new remote configuration:
+
+![screenshot 'remote configuration'](figures/remote-config.png)
+
+- from the console (in folder `webapi`), run `sbt -J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005`
+- start Knora using `reStart`
+- use debugger: choose configuration and click on `Debug [configName]`
+
+![screenshot 'use debugger'](figures/use-debugger.png)
 
 ## Profile Knora Using VisualVM in IntelliJ
 

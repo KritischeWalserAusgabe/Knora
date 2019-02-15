@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -27,9 +27,10 @@ import org.knora.webapi.messages.admin.responder.permissionsmessages
 import org.knora.webapi.messages.admin.responder.permissionsmessages._
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
 import org.knora.webapi.messages.store.triplestoremessages.{SparqlSelectRequest, SparqlSelectResponse, VariableResultsRow}
-import org.knora.webapi.responders.Responder
-import org.knora.webapi.util.ActorUtil._
-import org.knora.webapi.util.{KnoraIdUtil, PermissionUtilADM}
+import org.knora.webapi.responders.Responder.handleUnexpectedMessage
+import org.knora.webapi.responders.admin.PermissionsResponderADM._
+import org.knora.webapi.responders.{Responder, ResponderData}
+import org.knora.webapi.util.{CacheUtil, KnoraIdUtil, PermissionUtilADM}
 
 import scala.collection.immutable.Iterable
 import scala.collection.mutable.ListBuffer
@@ -39,39 +40,38 @@ import scala.concurrent.Future
 /**
   * Provides information about Knora users to other responders.
   */
-class PermissionsResponderADM extends Responder {
+class PermissionsResponderADM(responderData: ResponderData) extends Responder(responderData) {
+
 
     // Creates IRIs for new Knora user objects.
-    val knoraIdUtil = new KnoraIdUtil
+    private val knoraIdUtil = new KnoraIdUtil
 
     /* Entity types used to more clearly distinguish what kind of entity is meant */
-    val RESOURCE_ENTITY_TYPE = "resource"
-    val PROPERTY_ENTITY_TYPE = "property"
+    private val ResourceEntityType = "resource"
+    private val PropertyEntityType = "property"
 
     /**
-      * Receives a message extending [[PermissionsResponderRequestADM]].
-      * If a serious error occurs (i.e. an error that isn't the client's fault), this
-      * method first returns `Failure` to the sender, then throws an exception.
+      * Receives a message extending [[PermissionsResponderRequestADM]], and returns an appropriate response message.
       */
-    def receive = {
-        case PermissionDataGetADM(projectIris, groupIris, isInProjectAdminGroup, isInSystemAdminGroup, requestingUser) => future2Message(sender(), permissionsDataGetADM(projectIris, groupIris, isInProjectAdminGroup, isInSystemAdminGroup, requestingUser), log)
-        case AdministrativePermissionsForProjectGetRequestADM(projectIri, requestingUser) => future2Message(sender(), administrativePermissionsForProjectGetRequestADM(projectIri, requestingUser), log)
-        case AdministrativePermissionForIriGetRequestADM(administrativePermissionIri, requestingUser) => future2Message(sender(), administrativePermissionForIriGetRequestADM(administrativePermissionIri, requestingUser), log)
-        case AdministrativePermissionForProjectGroupGetADM(projectIri, groupIri, requestingUser) => future2Message(sender(), administrativePermissionForProjectGroupGetADM(projectIri, groupIri, requestingUser), log)
-        case AdministrativePermissionForProjectGroupGetRequestADM(projectIri, groupIri, requestingUser) => future2Message(sender(), administrativePermissionForProjectGroupGetRequestADM(projectIri, groupIri, requestingUser), log)
-        case AdministrativePermissionCreateRequestADM(newAdministrativePermission, requestingUser) => future2Message(sender(), administrativePermissionCreateRequestADM(newAdministrativePermission, requestingUser), log)
-        //case AdministrativePermissionDeleteRequestV1(administrativePermissionIri, requestingUser) => future2Message(sender(), deleteAdministrativePermissionV1(administrativePermissionIri, requestingUser), log)
-        case ObjectAccessPermissionsForResourceGetADM(resourceIri, requestingUser) => future2Message(sender(), objectAccessPermissionsForResourceGetADM(resourceIri, requestingUser), log)
-        case ObjectAccessPermissionsForValueGetADM(valueIri, requestingUser) => future2Message(sender(), objectAccessPermissionsForValueGetADM(valueIri, requestingUser), log)
-        case DefaultObjectAccessPermissionsForProjectGetRequestADM(projectIri, requestingUser) => future2Message(sender(), defaultObjectAccessPermissionsForProjectGetRequestADM(projectIri, requestingUser), log)
-        case DefaultObjectAccessPermissionForIriGetRequestADM(defaultObjectAccessPermissionIri, requestingUser) => future2Message(sender(), defaultObjectAccessPermissionForIriGetRequestADM(defaultObjectAccessPermissionIri, requestingUser), log)
-        case DefaultObjectAccessPermissionGetRequestADM(projectIri, groupIri, resourceClassIri, propertyIri, requestingUser) => future2Message(sender(), defaultObjectAccessPermissionGetRequestADM(projectIri, groupIri, resourceClassIri, propertyIri, requestingUser), log)
-        case DefaultObjectAccessPermissionsStringForResourceClassGetADM(projectIri, resourceClassIri, targetUser, requestingUser) => future2Message(sender(), defaultObjectAccessPermissionsStringForEntityGetADM(projectIri, resourceClassIri, None, RESOURCE_ENTITY_TYPE, targetUser, requestingUser), log)
-        case DefaultObjectAccessPermissionsStringForPropertyGetADM(projectIri, resourceClassIri, propertyTypeIri, targetUser, requestingUser) => future2Message(sender(), defaultObjectAccessPermissionsStringForEntityGetADM(projectIri, resourceClassIri, Some(propertyTypeIri), PROPERTY_ENTITY_TYPE, targetUser, requestingUser), log)
-        //case DefaultObjectAccessPermissionCreateRequestV1(newDefaultObjectAccessPermissionV1, requestingUser) => future2Message(sender(), createDefaultObjectAccessPermissionV1(newDefaultObjectAccessPermissionV1, requestingUser), log)
-        //case DefaultObjectAccessPermissionDeleteRequestV1(defaultObjectAccessPermissionIri, requestingUser) => future2Message(sender(), deleteDefaultObjectAccessPermissionV1(defaultObjectAccessPermissionIri, requestingUser), log)
-        //case TemplatePermissionsCreateRequestV1(projectIri, permissionsTemplate, requestingUser) => future2Message(sender(), templatePermissionsCreateRequestV1(projectIri, permissionsTemplate, requestingUser), log)
-        case other => handleUnexpectedMessage(sender(), other, log, this.getClass.getName)
+    def receive(msg: PermissionsResponderRequestADM) = msg match {
+        case PermissionDataGetADM(projectIris, groupIris, isInProjectAdminGroup, isInSystemAdminGroup, requestingUser) => permissionsDataGetADM(projectIris, groupIris, isInProjectAdminGroup, isInSystemAdminGroup, requestingUser)
+        case AdministrativePermissionsForProjectGetRequestADM(projectIri, requestingUser) => administrativePermissionsForProjectGetRequestADM(projectIri, requestingUser)
+        case AdministrativePermissionForIriGetRequestADM(administrativePermissionIri, requestingUser) => administrativePermissionForIriGetRequestADM(administrativePermissionIri, requestingUser)
+        case AdministrativePermissionForProjectGroupGetADM(projectIri, groupIri, requestingUser) => administrativePermissionForProjectGroupGetADM(projectIri, groupIri, requestingUser)
+        case AdministrativePermissionForProjectGroupGetRequestADM(projectIri, groupIri, requestingUser) => administrativePermissionForProjectGroupGetRequestADM(projectIri, groupIri, requestingUser)
+        case AdministrativePermissionCreateRequestADM(newAdministrativePermission, requestingUser) => administrativePermissionCreateRequestADM(newAdministrativePermission, requestingUser)
+        //case AdministrativePermissionDeleteRequestV1(administrativePermissionIri, requestingUser) => deleteAdministrativePermissionV1(administrativePermissionIri, requestingUser)
+        case ObjectAccessPermissionsForResourceGetADM(resourceIri, requestingUser) => objectAccessPermissionsForResourceGetADM(resourceIri, requestingUser)
+        case ObjectAccessPermissionsForValueGetADM(valueIri, requestingUser) => objectAccessPermissionsForValueGetADM(valueIri, requestingUser)
+        case DefaultObjectAccessPermissionsForProjectGetRequestADM(projectIri, requestingUser) => defaultObjectAccessPermissionsForProjectGetRequestADM(projectIri, requestingUser)
+        case DefaultObjectAccessPermissionForIriGetRequestADM(defaultObjectAccessPermissionIri, requestingUser) => defaultObjectAccessPermissionForIriGetRequestADM(defaultObjectAccessPermissionIri, requestingUser)
+        case DefaultObjectAccessPermissionGetRequestADM(projectIri, groupIri, resourceClassIri, propertyIri, requestingUser) => defaultObjectAccessPermissionGetRequestADM(projectIri, groupIri, resourceClassIri, propertyIri, requestingUser)
+        case DefaultObjectAccessPermissionsStringForResourceClassGetADM(projectIri, resourceClassIri, targetUser, requestingUser) => defaultObjectAccessPermissionsStringForEntityGetADM(projectIri, resourceClassIri, None, ResourceEntityType, targetUser, requestingUser)
+        case DefaultObjectAccessPermissionsStringForPropertyGetADM(projectIri, resourceClassIri, propertyTypeIri, targetUser, requestingUser) => defaultObjectAccessPermissionsStringForEntityGetADM(projectIri, resourceClassIri, Some(propertyTypeIri), PropertyEntityType, targetUser, requestingUser)
+        //case DefaultObjectAccessPermissionCreateRequestV1(newDefaultObjectAccessPermissionV1, requestingUser) => createDefaultObjectAccessPermissionV1(newDefaultObjectAccessPermissionV1, requestingUser)
+        //case DefaultObjectAccessPermissionDeleteRequestV1(defaultObjectAccessPermissionIri, requestingUser) => deleteDefaultObjectAccessPermissionV1(defaultObjectAccessPermissionIri, requestingUser)
+        //case TemplatePermissionsCreateRequestV1(projectIri, permissionsTemplate, requestingUser) => templatePermissionsCreateRequestV1(projectIri, permissionsTemplate, requestingUser)
+        case other => handleUnexpectedMessage(other, log, this.getClass.getName)
     }
 
 
@@ -88,7 +88,7 @@ class PermissionsResponderADM extends Responder {
       * @param isInSystemAdminGroup   the flag denoting membership in the SystemAdmin group.
       * @return
       */
-    def permissionsDataGetADM(projectIris: Seq[IRI], groupIris: Seq[IRI], isInProjectAdminGroups: Seq[IRI], isInSystemAdminGroup: Boolean, requestingUser: UserADM): Future[PermissionsDataADM] = {
+    private def permissionsDataGetADM(projectIris: Seq[IRI], groupIris: Seq[IRI], isInProjectAdminGroups: Seq[IRI], isInSystemAdminGroup: Boolean, requestingUser: UserADM): Future[PermissionsDataADM] = {
         // find out which project each group belongs to
         //_ = log.debug("getPermissionsProfileV1 - find out to which project each group belongs to")
 
@@ -179,7 +179,7 @@ class PermissionsResponderADM extends Responder {
       * @param groupsPerProject the groups inside each project the user is member of.
       * @return a the user's resulting set of administrative permissions for each project.
       */
-    def userAdministrativePermissionsGetADM(groupsPerProject: Map[IRI, Seq[IRI]]): Future[Map[IRI, Set[PermissionADM]]] = {
+    private def userAdministrativePermissionsGetADM(groupsPerProject: Map[IRI, Seq[IRI]]): Future[Map[IRI, Set[PermissionADM]]] = {
 
 
         /* Get all permissions per project, applying permission precedence rule */
@@ -322,7 +322,7 @@ class PermissionsResponderADM extends Responder {
     /**
       * Gets all administrative permissions defined inside a project.
       *
-      * @param projectIRI    the IRI of the project.
+      * @param projectIRI     the IRI of the project.
       * @param requestingUser the [[UserADM]] of the requesting user.
       * @return a list of IRIs of [[AdministrativePermissionADM]] objects.
       */
@@ -368,10 +368,10 @@ class PermissionsResponderADM extends Responder {
       * Gets a single administrative permission identified by it's IRI.
       *
       * @param administrativePermissionIri the IRI of the administrative permission.
-      * @param requestingUser the requesting user.
+      * @param requestingUser              the requesting user.
       * @return a single [[AdministrativePermissionADM]] object.
       */
-    def administrativePermissionForIriGetRequestADM(administrativePermissionIri: IRI, requestingUser: UserADM): Future[AdministrativePermissionForIriGetResponseADM] = {
+    private def administrativePermissionForIriGetRequestADM(administrativePermissionIri: IRI, requestingUser: UserADM): Future[AdministrativePermissionForIriGetResponseADM] = {
 
         // FIXME: Check user's permission for operation (issue #370)
 
@@ -526,7 +526,7 @@ class PermissionsResponderADM extends Responder {
       * @param resourceIri the IRI of the resource.
       * @return a sequence of [[PermissionADM]]
       */
-    def objectAccessPermissionsForResourceGetADM(resourceIri: IRI, requestingUser: UserADM): Future[Option[ObjectAccessPermissionADM]] = {
+    private def objectAccessPermissionsForResourceGetADM(resourceIri: IRI, requestingUser: UserADM): Future[Option[ObjectAccessPermissionADM]] = {
         log.debug(s"objectAccessPermissionsForResourceGetV1 - resourceIRI: $resourceIri")
         for {
             sparqlQueryString <- Future(queries.sparql.v1.txt.getObjectAccessPermission(
@@ -563,7 +563,7 @@ class PermissionsResponderADM extends Responder {
       * @param valueIri the IRI of the value.
       * @return a sequence of [[PermissionADM]]
       */
-    def objectAccessPermissionsForValueGetADM(valueIri: IRI, requestingUser: UserADM): Future[Option[ObjectAccessPermissionADM]] = {
+    private def objectAccessPermissionsForValueGetADM(valueIri: IRI, requestingUser: UserADM): Future[Option[ObjectAccessPermissionADM]] = {
         log.debug(s"objectAccessPermissionsForValueGetV1 - resourceIRI: $valueIri")
         for {
             sparqlQueryString <- Future(queries.sparql.v1.txt.getObjectAccessPermission(
@@ -602,7 +602,7 @@ class PermissionsResponderADM extends Responder {
     /**
       * Gets all IRI's of all default object access permissions defined inside a project.
       *
-      * @param projectIri  the IRI of the project.
+      * @param projectIri     the IRI of the project.
       * @param requestingUser the [[UserADM]] of the requesting user.
       * @return a list of IRIs of [[DefaultObjectAccessPermissionADM]] objects.
       */
@@ -698,50 +698,70 @@ class PermissionsResponderADM extends Responder {
       * @param propertyIri      the property's IRI.
       * @return an optional [[DefaultObjectAccessPermissionADM]]
       */
-    def defaultObjectAccessPermissionGetADM(projectIri: IRI, groupIri: Option[IRI], resourceClassIri: Option[IRI], propertyIri: Option[IRI]): Future[Option[DefaultObjectAccessPermissionADM]] = {
-        for {
-            // check if necessary field are not empty.
-            _ <- Future(if (projectIri.isEmpty) throw BadRequestException("Project cannot be empty"))
+    private def defaultObjectAccessPermissionGetADM(projectIri: IRI, groupIri: Option[IRI], resourceClassIri: Option[IRI], propertyIri: Option[IRI]): Future[Option[DefaultObjectAccessPermissionADM]] = {
 
-            /* check supplied parameters */
-            _ = if (groupIri.isDefined && resourceClassIri.isDefined) throw BadRequestException("Not allowed to supply groupIri and resourceClassIri together")
-            _ = if (groupIri.isDefined && propertyIri.isDefined) throw BadRequestException("Not allowed to supply groupIri and propertyIri together")
+        val key = getDefaultObjectAccessPermissionADMKey(projectIri, groupIri, resourceClassIri, propertyIri)
+        val permissionFromCache = CacheUtil.get[DefaultObjectAccessPermissionADM](PermissionsCacheName, key)
 
-            sparqlQueryString = queries.sparql.v1.txt.getDefaultObjectAccessPermission(
-                triplestore = settings.triplestoreType,
-                projectIri = projectIri,
-                maybeGroupIri = groupIri,
-                maybeResourceClassIri = resourceClassIri,
-                maybePropertyIri = propertyIri
-            ).toString()
-            // _ = log.debug(s"defaultObjectAccessPermissionGetADM - query: $sparqlQueryString")
+        val maybeDefaultObjectAccessPermissionADM: Future[Option[DefaultObjectAccessPermissionADM]] = permissionFromCache match {
+            case Some(permission) =>
+                // found permission in the cache
+                log.debug("defaultObjectAccessPermissionGetADM - cache hit for key: {}", key)
+                FastFuture.successful(Some(permission))
 
-            permissionQueryResponse <- (storeManager ? SparqlSelectRequest(sparqlQueryString)).mapTo[SparqlSelectResponse]
-            // _ = log.debug(s"defaultObjectAccessPermissionGetADM - result: ${MessageUtil.toSource(permissionQueryResponse)}")
+            case None =>
+                // not found permission in the cache
 
-            permissionQueryResponseRows: Seq[VariableResultsRow] = permissionQueryResponse.results.bindings
+                for {
+                    // check if necessary field are not empty.
+                    _ <- Future(if (projectIri.isEmpty) throw BadRequestException("Project cannot be empty"))
 
-            permission: Option[DefaultObjectAccessPermissionADM] = if (permissionQueryResponseRows.nonEmpty) {
+                    /* check supplied parameters */
+                    _ = if (groupIri.isDefined && resourceClassIri.isDefined) throw BadRequestException("Not allowed to supply groupIri and resourceClassIri together")
+                    _ = if (groupIri.isDefined && propertyIri.isDefined) throw BadRequestException("Not allowed to supply groupIri and propertyIri together")
 
-                /* check if we only got one default object access permission back */
-                val doapCount: Int = permissionQueryResponseRows.groupBy(_.rowMap("s")).size
-                if (doapCount > 1) throw InconsistentTriplestoreDataException(s"Only one default object permission instance allowed for project: $projectIri and combination of group: $groupIri, resourceClass: $resourceClassIri, property: $propertyIri combination, but found: $doapCount.")
+                    sparqlQueryString = queries.sparql.v1.txt.getDefaultObjectAccessPermission(
+                        triplestore = settings.triplestoreType,
+                        projectIri = projectIri,
+                        maybeGroupIri = groupIri,
+                        maybeResourceClassIri = resourceClassIri,
+                        maybePropertyIri = propertyIri
+                    ).toString()
+                    // _ = log.debug(s"defaultObjectAccessPermissionGetADM - query: $sparqlQueryString")
 
-                /* get the iri of the retrieved permission */
-                val permissionIri = permissionQueryResponse.getFirstRow.rowMap("s")
+                    permissionQueryResponse <- (storeManager ? SparqlSelectRequest(sparqlQueryString)).mapTo[SparqlSelectResponse]
+                    // _ = log.debug(s"defaultObjectAccessPermissionGetADM - result: ${MessageUtil.toSource(permissionQueryResponse)}")
 
-                val groupedPermissionsQueryResponse: Map[String, Seq[String]] = permissionQueryResponseRows.groupBy(_.rowMap("p")).map {
-                    case (predicate, rows) => predicate -> rows.map(_.rowMap("o"))
-                }
-                val hasPermissions: Set[PermissionADM] = PermissionUtilADM.parsePermissionsWithType(groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.HasPermissions).map(_.head), PermissionType.OAP)
-                Some(
-                    DefaultObjectAccessPermissionADM(iri = permissionIri, forProject = groupedPermissionsQueryResponse.getOrElse(OntologyConstants.KnoraBase.ForProject, throw InconsistentTriplestoreDataException(s"Permission has no project.")).head, forGroup = groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.ForGroup).map(_.head), forResourceClass = groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.ForResourceClass).map(_.head), forProperty = groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.ForProperty).map(_.head), hasPermissions = hasPermissions)
-                )
-            } else {
-                None
-            }
-            _ = log.debug(s"defaultObjectAccessPermissionGetADM - p: $projectIri, g: $groupIri, r: $resourceClassIri, p: $propertyIri, permission: $permission")
-        } yield permission
+                    permissionQueryResponseRows: Seq[VariableResultsRow] = permissionQueryResponse.results.bindings
+
+                    permission: Option[DefaultObjectAccessPermissionADM] = if (permissionQueryResponseRows.nonEmpty) {
+
+                        /* check if we only got one default object access permission back */
+                        val doapCount: Int = permissionQueryResponseRows.groupBy(_.rowMap("s")).size
+                        if (doapCount > 1) throw InconsistentTriplestoreDataException(s"Only one default object permission instance allowed for project: $projectIri and combination of group: $groupIri, resourceClass: $resourceClassIri, property: $propertyIri combination, but found: $doapCount.")
+
+                        /* get the iri of the retrieved permission */
+                        val permissionIri = permissionQueryResponse.getFirstRow.rowMap("s")
+
+                        val groupedPermissionsQueryResponse: Map[String, Seq[String]] = permissionQueryResponseRows.groupBy(_.rowMap("p")).map {
+                            case (predicate, rows) => predicate -> rows.map(_.rowMap("o"))
+                        }
+                        val hasPermissions: Set[PermissionADM] = PermissionUtilADM.parsePermissionsWithType(groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.HasPermissions).map(_.head), PermissionType.OAP)
+                        val doap: DefaultObjectAccessPermissionADM = DefaultObjectAccessPermissionADM(iri = permissionIri, forProject = groupedPermissionsQueryResponse.getOrElse(OntologyConstants.KnoraBase.ForProject, throw InconsistentTriplestoreDataException(s"Permission has no project.")).head, forGroup = groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.ForGroup).map(_.head), forResourceClass = groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.ForResourceClass).map(_.head), forProperty = groupedPermissionsQueryResponse.get(OntologyConstants.KnoraBase.ForProperty).map(_.head), hasPermissions = hasPermissions)
+
+                        // write permission to cache
+                        writeDefaultObjectAccessPermissionADMToCache(doap)
+
+                        Some(doap)
+                    } else {
+                        None
+                    }
+                    _ = log.debug(s"defaultObjectAccessPermissionGetADM - p: $projectIri, g: $groupIri, r: $resourceClassIri, p: $propertyIri, permission: $permission")
+                } yield permission
+        }
+
+        // _ = log.debug("defaultObjectAccessPermissionGetADM - permission: {}", MessageUtil.toSource(maybeDefaultObjectAccessPermissionADM))
+        maybeDefaultObjectAccessPermissionADM
     }
 
     /**
@@ -757,28 +777,28 @@ class PermissionsResponderADM extends Responder {
       * @param requestingUser
       * @return a [[DefaultObjectAccessPermissionGetResponseADM]]
       */
-    def defaultObjectAccessPermissionGetRequestADM(projectIri: IRI, groupIri: Option[IRI], resourceClassIri: Option[IRI], propertyIri: Option[IRI], requestingUser: UserADM): Future[DefaultObjectAccessPermissionGetResponseADM] = {
+    private def defaultObjectAccessPermissionGetRequestADM(projectIri: IRI, groupIri: Option[IRI], resourceClassIri: Option[IRI], propertyIri: Option[IRI], requestingUser: UserADM): Future[DefaultObjectAccessPermissionGetResponseADM] = {
 
         // FIXME: Check user's permission for operation (issue #370)
 
         defaultObjectAccessPermissionGetADM(projectIri, groupIri, resourceClassIri, propertyIri)
-            .mapTo[Option[DefaultObjectAccessPermissionADM]]
-            .flatMap {
-                case Some(doap) => Future(DefaultObjectAccessPermissionGetResponseADM(doap))
-                case None => {
-                    /* if the query was for a property, then we need to additionally check if it is a system property */
-                    if (propertyIri.isDefined) {
-                        val systemProject = OntologyConstants.KnoraBase.SystemProject
-                        val doapF = defaultObjectAccessPermissionGetADM(systemProject, groupIri, resourceClassIri, propertyIri)
-                        doapF.mapTo[Option[DefaultObjectAccessPermissionADM]].map {
-                            case Some(systemDoap) => DefaultObjectAccessPermissionGetResponseADM(systemDoap)
-                            case None => throw NotFoundException(s"No Default Object Access Permission found for project: $projectIri, group: $groupIri, resourceClassIri: $resourceClassIri, propertyIri: $propertyIri combination")
+                .mapTo[Option[DefaultObjectAccessPermissionADM]]
+                .flatMap {
+                    case Some(doap) => Future(DefaultObjectAccessPermissionGetResponseADM(doap))
+                    case None => {
+                        /* if the query was for a property, then we need to additionally check if it is a system property */
+                        if (propertyIri.isDefined) {
+                            val systemProject = OntologyConstants.KnoraBase.SystemProject
+                            val doapF = defaultObjectAccessPermissionGetADM(systemProject, groupIri, resourceClassIri, propertyIri)
+                            doapF.mapTo[Option[DefaultObjectAccessPermissionADM]].map {
+                                case Some(systemDoap) => DefaultObjectAccessPermissionGetResponseADM(systemDoap)
+                                case None => throw NotFoundException(s"No Default Object Access Permission found for project: $projectIri, group: $groupIri, resourceClassIri: $resourceClassIri, propertyIri: $propertyIri combination")
+                            }
+                        } else {
+                            throw NotFoundException(s"No Default Object Access Permission found for project: $projectIri, group: $groupIri, resourceClassIri: $resourceClassIri, propertyIri: $propertyIri combination")
                         }
-                    } else {
-                        throw NotFoundException(s"No Default Object Access Permission found for project: $projectIri, group: $groupIri, resourceClassIri: $resourceClassIri, propertyIri: $propertyIri combination")
                     }
                 }
-            }
     }
 
     /**
@@ -788,7 +808,7 @@ class PermissionsResponderADM extends Responder {
       * @param groups     the list of groups for which default object access permissions are retrieved and combined.
       * @return a set of [[PermissionADM]].
       */
-    def defaultObjectAccessPermissionsForGroupsGetADM(projectIri: IRI, groups: Seq[IRI]): Future[Set[PermissionADM]] = {
+    private def defaultObjectAccessPermissionsForGroupsGetADM(projectIri: IRI, groups: Seq[IRI]): Future[Set[PermissionADM]] = {
 
         /* Get default object access permissions for each group and combine them */
         val gpf: Seq[Future[Seq[PermissionADM]]] = for {
@@ -830,7 +850,7 @@ class PermissionsResponderADM extends Responder {
       * @param resourceClassIri the resource's class IRI
       * @return a set of [[PermissionADM]].
       */
-    def defaultObjectAccessPermissionsForResourceClassGetADM(projectIri: IRI, resourceClassIri: IRI): Future[Set[PermissionADM]] = {
+    private def defaultObjectAccessPermissionsForResourceClassGetADM(projectIri: IRI, resourceClassIri: IRI): Future[Set[PermissionADM]] = {
         for {
             defaultPermissionsOption: Option[DefaultObjectAccessPermissionADM] <- defaultObjectAccessPermissionGetADM(projectIri = projectIri, groupIri = None, resourceClassIri = Some(resourceClassIri), propertyIri = None)
             defaultPermissions: Set[PermissionADM] = defaultPermissionsOption match {
@@ -848,7 +868,7 @@ class PermissionsResponderADM extends Responder {
       * @param propertyIri      the property's IRI.
       * @return a set of [[PermissionADM]].
       */
-    def defaultObjectAccessPermissionsForResourceClassPropertyGetADM(projectIri: IRI, resourceClassIri: IRI, propertyIri: IRI): Future[Set[PermissionADM]] = {
+    private def defaultObjectAccessPermissionsForResourceClassPropertyGetADM(projectIri: IRI, resourceClassIri: IRI, propertyIri: IRI): Future[Set[PermissionADM]] = {
         for {
             defaultPermissionsOption: Option[DefaultObjectAccessPermissionADM] <- defaultObjectAccessPermissionGetADM(projectIri = projectIri, groupIri = None, resourceClassIri = Some(resourceClassIri), propertyIri = Some(propertyIri))
             defaultPermissions: Set[PermissionADM] = defaultPermissionsOption match {
@@ -865,7 +885,7 @@ class PermissionsResponderADM extends Responder {
       * @param propertyIri the property's IRI.
       * @return a set of [[PermissionADM]].
       */
-    def defaultObjectAccessPermissionsForPropertyGetADM(projectIri: IRI, propertyIri: IRI): Future[Set[PermissionADM]] = {
+    private def defaultObjectAccessPermissionsForPropertyGetADM(projectIri: IRI, propertyIri: IRI): Future[Set[PermissionADM]] = {
         for {
             defaultPermissionsOption: Option[DefaultObjectAccessPermissionADM] <- defaultObjectAccessPermissionGetADM(projectIri = projectIri, groupIri = None, resourceClassIri = None, propertyIri = Some(propertyIri))
             defaultPermissions: Set[PermissionADM] = defaultPermissionsOption match {
@@ -887,13 +907,13 @@ class PermissionsResponderADM extends Responder {
       * @param requestingUser   the user initiating the request.
       * @return an optional string with object access permission statements
       */
-    def defaultObjectAccessPermissionsStringForEntityGetADM(projectIri: IRI, resourceClassIri: IRI, propertyIri: Option[IRI], entityType: String, targetUser: UserADM, requestingUser: UserADM): Future[DefaultObjectAccessPermissionsStringResponseADM] = {
+    private def defaultObjectAccessPermissionsStringForEntityGetADM(projectIri: IRI, resourceClassIri: IRI, propertyIri: Option[IRI], entityType: String, targetUser: UserADM, requestingUser: UserADM): Future[DefaultObjectAccessPermissionsStringResponseADM] = {
 
         //log.debug(s"defaultObjectAccessPermissionsStringForEntityGetV1 - projectIRI: $projectIRI, resourceClassIRI: $resourceClassIRI, propertyIRI: $propertyIRI, permissionData:$permissionData")
         for {
             // check if necessary field are defined.
             _ <- Future(if (projectIri.isEmpty) throw BadRequestException("Project cannot be empty"))
-            _ = if (entityType == PROPERTY_ENTITY_TYPE && propertyIri.isEmpty) {
+            _ = if (entityType == PropertyEntityType && propertyIri.isEmpty) {
                 throw BadRequestException("PropertyTypeIri needs to be supplied")
             }
             _ = if (targetUser.isAnonymousUser) throw BadRequestException("Anonymous Users are not allowed.")
@@ -936,7 +956,7 @@ class PermissionsResponderADM extends Responder {
             ///////////////////////////////
             /* project resource class / property combination */
             defaultPermissionsOnProjectResourceClassProperty: Set[PermissionADM] <- {
-                if (entityType == PROPERTY_ENTITY_TYPE && permissionsListBuffer.isEmpty) {
+                if (entityType == PropertyEntityType && permissionsListBuffer.isEmpty) {
                     defaultObjectAccessPermissionsForResourceClassPropertyGetADM(projectIri = projectIri, resourceClassIri = resourceClassIri, propertyIri = propertyIri.getOrElse(throw BadRequestException("PropertyIri needs to be supplied.")))
                 } else {
                     Future(Set.empty[PermissionADM])
@@ -949,7 +969,7 @@ class PermissionsResponderADM extends Responder {
 
             /* system resource class / property combination */
             defaultPermissionsOnSystemResourceClassProperty: Set[PermissionADM] <- {
-                if (entityType == PROPERTY_ENTITY_TYPE && permissionsListBuffer.isEmpty) {
+                if (entityType == PropertyEntityType && permissionsListBuffer.isEmpty) {
                     val systemProject = OntologyConstants.KnoraBase.SystemProject
                     defaultObjectAccessPermissionsForResourceClassPropertyGetADM(projectIri = systemProject, resourceClassIri = resourceClassIri, propertyIri = propertyIri.getOrElse(throw BadRequestException("PropertyIri needs to be supplied.")))
                 } else {
@@ -966,7 +986,7 @@ class PermissionsResponderADM extends Responder {
             ///////////////////////
             /* Get the default object access permissions defined on the resource class for the current project */
             defaultPermissionsOnProjectResourceClass: Set[PermissionADM] <- {
-                if (entityType == RESOURCE_ENTITY_TYPE && permissionsListBuffer.isEmpty) {
+                if (entityType == ResourceEntityType && permissionsListBuffer.isEmpty) {
                     defaultObjectAccessPermissionsForResourceClassGetADM(projectIri = projectIri, resourceClassIri = resourceClassIri)
                 } else {
                     Future(Set.empty[PermissionADM])
@@ -979,7 +999,7 @@ class PermissionsResponderADM extends Responder {
 
             /* Get the default object access permissions defined on the resource class inside the SystemProject */
             defaultPermissionsOnSystemResourceClass: Set[PermissionADM] <- {
-                if (entityType == RESOURCE_ENTITY_TYPE && permissionsListBuffer.isEmpty) {
+                if (entityType == ResourceEntityType && permissionsListBuffer.isEmpty) {
                     val systemProject = OntologyConstants.KnoraBase.SystemProject
                     defaultObjectAccessPermissionsForResourceClassGetADM(projectIri = systemProject, resourceClassIri = resourceClassIri)
                 } else {
@@ -996,7 +1016,7 @@ class PermissionsResponderADM extends Responder {
             ///////////////////////
             /* project property */
             defaultPermissionsOnProjectProperty: Set[PermissionADM] <- {
-                if (entityType == PROPERTY_ENTITY_TYPE && permissionsListBuffer.isEmpty) {
+                if (entityType == PropertyEntityType && permissionsListBuffer.isEmpty) {
                     defaultObjectAccessPermissionsForPropertyGetADM(projectIri = projectIri, propertyIri = propertyIri.getOrElse(throw BadRequestException("PropertyIri needs to be supplied.")))
                 } else {
                     Future(Set.empty[PermissionADM])
@@ -1009,7 +1029,7 @@ class PermissionsResponderADM extends Responder {
 
             /* system property */
             defaultPermissionsOnSystemProperty: Set[PermissionADM] <- {
-                if (entityType == PROPERTY_ENTITY_TYPE && permissionsListBuffer.isEmpty) {
+                if (entityType == PropertyEntityType && permissionsListBuffer.isEmpty) {
                     val systemProject = OntologyConstants.KnoraBase.SystemProject
                     defaultObjectAccessPermissionsForPropertyGetADM(projectIri = systemProject, propertyIri = propertyIri.getOrElse(throw BadRequestException("PropertyIri needs to be supplied.")))
                 } else {
@@ -1084,13 +1104,13 @@ class PermissionsResponderADM extends Responder {
             ///////////////////////
             /* Set 'CR knora-base:Creator' as the fallback permission */
             _ = if (permissionsListBuffer.isEmpty) {
-                    val defaultFallbackPermission = Set(PermissionADM.changeRightsPermission(OntologyConstants.KnoraBase.Creator))
-                    permissionsListBuffer += (("Fallback", defaultFallbackPermission))
-                    // log.debug(s"defaultObjectAccessPermissionsStringForEntityGetV1 - defaultFallbackPermission: $defaultFallbackPermission")
-                } else {
-                    FastFuture.successful(Set.empty[PermissionADM])
-                }
-            
+                val defaultFallbackPermission = Set(PermissionADM.changeRightsPermission(OntologyConstants.KnoraBase.Creator))
+                permissionsListBuffer += (("Fallback", defaultFallbackPermission))
+                // log.debug(s"defaultObjectAccessPermissionsStringForEntityGetV1 - defaultFallbackPermission: $defaultFallbackPermission")
+            } else {
+                FastFuture.successful(Set.empty[PermissionADM])
+            }
+
             /* Create permissions string */
             result = permissionsListBuffer.length match {
                 case 1 => {
@@ -1145,4 +1165,67 @@ class PermissionsResponderADM extends Responder {
 
     }
     */
+
+
+}
+
+/**
+  * Companion object providing helper methods.
+  */
+object PermissionsResponderADM {
+
+    val PermissionsCacheName = "permissionsCache"
+
+    ////////////////////
+    // Helper Methods //
+    ////////////////////
+
+    /**
+      * Creates a key representing the supplied parameters.
+      *
+      * @param projectIri       the project IRI
+      * @param groupIri         the group IRI
+      * @param resourceClassIri the resource class IRI
+      * @param propertyIri      the property IRI
+      * @return a string.
+      */
+    def getDefaultObjectAccessPermissionADMKey(projectIri: IRI, groupIri: Option[IRI], resourceClassIri: Option[IRI], propertyIri: Option[IRI]): String = {
+
+        projectIri.toString + " | " + groupIri.toString + " | " + resourceClassIri.toString + " | " + propertyIri.toString
+    }
+
+    /**
+      * Writes a [[DefaultObjectAccessPermissionADM]] object to cache.
+      *
+      * @param doap a [[DefaultObjectAccessPermissionADM]].
+      * @return true if writing was successful.
+      * @throws ApplicationCacheException when there is a problem with writing to cache.
+      */
+    def writeDefaultObjectAccessPermissionADMToCache(doap: DefaultObjectAccessPermissionADM): Boolean = {
+
+        val key = doap.cacheKey
+
+        CacheUtil.put(PermissionsCacheName, key, doap)
+
+        if (CacheUtil.get(PermissionsCacheName, key).isEmpty) {
+            throw ApplicationCacheException("Writing the permission to cache was not successful.")
+        }
+
+        true
+    }
+
+    /**
+      * Removes a [[DefaultObjectAccessPermissionADM]] object from cache.
+      *
+      * @param projectIri       the project IRI
+      * @param groupIri         the group IRI
+      * @param resourceClassIri the resource class IRI
+      * @param propertyIri      the property IRI
+      */
+    def invalidateCachedDefaultObjectAccessPermissionADM(projectIri: IRI, groupIri: Option[IRI], resourceClassIri: Option[IRI], propertyIri: Option[IRI]): Unit = {
+
+        val key = getDefaultObjectAccessPermissionADMKey(projectIri, groupIri, resourceClassIri, propertyIri)
+
+        CacheUtil.remove(PermissionsCacheName, key)
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -54,37 +54,21 @@ class KnoraSipiScriptsV1ITSpec extends ITKnoraFakeSpec(KnoraSipiScriptsV1ITSpec.
     private val firstPageIri = new MutableTestIri
     private val secondPageIri = new MutableTestIri
 
-    // creates tmp directory if not found
-    createTmpFileDir()
-
-    "Check if Sipi is running" in {
-        // This requires that (1) fileserver.docroot is set in Sipi's config file and (2) it contains a file test.html.
-        val request = Get(baseSipiUrl + "/server/test.html")
-        val response = singleAwaitingRequest(request)
-        assert(response.status == StatusCodes.OK, s"Sipi is probably not running: ${response.status}")
-    }
-
     "Calling Knora Sipi Scripts" should {
 
         "successfully call C++ functions from Lua scripts" in {
             val request = Get(baseSipiUrl + "/test_functions" )
-            val response = singleAwaitingRequest(request)
-
-            response.status should be (StatusCodes.OK)
+            getResponseString(request)
         }
 
         "successfully call Lua functions for mediatype handling" in {
             val request = Get(baseSipiUrl + "/test_mediatype" )
-            val response = singleAwaitingRequest(request)
-
-            response.status should be (StatusCodes.OK)
+            getResponseString(request)
         }
 
         "successfully call Lua function that gets the Knora session id from the cookie header sent to Sipi" in {
             val request = Get(baseSipiUrl + "/test_knora_session_cookie" )
-            val response = singleAwaitingRequest(request)
-
-            response.status should be (StatusCodes.OK)
+            getResponseString(request)
         }
 
         "successfully call make_thumbnail.lua sipi script" in {
@@ -183,6 +167,7 @@ class KnoraSipiScriptsV1ITSpec extends ITKnoraFakeSpec(KnoraSipiScriptsV1ITSpec.
                 Map(
                     "originalFilename" -> originalFilename,
                     "originalMimeType" -> originalMimeType,
+                    "prefix" -> "0001",
                     "filename" -> filename
                 )
             )
@@ -195,11 +180,11 @@ class KnoraSipiScriptsV1ITSpec extends ITKnoraFakeSpec(KnoraSipiScriptsV1ITSpec.
             // Running with KnoraFakeService which always allows access to files.
             // Send a GET request to Sipi, asking for full image
             // not possible as authentication is required and file needs to be known by knora to be able to authenticate the request
-            val sipiGetImageRequest = Get(baseSipiUrl + "/knora/" + filenameFull + "/full/full/0/default.jpg") ~> addCredentials(BasicHttpCredentials(username, password))
+            val sipiGetImageRequest = Get(baseSipiUrl + "/0001/" + filenameFull + "/full/full/0/default.jpg") ~> addCredentials(BasicHttpCredentials(username, password))
             checkResponseOK(sipiGetImageRequest)
 
             // Send a GET request to Sipi, asking for the info.json of the image
-            val sipiGetInfoRequest = Get(baseSipiUrl + "/knora/" + filenameFull + "/info.json" ) ~> addCredentials(BasicHttpCredentials(username, password))
+            val sipiGetInfoRequest = Get(baseSipiUrl + "/0001/" + filenameFull + "/info.json" ) ~> addCredentials(BasicHttpCredentials(username, password))
             val sipiGetInfoResponseJson = getResponseJson(sipiGetInfoRequest)
             log.debug("sipiGetInfoResponseJson: {}", sipiGetInfoResponseJson)
 
@@ -217,6 +202,7 @@ class KnoraSipiScriptsV1ITSpec extends ITKnoraFakeSpec(KnoraSipiScriptsV1ITSpec.
                 Map(
                     "originalFilename" -> fileToSend.getName,
                     "originalMimeType" -> "image/jpeg",
+                    "prefix" -> "0001",
                     "source" -> fileToSend.getAbsolutePath
                 )
             )
@@ -230,11 +216,11 @@ class KnoraSipiScriptsV1ITSpec extends ITKnoraFakeSpec(KnoraSipiScriptsV1ITSpec.
             //log.debug("sipiConvertFromBinariesPostResponseJson: {}", sipiConvertFromBinariesPostResponseJson)
 
             // Running with KnoraFakeService which always allows access to files.
-            val sipiGetImageRequest = Get(baseSipiUrl + "/knora/" + filenameFull + "/full/full/0/default.jpg") ~> addCredentials(BasicHttpCredentials(username, password))
+            val sipiGetImageRequest = Get(baseSipiUrl + "/0001/" + filenameFull + "/full/full/0/default.jpg") ~> addCredentials(BasicHttpCredentials(username, password))
             checkResponseOK(sipiGetImageRequest)
 
             // Send a GET request to Sipi, asking for the info.json of the image
-            val sipiGetInfoRequest = Get(baseSipiUrl + "/knora/" + filenameFull + "/info.json" ) ~> addCredentials(BasicHttpCredentials(username, password))
+            val sipiGetInfoRequest = Get(baseSipiUrl + "/0001/" + filenameFull + "/info.json" ) ~> addCredentials(BasicHttpCredentials(username, password))
             val sipiGetInfoResponseJson = getResponseJson(sipiGetInfoRequest)
             log.debug("sipiGetInfoResponseJson: {}", sipiGetInfoResponseJson)
         }

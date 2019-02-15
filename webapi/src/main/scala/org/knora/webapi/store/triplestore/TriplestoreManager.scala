@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -22,12 +22,11 @@ package org.knora.webapi.store.triplestore
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
 import akka.routing.FromConfig
-import org.knora.webapi.SettingsConstants._
+import org.knora.webapi._
 import org.knora.webapi.store._
 import org.knora.webapi.store.triplestore.embedded.JenaTDBActor
 import org.knora.webapi.store.triplestore.http.HttpTriplestoreConnector
 import org.knora.webapi.util.FakeTriplestore
-import org.knora.webapi.{ActorMaker, Settings, UnsuportedTriplestoreException}
 
 /**
   * This actor receives messages representing SPARQL requests, and forwards them to instances of one of the configured triple stores (embedded or remote).
@@ -36,8 +35,6 @@ class TriplestoreManager extends Actor with ActorLogging {
     this: ActorMaker =>
 
     private val settings = Settings(context.system)
-
-    implicit val timeout = settings.defaultRestoreTimeout
 
     var storeActorRef: ActorRef = _
 
@@ -62,9 +59,8 @@ class TriplestoreManager extends Actor with ActorLogging {
         log.debug("TriplestoreManagerActor: start with preStart")
 
         storeActorRef = settings.triplestoreType match {
-            case HTTP_GRAPH_DB_TS_TYPE => makeActor(FromConfig.props(Props[HttpTriplestoreConnector]), name = HTTP_TRIPLESTORE_ACTOR_NAME)
-            case HTTP_FUSEKI_TS_TYPE => makeActor(FromConfig.props(Props[HttpTriplestoreConnector]), name = HTTP_TRIPLESTORE_ACTOR_NAME)
-            case EMBEDDED_JENA_TDB_TS_TYPE => makeActor(Props[JenaTDBActor], name = EMBEDDED_JENA_ACTOR_NAME)
+            case TriplestoreTypes.HttpGraphDBSE | TriplestoreTypes.HttpGraphDBFree | TriplestoreTypes.HttpFuseki => makeActor(FromConfig.props(Props[HttpTriplestoreConnector]).withDispatcher(KnoraDispatchers.KnoraActorDispatcher), name = HttpTriplestoreActorName)
+            case TriplestoreTypes.EmbeddedJenaTdb=> makeActor(Props[JenaTDBActor], name = EmbeddedJenaActorName)
             case unknownType => throw UnsuportedTriplestoreException(s"Embedded triplestore type $unknownType not supported")
         }
 

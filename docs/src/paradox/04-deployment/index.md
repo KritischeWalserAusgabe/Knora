@@ -1,5 +1,5 @@
 <!---
-Copyright © 2015-2018 the contributors (see Contributors.md).
+Copyright © 2015-2019 the contributors (see Contributors.md).
 
 This file is part of Knora.
 
@@ -24,5 +24,6 @@ License along with Knora.  If not, see <http://www.gnu.org/licenses/>.
 @@@ index
 
 - [Getting Started with Knora](getting-started.md)
+- [Configuration](configuration.md)
 
 @@@

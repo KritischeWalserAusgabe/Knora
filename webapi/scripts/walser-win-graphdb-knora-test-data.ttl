@@ -14,7 +14,7 @@ load ../_test_data/ontologies/anything-onto.ttl into http://www.knora.org/ontolo
 load ../_test_data/all_data/anything-data.ttl into http://www.knora.org/data/anything .
 load ../_test_data/ontologies/something-onto.ttl into http://www.knora.org/ontology/0001/something .
 load ../_test_data/ontologies/beol-onto.ttl into http://www.knora.org/ontology/0801/beol .
-load ../_test_data/ontologies/biblio-onto.ttl into http://www.knora.org/ontology/0802/biblio .
+load ../_test_data/ontologies/biblio-onto.ttl into http://www.knora.org/ontology/0801/biblio .
 load ../_test_data/ontologies/webern-onto.ttl into http://www.knora.org/ontology/08AE/webern .
 load ../_test_data/ontologies/walser-project.ttl into http://www.knora.org/data/kwa .
 load ../_test_data/ontologies/walser-onto.ttl into http://www.knora.org/ontology/CAFE/kwa .

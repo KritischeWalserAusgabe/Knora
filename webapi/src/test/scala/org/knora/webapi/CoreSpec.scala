@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,11 +19,23 @@
 
 package org.knora.webapi
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.http.scaladsl.Http
+import akka.pattern._
 import akka.testkit.{ImplicitSender, TestKit}
+import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
+import org.knora.webapi.app.{APPLICATION_STATE_ACTOR_NAME, ApplicationStateActor}
+import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, ResetTriplestoreContent}
+import org.knora.webapi.messages.v1.responder.ontologymessages.LoadOntologiesRequest
+import org.knora.webapi.responders.{MockableResponderManager, RESPONDER_MANAGER_ACTOR_NAME, ResponderData}
+import org.knora.webapi.store.{MockableStoreManager, StoreManagerActorName}
 import org.knora.webapi.util.{CacheUtil, StringFormatter}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
+import scala.language.postfixOps
 
 object CoreSpec {
 
@@ -49,19 +61,35 @@ object CoreSpec {
 
 abstract class CoreSpec(_system: ActorSystem) extends TestKit(_system) with WordSpecLike with Matchers with BeforeAndAfterAll with ImplicitSender {
 
-    val settings = Settings(_system)
-    val log = akka.event.Logging(_system, this.getClass)
+    // can be overridden in individual spec
+    lazy val rdfDataObjects = Seq.empty[RdfDataObject]
+
+    implicit val executionContext: ExecutionContext = system.dispatcher
+
+    // needs to be initialized early on
     StringFormatter.initForTest()
 
+    val settings = Settings(system)
+    val log = akka.event.Logging(system, this.getClass)
+
+    lazy val mockResponders: Map[String, ActorRef] = Map.empty[String, ActorRef]
+    lazy val mockStoreConnectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
+
+
+    val applicationStateActor: ActorRef = system.actorOf(Props(new ApplicationStateActor), name = APPLICATION_STATE_ACTOR_NAME)
+    val storeManager: ActorRef = system.actorOf(Props(new MockableStoreManager(mockStoreConnectors) with LiveActorMaker), name = StoreManagerActorName)
+    val responderManager: ActorRef = system.actorOf(Props(new MockableResponderManager(mockResponders, applicationStateActor, storeManager)), name = RESPONDER_MANAGER_ACTOR_NAME)
+
+    val responderData: ResponderData = ResponderData(system, applicationStateActor, responderManager, storeManager)
+
     final override def beforeAll() {
-        atStartup()
         CacheUtil.createCaches(settings.caches)
+        loadTestData(rdfDataObjects)
         // memusage()
     }
 
-    protected def atStartup() {}
-
     final override def afterAll() {
+        Http().shutdownAllConnectionPools()
         system.terminate()
         atTermination()
         CacheUtil.removeAllCaches()
@@ -78,6 +106,12 @@ abstract class CoreSpec(_system: ActorSystem) extends TestKit(_system) with Word
     def this(name: String) = this(ActorSystem(name, ConfigFactory.load()))
 
     def this() = this(ActorSystem(CoreSpec.getCallerName(getClass), ConfigFactory.load()))
+
+    protected def loadTestData(rdfDataObjects: Seq[RdfDataObject]): Unit = {
+        implicit val timeout: Timeout = Timeout(settings.defaultTimeout)
+        Await.result(storeManager ? ResetTriplestoreContent(rdfDataObjects), 5 minutes)
+        Await.result(responderManager ? LoadOntologiesRequest(KnoraSystemInstances.Users.SystemUser), 1 minute)
+    }
 
     def memusage(): Unit = {
         // memory info
