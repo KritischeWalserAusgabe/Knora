@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,44 +19,32 @@
 
 package org.knora.webapi.routing.v2
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives.{get, path, _}
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
-import akka.util.Timeout
+import org.knora.webapi._
 import org.knora.webapi.messages.v2.responder.listsmessages.{ListGetRequestV2, NodeGetRequestV2}
-import org.knora.webapi.routing.{Authenticator, RouteUtilV2}
-import org.knora.webapi.util.StringFormatter
-import org.knora.webapi.{ApiV2WithValueObjects, BadRequestException, IRI, SettingsImpl}
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV2}
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.Future
 
 /**
   * Provides a function for API routes that deal with lists and nodes.
   */
-object ListsRouteV2 extends Authenticator {
+class ListsRouteV2(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-        implicit val system: ActorSystem = _system
-        implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-        implicit val timeout: Timeout = settings.defaultTimeout
-        implicit val stringFormatter: StringFormatter = StringFormatter.getGeneralInstance
-        implicit val materializer = ActorMaterializer()
-        val responderManager = system.actorSelection("/user/responderManager")
+    def knoraApiPath: Route = {
 
         path("v2" / "lists" / Segment) { lIri: String =>
             get {
 
                 /* return a list (a graph with all list nodes) */
                 requestContext =>
-                    val requestingUser = getUserADM(requestContext)
+                    val requestMessage: Future[ListGetRequestV2] = for {
+                        requestingUser <- getUserADM(requestContext)
+                        listIri: IRI = stringFormatter.validateAndEscapeIri(lIri, throw BadRequestException(s"Invalid list IRI: '$lIri'"))
+                    } yield ListGetRequestV2(listIri, requestingUser)
 
-                    val listIri: IRI = stringFormatter.validateAndEscapeIri(lIri, throw BadRequestException(s"Invalid list IRI: '$lIri'"))
-
-                    val requestMessage = ListGetRequestV2(listIri, requestingUser)
-
-                    RouteUtilV2.runRdfRoute(
+                    RouteUtilV2.runRdfRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
@@ -72,13 +60,12 @@ object ListsRouteV2 extends Authenticator {
 
                 /* return a list (a graph with all list nodes) */
                 requestContext =>
-                    val requestingUser = getUserADM(requestContext)
+                    val requestMessage: Future[NodeGetRequestV2] = for {
+                        requestingUser <- getUserADM(requestContext)
+                        nodeIri: IRI = stringFormatter.validateAndEscapeIri(nIri, throw BadRequestException(s"Invalid list IRI: '$nIri'"))
+                    } yield NodeGetRequestV2(nodeIri, requestingUser)
 
-                    val nodeIri: IRI = stringFormatter.validateAndEscapeIri(nIri, throw BadRequestException(s"Invalid list IRI: '$nIri'"))
-
-                    val requestMessage = NodeGetRequestV2(nodeIri, requestingUser)
-
-                    RouteUtilV2.runRdfRoute(
+                    RouteUtilV2.runRdfRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,
@@ -86,7 +73,6 @@ object ListsRouteV2 extends Authenticator {
                         log,
                         ApiV2WithValueObjects
                     )
-
             }
         }
 

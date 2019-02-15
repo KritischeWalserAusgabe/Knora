@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,18 +21,12 @@ package org.knora.webapi.store.triplestore
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
-import akka.pattern._
 import akka.routing.FromConfig
-import org.knora.webapi.SettingsConstants._
-import org.knora.webapi.messages.store.triplestoremessages.{CheckConnection, InitializedResponse, ResetTriplestoreContent, ResetTriplestoreContentACK, _}
+import org.knora.webapi._
 import org.knora.webapi.store._
 import org.knora.webapi.store.triplestore.embedded.JenaTDBActor
 import org.knora.webapi.store.triplestore.http.HttpTriplestoreConnector
 import org.knora.webapi.util.FakeTriplestore
-import org.knora.webapi.{ActorMaker, Settings, UnsuportedTriplestoreException}
-
-import scala.collection.JavaConverters._
-import scala.concurrent.Await
 
 /**
   * This actor receives messages representing SPARQL requests, and forwards them to instances of one of the configured triple stores (embedded or remote).
@@ -42,11 +36,7 @@ class TriplestoreManager extends Actor with ActorLogging {
 
     private val settings = Settings(context.system)
 
-    implicit val timeout = settings.defaultRestoreTimeout
-
-    var httpBased: Boolean = _
     var storeActorRef: ActorRef = _
-    var initialized: Boolean = false
 
     // TODO: run the fake triple store as an actor (the fake triple store will not be needed anymore, once the embedded triple store is implemented)
     FakeTriplestore.init(settings.fakeTriplestoreDataDir)
@@ -69,36 +59,15 @@ class TriplestoreManager extends Actor with ActorLogging {
         log.debug("TriplestoreManagerActor: start with preStart")
 
         storeActorRef = settings.triplestoreType match {
-            case HTTP_GRAPH_DB_TS_TYPE => httpBased = true; makeActor(FromConfig.props(Props[HttpTriplestoreConnector]), name = HTTP_TRIPLESTORE_ACTOR_NAME)
-            case HTTP_FUSEKI_TS_TYPE => httpBased = true; makeActor(FromConfig.props(Props[HttpTriplestoreConnector]), name = HTTP_TRIPLESTORE_ACTOR_NAME)
-            case EMBEDDED_JENA_TDB_TS_TYPE => httpBased = false; makeActor(Props[JenaTDBActor], name = EMBEDDED_JENA_ACTOR_NAME)
+            case TriplestoreTypes.HttpGraphDBSE | TriplestoreTypes.HttpGraphDBFree | TriplestoreTypes.HttpFuseki => makeActor(FromConfig.props(Props[HttpTriplestoreConnector]).withDispatcher(KnoraDispatchers.KnoraActorDispatcher), name = HttpTriplestoreActorName)
+            case TriplestoreTypes.EmbeddedJenaTdb=> makeActor(Props[JenaTDBActor], name = EmbeddedJenaActorName)
             case unknownType => throw UnsuportedTriplestoreException(s"Embedded triplestore type $unknownType not supported")
         }
 
-        // Checking the connection to the triple store on startup
-        storeActorRef ! CheckConnection
-
-        //println(rdfDataObjectList.length)
-        val reloadDataOnStart = settings.tripleStoreConfig.getBoolean("reload-on-start")
-
-        // data reload. this is only needed for HTTP-based triplestores because of the actor pool, so that only one actor
-        // initiates the reloading of data.
-        // println(s"reloadDataOnStart: $reloadDataOnStart, httpBased: $httpBased")
-        if (reloadDataOnStart && httpBased) {
-            log.debug("initiating data reload")
-            val configList = settings.tripleStoreConfig.getConfigList("rdf-data")
-            val rdfDataObjectList = configList.asScala.map {
-                config => RdfDataObjectFactory(config)
-            }
-            val resultFuture = storeActorRef ? ResetTriplestoreContent(rdfDataObjectList)
-            val result = Await.result(resultFuture, timeout.duration).asInstanceOf[ResetTriplestoreContentACK]
-        }
-        initialized = true
         log.debug("TriplestoreManagerActor: finished with preStart")
     }
 
     def receive = LoggingReceive {
-        case Initialized() => sender ! InitializedResponse(this.initialized)
         case msg ⇒ storeActorRef forward msg
     }
 }

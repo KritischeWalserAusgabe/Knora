@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -20,13 +20,9 @@
 package org.knora.webapi.responders.v1
 
 
-import akka.actor.Props
 import akka.testkit._
 import org.knora.webapi._
-import org.knora.webapi.messages.store.triplestoremessages.{ResetTriplestoreContent, ResetTriplestoreContentACK}
 import org.knora.webapi.messages.v1.responder.ontologymessages._
-import org.knora.webapi.responders._
-import org.knora.webapi.store._
 import org.knora.webapi.util.MessageUtil
 
 import scala.concurrent.duration._
@@ -49,13 +45,6 @@ object OntologyResponderV1Spec {
   * Tests [[OntologyResponderV1]].
   */
 class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
-
-    // Construct the actors needed for this test.
-    private val actorUnderTest = TestActorRef[OntologyResponderV1]
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
-
-    val rdfDataObjects = List()
 
     // The default timeout for receiving reply messages from actors.
     private val timeout = 10.seconds
@@ -644,10 +633,10 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
             NamedGraphV1( // BIBLIO
                 active = true,
                 uri = SharedOntologyTestDataADM.BIBLIO_ONTOLOGY_IRI,
-                project_id = SharedTestDataV1.biblioProjectInfo.id,
-                description = SharedTestDataV1.biblioProjectInfo.description.get,
-                longname = SharedTestDataV1.biblioProjectInfo.longname.get,
-                shortname = SharedTestDataV1.biblioProjectInfo.shortname,
+                project_id = SharedTestDataV1.beolProjectInfo.id,
+                description = SharedTestDataV1.beolProjectInfo.description.get,
+                longname = SharedTestDataV1.beolProjectInfo.longname.get,
+                shortname = SharedTestDataV1.beolProjectInfo.shortname,
                 id = SharedOntologyTestDataADM.BIBLIO_ONTOLOGY_IRI
             ),
             NamedGraphV1( // Images
@@ -996,19 +985,10 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
 
     }
 
-
-    "Load test data" in {
-        storeManager ! ResetTriplestoreContent(rdfDataObjects)
-        expectMsg(300.seconds, ResetTriplestoreContentACK())
-
-        responderManager ! LoadOntologiesRequest(SharedTestDataADM.rootUser)
-        expectMsg(10.seconds, LoadOntologiesResponse())
-    }
-
     "The ontology responder" should {
         "return the ontology information for a incunabula:page" in {
             // http://localhost:3333/v1/resourcetypes/http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23page
-            actorUnderTest ! ResourceTypeGetRequestV1(
+            responderManager ! ResourceTypeGetRequestV1(
                 userProfile = OntologyResponderV1Spec.userProfileWithGerman,
                 resourceTypeIri = "http://www.knora.org/ontology/0803/incunabula#page"
             )
@@ -1021,7 +1001,7 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
 
         "return the ontology information for a incunabula:book" in {
             // http://localhost:3333/v1/resourcetypes/http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23book
-            actorUnderTest ! ResourceTypeGetRequestV1(
+            responderManager ! ResourceTypeGetRequestV1(
                 userProfile = OntologyResponderV1Spec.userProfileWithGerman,
                 resourceTypeIri = "http://www.knora.org/ontology/0803/incunabula#book"
             )
@@ -1034,7 +1014,7 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
 
         "return the ontology information for a knora-base:Region" in {
             // http://localhost:3333/v1/resourcetypes/http%3A%2F%2Fwww.knora.org%2Fontology%2Fknora-base%23Region
-            actorUnderTest ! ResourceTypeGetRequestV1(
+            responderManager ! ResourceTypeGetRequestV1(
                 userProfile = OntologyResponderV1Spec.userProfileWithGerman,
                 resourceTypeIri = "http://www.knora.org/ontology/knora-base#Region"
             )
@@ -1047,7 +1027,7 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
 
         "return the ontology information for a knora-base:LinkObj" in {
             // http://localhost:3333/v1/resourcetypes/http%3A%2F%2Fwww.knora.org%2Fontology%2Fknora-base%23LinkObj
-            actorUnderTest ! ResourceTypeGetRequestV1(
+            responderManager ! ResourceTypeGetRequestV1(
                 userProfile = OntologyResponderV1Spec.userProfileWithGerman,
                 resourceTypeIri = "http://www.knora.org/ontology/knora-base#LinkObj"
             )
@@ -1061,7 +1041,7 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
         "return an appropriate error message if a resource class is not found" in {
             // http://localhost:3333/v1/resourcetypes/http%3A%2F%2Fwww.knora.org%2Fontology%2Fincunabula%23image
 
-            actorUnderTest ! ResourceTypeGetRequestV1(
+            responderManager ! ResourceTypeGetRequestV1(
                 userProfile = OntologyResponderV1Spec.userProfileWithGerman,
                 resourceTypeIri = "http://www.knora.org/ontology/0803/incunabula#image"
             )
@@ -1072,7 +1052,7 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
         }
 
         "return labels in the user's preferred language" in {
-            actorUnderTest ! EntityInfoGetRequestV1(
+            responderManager ! EntityInfoGetRequestV1(
                 propertyIris = Set("http://www.knora.org/ontology/0803/incunabula#title"),
                 userProfile = OntologyResponderV1Spec.userProfileWithGerman // irrelevant
             )
@@ -1086,8 +1066,8 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
         }
 
         "get all the vocabularies" in {
-            actorUnderTest ! NamedGraphsGetRequestV1(
-                userProfile = OntologyResponderV1Spec.userProfileWithEnglish
+            responderManager ! NamedGraphsGetRequestV1(
+                userADM = OntologyResponderV1Spec.userProfileWithEnglish
             )
 
             val receivedMsg = expectMsgType[NamedGraphsResponseV1](timeout)
@@ -1097,9 +1077,9 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
         }
 
         "get all the resource classes with their property types for incunabula named graph" in {
-            actorUnderTest ! ResourceTypesForNamedGraphGetRequestV1(
+            responderManager ! ResourceTypesForNamedGraphGetRequestV1(
                 namedGraph = Some("http://www.knora.org/ontology/0803/incunabula"),
-                userProfile = OntologyResponderV1Spec.userProfileWithEnglish
+                userADM = OntologyResponderV1Spec.userProfileWithEnglish
             )
 
             expectMsgPF(timeout) {
@@ -1110,9 +1090,9 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
         }
 
         "get all the properties for the named graph incunabula" in {
-            actorUnderTest ! PropertyTypesForNamedGraphGetRequestV1(
+            responderManager ! PropertyTypesForNamedGraphGetRequestV1(
                 namedGraph = Some("http://www.knora.org/ontology/0803/incunabula"),
-                userProfile = OntologyResponderV1Spec.userProfileWithEnglish
+                userADM = OntologyResponderV1Spec.userProfileWithEnglish
             )
 
             expectMsgPF(timeout) {
@@ -1122,9 +1102,9 @@ class OntologyResponderV1Spec extends CoreSpec() with ImplicitSender {
         }
 
         "get all the properties for all vocabularies" in {
-            actorUnderTest ! PropertyTypesForNamedGraphGetRequestV1(
+            responderManager ! PropertyTypesForNamedGraphGetRequestV1(
                 namedGraph = None,
-                userProfile = OntologyResponderV1Spec.userProfileWithEnglish
+                userADM = OntologyResponderV1Spec.userProfileWithEnglish
             )
 
             expectMsgPF(timeout) {

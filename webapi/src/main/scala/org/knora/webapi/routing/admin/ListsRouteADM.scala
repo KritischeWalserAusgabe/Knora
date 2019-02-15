@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,19 +21,15 @@ package org.knora.webapi.routing.admin
 
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.util.Timeout
-import io.swagger.annotations.Api
+import io.swagger.annotations._
 import javax.ws.rs.Path
+import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.listsmessages._
-import org.knora.webapi.routing.{Authenticator, RouteUtilADM}
-import org.knora.webapi.util.StringFormatter
-import org.knora.webapi.{BadRequestException, IRI, NotImplementedException, SettingsImpl}
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilADM}
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.Future
 
 /**
   * Provides a spray-routing function for API routes that deal with lists.
@@ -41,67 +37,23 @@ import scala.concurrent.ExecutionContextExecutor
 
 @Api(value = "lists", produces = "application/json")
 @Path("/admin/lists")
-class ListsRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter) extends Authenticator with ListADMJsonProtocol {
+class ListsRouteADM(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator with ListADMJsonProtocol {
 
-    implicit val system: ActorSystem = _system
-    implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-    implicit val timeout: Timeout = settings.defaultTimeout
-    val responderManager = system.actorSelection("/user/responderManager")
-    val stringFormatter = StringFormatter.getGeneralInstance
-
-    def knoraApiPath: Route = {
-
-
-        path("admin" / "lists") {
-            get {
-                /* return all lists */
-                parameters("projectIri".?) { maybeProjectIri: Option[IRI] =>
-                    requestContext =>
-                        val requestingUser = getUserADM(requestContext)
-
-                        val projectIri = stringFormatter.toOptionalIri(maybeProjectIri, throw BadRequestException(s"Invalid param project IRI: $maybeProjectIri"))
-
-                        val requestMessage = ListsGetRequestADM(projectIri, requestingUser)
-
-                        RouteUtilADM.runJsonRoute(
-                            requestMessage,
-                            requestContext,
-                            settings,
-                            responderManager,
-                            log
-                        )
-                }
-            } ~
-            post {
-                /* create a list */
-                entity(as[CreateListApiRequestADM]) { apiRequest =>
-                    requestContext =>
-                        val requestingUser = getUserADM(requestContext)
-
-                        val requestMessage = ListCreateRequestADM(
-                            createListRequest = apiRequest,
-                            requestingUser = requestingUser,
-                            apiRequestID = UUID.randomUUID()
-                        )
-
-                        RouteUtilADM.runJsonRoute(
-                            requestMessage,
-                            requestContext,
-                            settings,
-                            responderManager,
-                            log
-                        )
-                }
-            }
-        } ~
-        path("admin" / "lists" / Segment) {iri =>
-            get {
-                /* return a list (a graph with all list nodes) */
+    @ApiOperation(value = "Get lists", nickname = "getlists", httpMethod = "GET", response = classOf[ListsGetResponseADM])
+    @ApiResponses(Array(
+        new ApiResponse(code = 500, message = "Internal server error")
+    ))
+    /* return all lists optionally filtered by project */
+    def getLists: Route = path("admin" / "lists") {
+        get {
+            /* return all lists */
+            parameters("projectIri".?) { maybeProjectIri: Option[IRI] =>
                 requestContext =>
-                    val requestingUser = getUserADM(requestContext)
-                    val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
+                    val projectIri = stringFormatter.toOptionalIri(maybeProjectIri, throw BadRequestException(s"Invalid param project IRI: $maybeProjectIri"))
 
-                    val requestMessage = ListGetRequestADM(listIri, requestingUser)
+                    val requestMessage: Future[ListsGetRequestADM] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ListsGetRequestADM(projectIri, requestingUser)
 
                     RouteUtilADM.runJsonRoute(
                         requestMessage,
@@ -110,26 +62,167 @@ class ListsRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAd
                         responderManager,
                         log
                     )
-            } ~
-            put {
-                /* update list */
-                throw NotImplementedException("Method not implemented.")
-                ???
-            } ~
-            delete {
-                /* delete (deactivate) list */
-                throw NotImplementedException("Method not implemented.")
-                ???
             }
-        } ~
+        }
+    }
+
+    @ApiOperation(value = "Add new list", nickname = "addList", httpMethod = "POST", response = classOf[ListGetResponseADM])
+    @ApiImplicitParams(Array(
+        new ApiImplicitParam(name = "body", value = "\"list\" to create", required = true,
+            dataTypeClass = classOf[CreateListApiRequestADM], paramType = "body")
+    ))
+    @ApiResponses(Array(
+        new ApiResponse(code = 500, message = "Internal server error")
+    ))
+    /* create a new list (root node) */
+    def postList: Route = path("admin" / "lists") {
+        post {
+            /* create a list */
+            entity(as[CreateListApiRequestADM]) { apiRequest =>
+                requestContext =>
+                    val requestMessage: Future[ListCreateRequestADM] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ListCreateRequestADM(
+                        createListRequest = apiRequest,
+                        requestingUser = requestingUser,
+                        apiRequestID = UUID.randomUUID()
+                    )
+
+                    RouteUtilADM.runJsonRoute(
+                        requestMessage,
+                        requestContext,
+                        settings,
+                        responderManager,
+                        log
+                    )
+            }
+        }
+    }
+
+    @Path("/{IRI}")
+    @ApiOperation(value = "Get a list", nickname = "getlist", httpMethod = "GET", response = classOf[ListGetResponseADM])
+    @ApiResponses(Array(
+        new ApiResponse(code = 500, message = "Internal server error")
+    ))
+    /* get a list */
+    def getList: Route = path("admin" / "lists" / Segment) { iri =>
+        get {
+            /* return a list (a graph with all list nodes) */
+            requestContext =>
+                val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
+
+                val requestMessage: Future[ListGetRequestADM] = for {
+                    requestingUser <- getUserADM(requestContext)
+                } yield ListGetRequestADM(listIri, requestingUser)
+
+                RouteUtilADM.runJsonRoute(
+                    requestMessage,
+                    requestContext,
+                    settings,
+                    responderManager,
+                    log
+                )
+        }
+    }
+
+    @Path("/{IRI}")
+    @ApiOperation(value = "Update basic list information", nickname = "putList", httpMethod = "PUT", response = classOf[ListInfoGetResponseADM])
+    @ApiImplicitParams(Array(
+        new ApiImplicitParam(name = "body", value = "\"list\" to update", required = true,
+            dataTypeClass = classOf[ChangeListInfoApiRequestADM], paramType = "body")
+    ))
+    @ApiResponses(Array(
+        new ApiResponse(code = 500, message = "Internal server error")
+    ))
+    /**
+      * update list
+      */
+    def putList: Route = path("admin" / "lists" / Segment) { iri =>
+        put {
+            /* update existing list node (either root or child) */
+            entity(as[ChangeListInfoApiRequestADM]) { apiRequest =>
+                requestContext =>
+                    val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
+
+                    val requestMessage: Future[ListInfoChangeRequestADM] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ListInfoChangeRequestADM(
+                        listIri = listIri,
+                        changeListRequest = apiRequest,
+                        requestingUser = requestingUser,
+                        apiRequestID = UUID.randomUUID()
+                    )
+
+                    RouteUtilADM.runJsonRoute(
+                        requestMessage,
+                        requestContext,
+                        settings,
+                        responderManager,
+                        log
+                    )
+            }
+        }
+    }
+
+    @Path("/{IRI}")
+    @ApiOperation(value = "Add new child node", nickname = "addListChildNode", httpMethod = "POST", response = classOf[ListNodeInfoGetResponseADM])
+    @ApiImplicitParams(Array(
+        new ApiImplicitParam(name = "body", value = "\"node\" to create", required = true,
+            dataTypeClass = classOf[CreateChildNodeApiRequestADM], paramType = "body")
+    ))
+    @ApiResponses(Array(
+        new ApiResponse(code = 500, message = "Internal server error")
+    ))
+    /**
+      * create a new child node
+      */
+    def postListChildNode: Route = path("admin" / "lists" / Segment) { iri =>
+        post {
+            /* add node to existing list node. the existing list node can be either the root or a child */
+            entity(as[CreateChildNodeApiRequestADM]) { apiRequest =>
+                requestContext =>
+                    val parentNodeIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
+
+                    val requestMessage: Future[ListChildNodeCreateRequestADM] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ListChildNodeCreateRequestADM(
+                        parentNodeIri = parentNodeIri,
+                        createChildNodeRequest = apiRequest,
+                        requestingUser = requestingUser,
+                        apiRequestID = UUID.randomUUID()
+                    )
+
+                    RouteUtilADM.runJsonRoute(
+                        requestMessage,
+                        requestContext,
+                        settings,
+                        responderManager,
+                        log
+                    )
+            }
+        }
+    }
+
+    /* delete list node which should also delete its children */
+    def deleteListNode: Route = path("admin" / "lists" / Segment) { iri =>
+        delete {
+            /* delete (deactivate) list */
+            throw NotImplementedException("Method not implemented.")
+            ???
+        }
+    }
+
+    override def knoraApiPath: Route = getLists ~ postList ~ getList ~ putList ~ postListChildNode ~ deleteListNode ~ {
+
         path("admin" / "lists" / "infos" / Segment) {iri =>
             get {
                 /* return information about a list (without children) */
                 requestContext =>
-                    val requestingUser = getUserADM(requestContext)
                     val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
 
-                    val requestMessage = ListInfoGetRequestADM(listIri, requestingUser)
+                    val requestMessage: Future[ListInfoGetRequestADM] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ListInfoGetRequestADM(listIri, requestingUser)
 
                     RouteUtilADM.runJsonRoute(
                         requestMessage,
@@ -143,10 +236,11 @@ class ListsRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAd
                 /* update list info */
                 entity(as[ChangeListInfoApiRequestADM]) { apiRequest =>
                     requestContext =>
-                        val requestingUser = getUserADM(requestContext)
                         val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
 
-                        val requestMessage = ListInfoChangeRequestADM(
+                        val requestMessage: Future[ListInfoChangeRequestADM] = for {
+                            requestingUser <- getUserADM(requestContext)
+                        } yield ListInfoChangeRequestADM(
                             listIri = listIri,
                             changeListRequest = apiRequest,
                             requestingUser = requestingUser,
@@ -167,10 +261,11 @@ class ListsRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAd
             get {
                 /* return information about a single node (without children) */
                 requestContext =>
-                    val requestingUser = getUserADM(requestContext)
                     val listIri = stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid param list IRI: $iri"))
 
-                    val requestMessage = ListNodeInfoGetRequestADM(listIri, requestingUser)
+                    val requestMessage: Future[ListNodeInfoGetRequestADM] = for {
+                        requestingUser <- getUserADM(requestContext)
+                    } yield ListNodeInfoGetRequestADM(listIri, requestingUser)
 
                     RouteUtilADM.runJsonRoute(
                         requestMessage,

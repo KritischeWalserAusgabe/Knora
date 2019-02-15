@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,40 +19,31 @@
 
 package org.knora.webapi.routing.v1
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.util.Timeout
-import org.knora.webapi.SettingsImpl
 import org.knora.webapi.messages.v1.responder.ckanmessages.CkanRequestV1
-import org.knora.webapi.routing.{Authenticator, RouteUtilV1}
-
-import scala.concurrent.duration._
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilV1}
 
 /**
   * A route used to serve data to CKAN. It is used be the Ckan instance running under http://data.humanities.ch.
   */
-object CkanRouteV1 extends Authenticator {
+class CkanRouteV1(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator {
 
-    def knoraApiPath(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter): Route = {
-
-        implicit val system: ActorSystem = _system
-        implicit val executionContext = system.dispatcher
-        implicit val timeout = Timeout(30.seconds)
-        val responderManager = system.actorSelection("/user/responderManager")
+    def knoraApiPath: Route = {
 
         path("v1" / "ckan") {
             get {
                 requestContext =>
-                    val userProfile = getUserADM(requestContext)
-                    val params = requestContext.request.uri.query().toMap
-                    val project: Option[Seq[String]] = params.get("project").map(_.split(","))
-                    val limit: Option[Int] = params.get("limit").map(_.toInt)
-                    val info: Boolean = params.getOrElse("info", false) == true
-                    val requestMessage = CkanRequestV1(project, limit, info, userProfile)
 
-                    RouteUtilV1.runJsonRoute(
+                    val requestMessage = for {
+                        userProfile <- getUserADM(requestContext)
+                        params = requestContext.request.uri.query().toMap
+                        project: Option[Seq[String]] = params.get("project").map(_.split(","))
+                        limit: Option[Int] = params.get("limit").map(_.toInt)
+                        info: Boolean = params.getOrElse("info", false) == true
+                    } yield CkanRequestV1(project, limit, info, userProfile)
+
+                    RouteUtilV1.runJsonRouteWithFuture(
                         requestMessage,
                         requestContext,
                         settings,

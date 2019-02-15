@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,18 +19,15 @@
 
 package org.knora.webapi.routing.admin
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.util.Timeout
 import io.swagger.annotations.Api
 import javax.ws.rs.Path
-import org.knora.webapi.SettingsImpl
 import org.knora.webapi.messages.admin.responder.storesmessages.{ResetTriplestoreContentRequestADM, StoresADMJsonProtocol}
 import org.knora.webapi.messages.store.triplestoremessages.RdfDataObject
-import org.knora.webapi.routing.{Authenticator, RouteUtilADM}
+import org.knora.webapi.routing.{Authenticator, KnoraRoute, KnoraRouteData, RouteUtilADM}
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 /**
@@ -39,15 +36,9 @@ import scala.concurrent.duration._
 
 @Api(value = "store", produces = "application/json")
 @Path("/admin/store")
-class StoreRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAdapter) extends Authenticator with StoresADMJsonProtocol {
+class StoreRouteADM(routeData: KnoraRouteData) extends KnoraRoute(routeData) with Authenticator with StoresADMJsonProtocol {
 
-    implicit val system: ActorSystem = _system
-    implicit val executionContext = system.dispatcher
-    implicit val timeout = Timeout(300.seconds)
-    val responderManager = system.actorSelection("/user/responderManager")
-
-    def knoraApiPath = Route {
-
+    override def knoraApiPath = Route {
         path("admin" / "store") {
             get {
                 requestContext =>
@@ -63,7 +54,7 @@ class StoreRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAd
                 /* ResetTriplestoreContent */
                 entity(as[Seq[RdfDataObject]]) { apiRequest =>
                     requestContext =>
-                        val requestMessage = ResetTriplestoreContentRequestADM(apiRequest)
+                        val requestMessage = Future.successful(ResetTriplestoreContentRequestADM(apiRequest))
 
                         RouteUtilADM.runJsonRoute(
                             requestMessage,
@@ -71,7 +62,7 @@ class StoreRouteADM(_system: ActorSystem, settings: SettingsImpl, log: LoggingAd
                             settings,
                             responderManager,
                             log
-                        )
+                        )(timeout = 5.minutes, executionContext = executionContext)
                 }
             }
         }

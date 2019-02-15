@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -20,18 +20,19 @@
 package org.knora.webapi.messages.v1.responder.valuemessages
 
 import java.io.File
+import java.time.Instant
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
+import org.knora.webapi.messages.store.sipimessages.SipiConversionRequestV1
 import org.knora.webapi.messages.v1.responder.resourcemessages.LocationV1
-import org.knora.webapi.messages.v1.responder.sipimessages.SipiResponderConversionRequestV1
 import org.knora.webapi.messages.v1.responder.{KnoraRequestV1, KnoraResponseV1}
 import org.knora.webapi.messages.v2.responder.standoffmessages.MappingXMLtoStandoff
 import org.knora.webapi.twirl.{StandoffTagAttributeV2, StandoffTagInternalReferenceAttributeV2, StandoffTagV2}
 import org.knora.webapi.util.standoff.StandoffTagUtilV2
 import org.knora.webapi.util.{DateUtilV1, KnoraIdUtil, StringFormatter}
-import org.knora.webapi._
 import spray.json._
 
 
@@ -392,7 +393,7 @@ case class CreateValueV1WithComment(updateValueV1: UpdateValueV1, comment: Optio
   * @param values                           the values to be added, with optional comments.
   * @param clientResourceIDsToResourceIris  a map of client resource IDs (which may appear in standoff link tags
   *                                         in values) to the IRIs that will be used for those resources.
-  * @param currentTime                      an xsd:dateTimeStamp that will be attached to the values.
+  * @param creationDate                     an xsd:dateTimeStamp that will be attached to the values.
   * @param userProfile                      the user that is creating the values.
   */
 case class GenerateSparqlToCreateMultipleValuesRequestV1(projectIri: IRI,
@@ -401,7 +402,7 @@ case class GenerateSparqlToCreateMultipleValuesRequestV1(projectIri: IRI,
                                                          defaultPropertyAccessPermissions: Map[IRI, String],
                                                          values: Map[IRI, Seq[CreateValueV1WithComment]],
                                                          clientResourceIDsToResourceIris: Map[String, IRI],
-                                                         currentTime: String,
+                                                         creationDate: Instant,
                                                          userProfile: UserADM,
                                                          apiRequestID: UUID) extends ValuesResponderRequestV1
 
@@ -497,7 +498,7 @@ case class DeleteValueResponseV1(id: IRI) extends KnoraResponseV1 {
   * @param resourceIri the resource whose files value(s) should be changed.
   * @param file        the file to be created and added.
   */
-case class ChangeFileValueRequestV1(resourceIri: IRI, file: SipiResponderConversionRequestV1, apiRequestID: UUID, userProfile: UserADM) extends ValuesResponderRequestV1
+case class ChangeFileValueRequestV1(resourceIri: IRI, file: SipiConversionRequestV1, apiRequestID: UUID, userProfile: UserADM) extends ValuesResponderRequestV1
 
 /**
   * Represents a response to a [[ChangeFileValueRequestV1]].
@@ -571,10 +572,10 @@ case class ValueObjectV1(valueObjectIri: IRI,
   * of the values of this enumeration; use `lookup` instead, because it reports errors better.
   */
 object KnoraCalendarV1 extends Enumeration {
-    val JULIAN = Value(0, "JULIAN")
-    val GREGORIAN = Value(1, "GREGORIAN")
-    val JEWISH = Value(2, "JEWISH")
-    val REVOLUTIONARY = Value(3, "REVOLUTIONARY")
+    val JULIAN: Value = Value(0, "JULIAN")
+    val GREGORIAN: Value = Value(1, "GREGORIAN")
+    val JEWISH: Value = Value(2, "JEWISH")
+    val REVOLUTIONARY: Value = Value(3, "REVOLUTIONARY")
 
     val valueMap: Map[String, Value] = values.map(v => (v.toString, v)).toMap
 
@@ -762,7 +763,7 @@ case class TextValueWithStandoffV1(utf8str: String,
             case otherText: TextValueV1 =>
 
                 // unescape utf8str since it contains escaped sequences while the string returned by the triplestore does not
-                otherText.utf8str == stringFormatter.fromSparqlEncodedString(utf8str)
+                stringFormatter.fromSparqlEncodedString(utf8str) == otherText.utf8str
             case otherValue => throw InconsistentTriplestoreDataException(s"Cannot compare a $valueTypeIri to a ${otherValue.valueTypeIri}")
         }
     }
@@ -778,16 +779,17 @@ case class TextValueWithStandoffV1(utf8str: String,
     override def isRedundant(currentVersion: ApiValueV1): Boolean = {
 
         currentVersion match {
-            case textValueSimpleV1: TextValueSimpleV1 => false
+            case _: TextValueSimpleV1 => false
+
             case textValueWithStandoffV1: TextValueWithStandoffV1 =>
 
                 // compare utf8str (unescape utf8str since it contains escaped sequences while the string returned by the triplestore does not)
-                val utf8strIdentical: Boolean = textValueWithStandoffV1.utf8str == stringFormatter.fromSparqlEncodedString(utf8str)
+                val utf8strIdentical: Boolean = stringFormatter.fromSparqlEncodedString(utf8str) == textValueWithStandoffV1.utf8str
 
-                // compare standoff nodes (sort them first, since the order does not make any difference )
-                val standoffIdentical: Boolean = textValueWithStandoffV1.standoff.sortBy(standoffNode => (standoffNode.standoffTagClassIri, standoffNode.startPosition)) == this.standoff.sortBy(standoffNode => (standoffNode.standoffTagClassIri, standoffNode.startPosition))
-
-                // TODO: at the moment, the UUID is created randomly for every new standoff tag. This means that this method always returns false.
+                // Compare standoff tags.
+                val thisComparableStandoff = StandoffTagUtilV2.makeComparableStandoffCollection(standoff)
+                val thatComparableStandoff = StandoffTagUtilV2.makeComparableStandoffCollection(textValueWithStandoffV1.standoff)
+                val standoffIdentical: Boolean = thisComparableStandoff == thatComparableStandoff
 
                 utf8strIdentical && standoffIdentical && textValueWithStandoffV1.mappingIri == this.mappingIri
 
@@ -1409,6 +1411,7 @@ sealed trait FileValueV1 extends UpdateValueV1 with ApiValueV1 {
     val internalFilename: String
     val originalFilename: String
     val originalMimeType: Option[String]
+    val projectShortcode: String
 }
 
 /**
@@ -1427,6 +1430,7 @@ case class StillImageFileValueV1(internalMimeType: String,
                                  internalFilename: String,
                                  originalFilename: String,
                                  originalMimeType: Option[String] = None,
+                                 projectShortcode: String,
                                  dimX: Int,
                                  dimY: Int,
                                  qualityLevel: Int,
@@ -1469,7 +1473,8 @@ case class StillImageFileValueV1(internalMimeType: String,
 case class MovingImageFileValueV1(internalMimeType: String,
                                   internalFilename: String,
                                   originalFilename: String,
-                                  originalMimeType: Option[String] = None) extends FileValueV1 {
+                                  originalMimeType: Option[String] = None,
+                                  projectShortcode: String) extends FileValueV1 {
 
     def valueTypeIri = OntologyConstants.KnoraBase.MovingImageFileValue
 
@@ -1508,7 +1513,8 @@ case class MovingImageFileValueV1(internalMimeType: String,
 case class TextFileValueV1(internalMimeType: String,
                            internalFilename: String,
                            originalFilename: String,
-                           originalMimeType: Option[String] = None) extends FileValueV1 {
+                           originalMimeType: Option[String] = None,
+                           projectShortcode: String) extends FileValueV1 {
 
     def valueTypeIri = OntologyConstants.KnoraBase.TextFileValue
 
@@ -1616,9 +1622,9 @@ object ApiValueV1JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol 
     implicit val createFileV1Format: RootJsonFormat[CreateFileV1] = jsonFormat3(CreateFileV1)
     implicit val valueGetResponseV1Format: RootJsonFormat[ValueGetResponseV1] = jsonFormat7(ValueGetResponseV1)
     implicit val dateValueV1Format: JsonFormat[DateValueV1] = jsonFormat5(DateValueV1)
-    implicit val stillImageFileValueV1Format: JsonFormat[StillImageFileValueV1] = jsonFormat9(StillImageFileValueV1)
-    implicit val textFileValueV1Format: JsonFormat[TextFileValueV1] = jsonFormat4(TextFileValueV1)
-    implicit val movingImageFileValueV1Format: JsonFormat[MovingImageFileValueV1] = jsonFormat4(MovingImageFileValueV1)
+    implicit val stillImageFileValueV1Format: JsonFormat[StillImageFileValueV1] = jsonFormat10(StillImageFileValueV1)
+    implicit val textFileValueV1Format: JsonFormat[TextFileValueV1] = jsonFormat5(TextFileValueV1)
+    implicit val movingImageFileValueV1Format: JsonFormat[MovingImageFileValueV1] = jsonFormat5(MovingImageFileValueV1)
     implicit val valueVersionV1Format: JsonFormat[ValueVersionV1] = jsonFormat3(ValueVersionV1)
     implicit val linkValueV1Format: JsonFormat[LinkValueV1] = jsonFormat4(LinkValueV1)
     implicit val valueVersionHistoryGetResponseV1Format: RootJsonFormat[ValueVersionHistoryGetResponseV1] = jsonFormat1(ValueVersionHistoryGetResponseV1)

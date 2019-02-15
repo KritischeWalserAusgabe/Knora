@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -24,16 +24,11 @@
 package org.knora.webapi.responders.v1
 
 
-import akka.actor.Props
 import akka.actor.Status.Failure
 import akka.testkit.{ImplicitSender, TestActorRef}
 import com.typesafe.config.{Config, ConfigFactory}
 import org.knora.webapi._
-import org.knora.webapi.messages.store.triplestoremessages._
-import org.knora.webapi.messages.v1.responder.ontologymessages.{LoadOntologiesRequest, LoadOntologiesResponse}
 import org.knora.webapi.messages.v1.responder.usermessages._
-import org.knora.webapi.responders.{RESPONDER_MANAGER_ACTOR_NAME, ResponderManager}
-import org.knora.webapi.store.{STORE_MANAGER_ACTOR_NAME, StoreManager}
 
 import scala.concurrent.duration._
 
@@ -52,7 +47,6 @@ object UsersResponderV1Spec {
   */
 class UsersResponderV1Spec extends CoreSpec(UsersResponderV1Spec.config) with ImplicitSender {
 
-    private implicit val executionContext = system.dispatcher
     private val timeout = 5.seconds
 
     private val rootUser = SharedTestDataV1.rootUser
@@ -68,53 +62,39 @@ class UsersResponderV1Spec extends CoreSpec(UsersResponderV1Spec.config) with Im
 
     private val imagesProjectIri = SharedTestDataV1.imagesProjectInfo.id
 
-    private val actorUnderTest = TestActorRef[UsersResponderV1]
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
-
-    private val rdfDataObjects = List() /* sending an empty list, will only load the default ontologies and data */
-
-    "Load test data" in {
-        storeManager ! ResetTriplestoreContent(rdfDataObjects)
-        expectMsg(300.seconds, ResetTriplestoreContentACK())
-
-        responderManager ! LoadOntologiesRequest(SharedTestDataADM.rootUser)
-        expectMsg(10.seconds, LoadOntologiesResponse())
-    }
-
     "The UsersResponder " when {
 
         "asked about all users" should {
             "return a list" in {
-                actorUnderTest ! UsersGetRequestV1(rootUser)
+                responderManager ! UsersGetRequestV1(rootUser)
                 val response = expectMsgType[UsersGetResponseV1](timeout)
                 // println(response.users)
                 response.users.nonEmpty should be (true)
-                response.users.size should be (21)
+                response.users.size should be (20)
             }
         }
 
         "asked about an user identified by 'iri' " should {
 
             "return a profile if the user (root user) is known" in {
-                actorUnderTest ! UserProfileByIRIGetV1(rootUserIri, UserProfileTypeV1.FULL)
+                responderManager ! UserProfileByIRIGetV1(rootUserIri, UserProfileTypeV1.FULL)
                 val response = expectMsgType[Option[UserProfileV1]](timeout)
                 // println(response)
                 response should equal(Some(rootUser.ofType(UserProfileTypeV1.FULL)))
             }
 
             "return a profile if the user (incunabula user) is known" in {
-                actorUnderTest ! UserProfileByIRIGetV1(incunabulaUserIri, UserProfileTypeV1.FULL)
+                responderManager ! UserProfileByIRIGetV1(incunabulaUserIri, UserProfileTypeV1.FULL)
                 expectMsg(Some(incunabulaUser.ofType(UserProfileTypeV1.FULL)))
             }
 
             "return 'NotFoundException' when the user is unknown " in {
-                actorUnderTest ! UserProfileByIRIGetRequestV1("http://rdfh.ch/users/notexisting", UserProfileTypeV1.RESTRICTED, rootUser)
+                responderManager ! UserProfileByIRIGetRequestV1("http://rdfh.ch/users/notexisting", UserProfileTypeV1.RESTRICTED, rootUser)
                 expectMsg(Failure(NotFoundException(s"User 'http://rdfh.ch/users/notexisting' not found")))
             }
 
             "return 'None' when the user is unknown " in {
-                actorUnderTest ! UserProfileByIRIGetV1("http://rdfh.ch/users/notexisting", UserProfileTypeV1.RESTRICTED)
+                responderManager ! UserProfileByIRIGetV1("http://rdfh.ch/users/notexisting", UserProfileTypeV1.RESTRICTED)
                 expectMsg(None)
             }
         }
@@ -122,22 +102,22 @@ class UsersResponderV1Spec extends CoreSpec(UsersResponderV1Spec.config) with Im
         "asked about an user identified by 'email'" should {
 
             "return a profile if the user (root user) is known" in {
-                actorUnderTest ! UserProfileByEmailGetV1(rootUserEmail, UserProfileTypeV1.RESTRICTED)
+                responderManager ! UserProfileByEmailGetV1(rootUserEmail, UserProfileTypeV1.RESTRICTED)
                 expectMsg(Some(rootUser.ofType(UserProfileTypeV1.RESTRICTED)))
             }
 
             "return a profile if the user (incunabula user) is known" in {
-                actorUnderTest ! UserProfileByEmailGetV1(incunabulaUserEmail, UserProfileTypeV1.RESTRICTED)
+                responderManager ! UserProfileByEmailGetV1(incunabulaUserEmail, UserProfileTypeV1.RESTRICTED)
                 expectMsg(Some(incunabulaUser.ofType(UserProfileTypeV1.RESTRICTED)))
             }
 
             "return 'NotFoundException' when the user is unknown" in {
-                actorUnderTest ! UserProfileByEmailGetRequestV1("userwrong@example.com", UserProfileTypeV1.RESTRICTED, rootUser)
+                responderManager ! UserProfileByEmailGetRequestV1("userwrong@example.com", UserProfileTypeV1.RESTRICTED, rootUser)
                 expectMsg(Failure(NotFoundException(s"User 'userwrong@example.com' not found")))
             }
 
             "return 'None' when the user is unknown" in {
-                actorUnderTest ! UserProfileByEmailGetV1("userwrong@example.com", UserProfileTypeV1.RESTRICTED)
+                responderManager ! UserProfileByEmailGetV1("userwrong@example.com", UserProfileTypeV1.RESTRICTED)
                 expectMsg(None)
             }
         }

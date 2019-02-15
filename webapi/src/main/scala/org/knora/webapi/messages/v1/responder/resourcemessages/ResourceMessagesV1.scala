@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,12 +19,13 @@
 
 package org.knora.webapi.messages.v1.responder.resourcemessages
 
+import java.time.Instant
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
-import org.knora.webapi.messages.v1.responder.sipimessages.{SipiResponderConversionPathRequestV1, SipiResponderConversionRequestV1}
+import org.knora.webapi.messages.store.sipimessages.{SipiConversionPathRequestV1, SipiConversionRequestV1}
 import org.knora.webapi.messages.v1.responder.valuemessages._
 import org.knora.webapi.messages.v1.responder.{KnoraRequestV1, KnoraResponseV1}
 import spray.json._
@@ -57,17 +58,19 @@ case class CreateResourceApiRequestV1(restype_id: IRI,
 /**
   * Used internally to represent a request to create a resource from an XML import.
   *
-  * @param restype_id the IRI of the resource class.
-  * @param label      the resource's label.
-  * @param client_id  the client's unique ID for the resource.
-  * @param properties the resource's properties.
-  * @param file       a file on disk that should be attached to the resource.
+  * @param restype_id   the IRI of the resource class.
+  * @param label        the resource's label.
+  * @param client_id    the client's unique ID for the resource.
+  * @param properties   the resource's properties.
+  * @param file         a file on disk that should be attached to the resource.
+  * @param creationDate the creation date that should be attached to the resource.
   */
 case class CreateResourceFromXmlImportRequestV1(restype_id: IRI,
                                                 client_id: String,
                                                 label: String,
                                                 properties: Map[IRI, Seq[CreateResourceValueV1]],
-                                                file: Option[ReadFileV1] = None)
+                                                file: Option[ReadFileV1] = None,
+                                                creationDate: Option[Instant])
 
 /**
   * Represents a property value to be created.
@@ -158,10 +161,10 @@ case class ResourceInfoGetRequestV1(iri: IRI, userProfile: UserADM) extends Reso
   * information. A successful response will be a [[ResourceFullResponseV1]].
   *
   * @param iri         the IRI of the resource to be queried.
-  * @param userProfile the profile of the user making the request.
+  * @param userADM     the profile of the user making the request.
   * @param getIncoming if `true`, information about incoming references will be included in the response.
   */
-case class ResourceFullGetRequestV1(iri: IRI, userProfile: UserADM, getIncoming: Boolean = true) extends ResourcesResponderRequestV1
+case class ResourceFullGetRequestV1(iri: IRI, userADM: UserADM, getIncoming: Boolean = true) extends ResourcesResponderRequestV1
 
 /**
   * Requests a [[ResourceContextResponseV1]] describing the context of a resource (i.e. the resources that are part of it).
@@ -205,7 +208,7 @@ case class ResourceSearchGetRequestV1(searchString: String, resourceTypeIri: Opt
 case class ResourceCreateRequestV1(resourceTypeIri: IRI,
                                    label: String,
                                    values: Map[IRI, Seq[CreateValueV1WithComment]],
-                                   file: Option[SipiResponderConversionRequestV1] = None,
+                                   file: Option[SipiConversionRequestV1] = None,
                                    projectIri: IRI,
                                    userProfile: UserADM,
                                    apiRequestID: UUID) extends ResourcesResponderRequestV1
@@ -219,12 +222,14 @@ case class ResourceCreateRequestV1(resourceTypeIri: IRI,
   * @param label            the rdfs:label of the resource.
   * @param values           the properties to add: type and value(s): a Map of propertyIris to ApiValueV1.
   * @param file             a file on disk that should be stored by Sipi and should be attached to the resource.
+  * @param creationDate     the creation date that should be attached to the resource.
   */
 case class OneOfMultipleResourceCreateRequestV1(resourceTypeIri: IRI,
                                                 clientResourceID: String,
                                                 label: String,
                                                 values: Map[IRI, Seq[CreateValueV1WithComment]],
-                                                file: Option[SipiResponderConversionPathRequestV1] = None)
+                                                file: Option[SipiConversionPathRequestV1] = None,
+                                                creationDate: Option[Instant])
 
 /**
   * Requests the creation of multiple new resources.
@@ -275,12 +280,12 @@ case class ResourceCheckClassRequestV1(resourceIri: IRI, owlClass: IRI, userProf
   *
   * @param resourceIri   the IRI of the resource to be marked as deleted.
   * @param deleteComment an optional comment explaining why the resource is being marked as deleted.
-  * @param userProfile   the profile of the user making the request.
+  * @param userADM       the profile of the user making the request.
   * @param apiRequestID  the ID of the API request.
   */
 case class ResourceDeleteRequestV1(resourceIri: IRI,
                                    deleteComment: Option[String],
-                                   userProfile: UserADM,
+                                   userADM: UserADM,
                                    apiRequestID: UUID) extends ResourcesResponderRequestV1
 
 /**
@@ -396,11 +401,11 @@ case class PropertiesGetResponseV1(properties: PropsGetV1) extends KnoraResponse
   *
   * @param resourceIri  the IRI of the resource whose label should be changed.
   * @param label        the new value of the label.
-  * @param userProfile  the profile of the user making the request.
+  * @param userADM      the profile of the user making the request.
   * @param apiRequestID the ID of the API request.
   *
   */
-case class ChangeResourceLabelRequestV1(resourceIri: IRI, label: String, userProfile: UserADM, apiRequestID: UUID) extends ResourcesResponderRequestV1
+case class ChangeResourceLabelRequestV1(resourceIri: IRI, label: String, userADM: UserADM, apiRequestID: UUID) extends ResourcesResponderRequestV1
 
 /**
   * Represents the answer to a [[ChangeResourceLabelRequestV1]].
@@ -418,9 +423,9 @@ case class ChangeResourceLabelResponseV1(res_id: IRI, label: String) extends Kno
   *
   * @param resourceIri the IRI of the initial resource.
   * @param depth       the maximum depth of the graph, counting from the initial resource.
-  * @param userProfile the profile of the user making the request.
+  * @param userADM     the profile of the user making the request.
   */
-case class GraphDataGetRequestV1(resourceIri: IRI, depth: Int, userProfile: UserADM) extends ResourcesResponderRequestV1
+case class GraphDataGetRequestV1(resourceIri: IRI, depth: Int, userADM: UserADM) extends ResourcesResponderRequestV1
 
 /**
   * Provides a graph of resources that are reachable via links to or from a given resource, in response to a
@@ -543,6 +548,7 @@ case class ResourceContextItemV1(res_id: IRI,
   * @param regions               representation of regions pointing to this resource.
   */
 case class ResourceInfoV1(project_id: IRI,
+                          project_shortcode: String,
                           person_id: IRI,
                           restype_id: IRI,
                           restype_name: Option[IRI] = None,

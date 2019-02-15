@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,22 +19,16 @@
 
 package org.knora.webapi.e2e.v1
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.http.javadsl.model.StatusCodes
 import akka.http.scaladsl.testkit.RouteTestTimeout
-import akka.pattern._
-import akka.util.Timeout
 import org.knora.webapi._
-import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, ResetTriplestoreContent}
-import org.knora.webapi.messages.v1.responder.ontologymessages.LoadOntologiesRequest
-import org.knora.webapi.responders.{RESPONDER_MANAGER_ACTOR_NAME, ResponderManager}
+import org.knora.webapi.messages.store.triplestoremessages.RdfDataObject
 import org.knora.webapi.routing.v1.SearchRouteV1
-import org.knora.webapi.store.{STORE_MANAGER_ACTOR_NAME, StoreManager}
 import org.scalatest.Assertion
 import spray.json._
 
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContextExecutor
 
 /**
   * End-to-end test specification for the search endpoint. This specification uses the Spray Testkit as documented
@@ -48,27 +42,17 @@ class SearchV1R2RSpec extends R2RSpec {
           |# akka.stdout-loglevel = "DEBUG"
         """.stripMargin
 
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
+    private val searchPath = new SearchRouteV1(routeData).knoraApiPath
 
-    private val searchPath = SearchRouteV1.knoraApiPath(system, settings, log)
-
-    implicit private val timeout: Timeout = settings.defaultRestoreTimeout
-
-    implicit def default(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(new DurationInt(30).second)
+    implicit def default(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(settings.defaultTimeout)
 
     implicit val ec: ExecutionContextExecutor = system.dispatcher
 
-    private val rdfDataObjects = List(
+    override lazy val rdfDataObjects = List(
         RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/0001/anything"),
         RdfDataObject(path = "_test_data/demo_data/images-demo-data.ttl", name = "http://www.knora.org/data/00FF/images"),
         RdfDataObject(path = "_test_data/all_data/incunabula-data.ttl", name = "http://www.knora.org/data/0803/incunabula")
     )
-
-    "Load test data" in {
-        Await.result(storeManager ? ResetTriplestoreContent(rdfDataObjects), 360.seconds)
-        Await.result(responderManager ? LoadOntologiesRequest(SharedTestDataADM.rootUser), 30.seconds)
-    }
 
     /**
       * Checks for the number of expected results to be returned.
@@ -95,7 +79,7 @@ class SearchV1R2RSpec extends R2RSpec {
     "The Search Endpoint" should {
         "perform an extended search for the pages of a book whose seqnum is lower than or equals 10" in {
 
-            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23partOf&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23seqnum&compop=EQ&compop=LT_EQ&searchval=http%3A%2F%2Frdfh.ch%2F5e77e98d2603&searchval=10"
+            val props = "&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23partOf&property_id=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23seqnum&compop=EQ&compop=LT_EQ&searchval=http%3A%2F%2Frdfh.ch%2F0803%2F5e77e98d2603&searchval=10"
             val filter = "&show_nrows=25&start_at=0&filter_by_restype=http%3A%2F%2Fwww.knora.org%2Fontology%2F0803%2Fincunabula%23page"
 
             Get("/v1/search/?searchtype=extended" + props + filter) ~> searchPath ~> check {

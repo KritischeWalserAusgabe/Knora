@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,7 +21,7 @@ package org.knora.webapi.routing
 
 import java.io.{StringReader, StringWriter}
 
-import akka.actor.ActorSelection
+import akka.actor.{ActorRef}
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.{RequestContext, RouteResult}
@@ -29,11 +29,11 @@ import akka.pattern._
 import akka.util.Timeout
 import org.eclipse.rdf4j.rio._
 import org.eclipse.rdf4j.rio.helpers.BasicWriterSettings
+import org.eclipse.rdf4j.rio.rdfxml.util.RDFXMLPrettyWriter
 import org.knora.webapi._
 import org.knora.webapi.messages.v2.responder.resourcemessages.ResourceTEIGetResponseV2
 import org.knora.webapi.messages.v2.responder.{KnoraRequestV2, KnoraResponseV2}
 import org.knora.webapi.util.jsonld.JsonLDDocument
-import org.eclipse.rdf4j.rio.rdfxml.util.RDFXMLPrettyWriter
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.Exception.catching
@@ -105,10 +105,10 @@ object RouteUtilV2 {
       * @param executionContext an execution context for futures.
       * @return a [[Future]] containing a [[RouteResult]].
       */
-    def runRdfRoute(requestMessage: KnoraRequestV2,
+    private def runRdfRoute(requestMessage: KnoraRequestV2,
                     requestContext: RequestContext,
                     settings: SettingsImpl,
-                    responderManager: ActorSelection,
+                    responderManager: ActorRef,
                     log: LoggingAdapter,
                     responseSchema: ApiV2Schema)
                    (implicit timeout: Timeout, executionContext: ExecutionContext): Future[RouteResult] = {
@@ -153,7 +153,7 @@ object RouteUtilV2 {
     /**
       * Sends a message to a responder and completes the HTTP request by returning the response as TEI/XML.
       *
-      * @param requestMessage   a future containing a [[KnoraRequestV2]] message that should be sent to the responder manager.
+      * @param requestMessageF  a future containing a [[KnoraRequestV2]] message that should be sent to the responder manager.
       * @param requestContext   the akka-http [[RequestContext]].
       * @param settings         the application's settings.
       * @param responderManager a reference to the responder manager.
@@ -163,10 +163,10 @@ object RouteUtilV2 {
       * @param executionContext an execution context for futures.
       * @return a [[Future]] containing a [[RouteResult]].
       */
-    def runTEIXMLRoute(requestMessage: KnoraRequestV2,
+    def runTEIXMLRoute(requestMessageF: Future[KnoraRequestV2],
                        requestContext: RequestContext,
                        settings: SettingsImpl,
-                       responderManager: ActorSelection,
+                       responderManager: ActorRef,
                        log: LoggingAdapter,
                        responseSchema: ApiV2Schema)
                       (implicit timeout: Timeout, executionContext: ExecutionContext): Future[RouteResult] = {
@@ -174,6 +174,8 @@ object RouteUtilV2 {
         val contentType = MediaTypes.`application/xml`.toContentType(HttpCharsets.`UTF-8`)
 
         val httpResponse: Future[HttpResponse] = for {
+
+            requestMessage <- requestMessageF
 
             teiResponse <- (responderManager ? requestMessage).map {
                 case replyMessage: ResourceTEIGetResponseV2 => replyMessage
@@ -212,7 +214,7 @@ object RouteUtilV2 {
     def runRdfRouteWithFuture(requestMessageF: Future[KnoraRequestV2],
                               requestContext: RequestContext,
                               settings: SettingsImpl,
-                              responderManager: ActorSelection,
+                              responderManager: ActorRef,
                               log: LoggingAdapter,
                               responseSchema: ApiV2Schema)
                              (implicit timeout: Timeout, executionContext: ExecutionContext): Future[RouteResult] = {
@@ -326,7 +328,7 @@ object RouteUtilV2 {
                     case RdfMediaTypes.`text/turtle` =>
                         val turtleWriter = Rio.createWriter(RDFFormat.TURTLE, stringWriter)
                         turtleWriter.getWriterConfig.set[java.lang.Boolean](BasicWriterSettings.INLINE_BLANK_NODES, true).
-                            set[java.lang.Boolean](BasicWriterSettings.PRETTY_PRINT, true)
+                                set[java.lang.Boolean](BasicWriterSettings.PRETTY_PRINT, true)
                         turtleWriter
 
                     case RdfMediaTypes.`application/rdf+xml` => new RDFXMLPrettyWriter(stringWriter)
@@ -339,6 +341,7 @@ object RouteUtilV2 {
 
                 HttpResponse(
                     status = StatusCodes.OK,
+
                     entity = HttpEntity(
                         contentType,
                         stringWriter.toString

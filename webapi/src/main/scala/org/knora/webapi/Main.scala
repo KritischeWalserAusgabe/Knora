@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -28,9 +28,6 @@ import org.knora.webapi.messages.app.appmessages._
   */
 object Main extends App with LiveCore with KnoraService {
 
-    /* Check and wait until all actors are running */
-    checkActorSystem()
-
     val arglist = args.toList
 
     // loads demo data
@@ -44,16 +41,16 @@ object Main extends App with LiveCore with KnoraService {
     if (arglist.contains("-r")) applicationStateActor ! SetAllowReloadOverHTTPState(true)
 
     // starts prometheus monitoring reporter
-    if (arglist.contains("-p")) applicationStateActor ! SetPrometheusReporterState(true)
+    // if (arglist.contains("-p")) applicationStateActor ! SetPrometheusReporterState(true)
 
     // starts zipkin monitoring reporter
-    if (arglist.contains("-z")) applicationStateActor ! SetZipkinReporterState(true)
+    // if (arglist.contains("-z")) applicationStateActor ! SetZipkinReporterState(true)
 
     // starts zipkin monitoring reporter
-    if (arglist.contains("-j")) applicationStateActor ! SetZipkinReporterState(true)
+    // if (arglist.contains("-j")) applicationStateActor ! SetZipkinReporterState(true)
 
     // print config on startup
-    if (arglist.contains("-c")) applicationStateActor ! SetPrintConfigState(true)
+    // if (arglist.contains("-c")) applicationStateActor ! SetPrintConfigExtendedState(true)
 
     if (arglist.contains("--help")) {
         println(
@@ -62,10 +59,6 @@ object Main extends App with LiveCore with KnoraService {
               |    or  org.knora.webapi.Main -help
               |
               | Options:
-              |
-              |     loadDemoData,
-              |     --loadDemoData,
-              |     -d                          Loads the demo data.
               |
               |     allowReloadOverHTTP,
               |     --allow-reload-over-http,
@@ -83,9 +76,10 @@ object Main extends App with LiveCore with KnoraService {
             """.stripMargin)
     } else {
         /* Start the HTTP layer, allowing access */
-        startService()
+        /* Don't skip loading of ontologies */
+        startService(skipLoadingOfOntologies=false)
 
         /* add the method for shutting down our application to the shutdown hook, so that we can clean up */
-        sys.addShutdownHook(stopService())
+        scala.sys.addShutdownHook(stopService())
     }
 }

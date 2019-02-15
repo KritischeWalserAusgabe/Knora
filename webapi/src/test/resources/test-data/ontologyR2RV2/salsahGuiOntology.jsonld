@@ -93,7 +93,7 @@
     } ]
   }, {
     "@id" : "salsah-gui:SimpleText",
-    "salsah-gui:guiAttributeDefinition" : [ "size:integer", "maxlength:integer" ],
+    "salsah-gui:guiAttributeDefinition" : [ "maxlength:integer", "size:integer" ],
     "rdf:type" : [ {
       "@id" : "salsah-gui:Guielement"
     }, {
@@ -156,6 +156,7 @@
   "knora-api:attachedToProject" : {
     "@id" : "http://www.knora.org/ontology/knora-base#SystemProject"
   },
+  "knora-api:isBuiltIn" : true,
   "rdfs:label" : "The salsah-gui ontology",
   "@context" : {
     "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",

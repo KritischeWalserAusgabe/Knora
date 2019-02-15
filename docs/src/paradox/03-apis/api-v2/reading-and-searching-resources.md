@@ -1,5 +1,5 @@
 <!---
-Copyright © 2015-2018 the contributors (see Contributors.md).
+Copyright © 2015-2019 the contributors (see Contributors.md).
 
 This file is part of Knora.
 
@@ -53,6 +53,9 @@ JSON-LD specification).
 
 In the complex schema, dependent resources, i.e. resources that are referred
 to by other resources on the top level, are nested in link value objects.
+If resources on the top level are referred to by other resources and 
+these links are part of the response, virtual incoming links are generated,
+see @ref:[Gravsearch: Virtual Graph Search](query-language.md)) 
 
 See the interfaces `Resource` and `ResourcesSequence` in module
 `ResourcesResponse` (exists for both API schemas: `ApiV2Simple` and
@@ -66,14 +69,14 @@ A full representation of resource can be obtained by making a GET
 request to the API providing its IRI. Because a Knora IRI has the format
 of a URL, its IRI has to be URL-encoded.
 
-To get the resource with the IRI `http://data.knora.org/c5058f3a` (a
+To get the resource with the IRI `http://rdfh.ch/c5058f3a` (a
 book from the sample Incunabula project, which is included in the Knora
 API server's test data), make a HTTP GET request to the `resources`
 route (path segment `resources` in the API call) and append the
 URL-encoded IRI:
 
 ```
-HTTP GET to http://host/v2/resources/http%3A%2F%2Fdata.knora.org%2Fc5058f3a
+HTTP GET to http://host/v2/resources/http%3A%2F%2Frdfh.ch%2Fc5058f3a
 ```
 
 If necessary, several resources can be queried at the same time, their
@@ -90,13 +93,88 @@ HTTP GET to http://host/v2/resources/resourceIRI(/anotherResourceIri)*
 ### Get the preview of a resource by its IRI
 
 In some cases, the client may only want to request the preview of a
-resource, which just provides its `rdfs:label` and type.
+resource, which just provides its metadata (e.g. its IRI, `rdfs:label`,
+and type), without its values.
 
 This works exactly like making a conventional resource request, using
 the path segment `resourcespreview`:
 
 ```
 HTTP GET to http://host/v2/resourcespreview/resourceIRI(/anotherResourceIri)*
+```
+
+## Get a Graph of Resources
+
+Knora can return a graph of connections between resources, e.g. for generating
+a network diagram.
+
+```
+HTTP GET to http://host/v2/graph/resourceIRI[depth=Integer]
+[direction=outbound|inbound|both][excludeProperty=propertyIri]
+```
+
+The first parameter must be preceded by a question mark `?`, any
+following parameter by an ampersand `&`.
+
+- `depth` must be at least 1. The maximum depth is an Knora configuration setting.
+  The default is 4.
+- `direction` specifies the direction of the links to be queried, i.e. links to
+  and/or from the given resource. The default is `outbound`.
+- `excludeProperty` is an optional link property to be excluded from the
+  results.
+
+To accommodate large graphs, the graph response format is very concise, and is therefore
+simpler than the usual resources response format. Each resource represented only by its IRI,
+class, and label. Direct links are shown instead of link values. For example:
+
+```jsonld
+{
+  "@graph" : [ {
+    "@id" : "http://rdfh.ch/0001/0C-0L1kORryKzJAJxxRyRQ",
+    "@type" : "anything:Thing",
+    "rdfs:label" : "Sierra"
+  }, {
+    "@id" : "http://rdfh.ch/0001/A67ka6UQRHWf313tbhQBjw",
+    "@type" : "anything:Thing",
+    "rdfs:label" : "Victor"
+  }, {
+    "@id" : "http://rdfh.ch/0001/Lz7WEqJETJqqsUZQYexBQg",
+    "@type" : "anything:Thing",
+    "rdfs:label" : "Foxtrot"
+  }, {
+    "@id" : "http://rdfh.ch/0001/WLSHxQUgTOmG1T0lBU2r5w",
+    "@type" : "anything:Thing",
+    "anything:hasOtherThing" : {
+      "@id" : "http://rdfh.ch/0001/A67ka6UQRHWf313tbhQBjw"
+    },
+    "rdfs:label" : "Tango"
+  }, {
+    "@id" : "http://rdfh.ch/0001/start",
+    "@type" : "anything:Thing",
+    "anything:hasOtherThing" : [ {
+      "@id" : "http://rdfh.ch/0001/0C-0L1kORryKzJAJxxRyRQ"
+    }, {
+      "@id" : "http://rdfh.ch/0001/WLSHxQUgTOmG1T0lBU2r5w"
+    }, {
+      "@id" : "http://rdfh.ch/0001/tPfZeNMvRVujCQqbIbvO0A"
+    } ],
+    "rdfs:label" : "Romeo"
+  }, {
+    "@id" : "http://rdfh.ch/0001/tPfZeNMvRVujCQqbIbvO0A",
+    "@type" : "anything:Thing",
+    "anything:hasOtherThing" : {
+      "@id" : "http://rdfh.ch/0001/Lz7WEqJETJqqsUZQYexBQg"
+    },
+    "rdfs:label" : "Echo"
+  } ],
+  "@context" : {
+    "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "knora-api" : "http://api.knora.org/ontology/knora-api/v2#",
+    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd" : "http://www.w3.org/2001/XMLSchema#",
+    "anything" : "http://0.0.0.0:3333/ontology/0001/anything/v2#"
+  }
+}
 ```
 
 ## Search for Resources
@@ -119,11 +197,12 @@ character:
 With each character added to the last term, the selection gets more
 specific. The first term should at least contain four characters. To
 make this kind of "search as you type" possible, a wildcard character is
-automatically added to the last search
-    term.
+automatically added to the last search term.
 
-    HTTP GET to http://host/v2/searchbylabel/searchValue[limitToResourceClass=resourceClassIRI]
-    [limitToProject=projectIRI][offset=Integer]
+```
+HTTP GET to http://host/v2/searchbylabel/searchValue[limitToResourceClass=resourceClassIRI]
+[limitToProject=projectIRI][offset=Integer]
+```
 
 The first parameter must be preceded by a question mark `?`, any
 following parameter by an ampersand `&`.
@@ -158,8 +237,22 @@ HTTP GET to http://host/v2/search/searchValue[limitToResourceClass=resourceClass
 [limitToStandoffClass=standoffClassIri][limitToProject=projectIRI][offset=Integer]
 ```
 
-Please note that the first parameter has to be preceded by a question
+The first parameter has to be preceded by a question
 mark `?`, any following parameter by an ampersand `&`.
+
+A search value must have a minimal length of three characters (default value) as defined in `app/v2` in `application.conf`.
+
+A search term may contain wildcards. A `?` represents a single character. It has to be URL-encoded as `%3F` since it has a special meaning in the URL syntax. For example, the term `Uniform` can be search for like this:
+
+```
+HTTP GET to http://host/v2/search/Unif%3Frm
+```
+
+A `*` represents zero, one or multiple characters. For example, the term `Uniform` can be searched for like this:
+
+```
+HTTP GET to http://host/v2/search/Uni*m
+```
 
 The default value for the parameter `offset` is 0 which returns the
 first page of search results. Subsequent pages of results can be fetched
@@ -175,6 +268,9 @@ do a count query:
 ```
 HTTP GET to http://host/v2/search/count/searchValue[limitToResourceClass=resourceClassIRI][limitToStandoffClass=standoffClassIri][limitToProject=projectIRI][offset=Integer]
 ```
+
+The first parameter has to be preceded by a question
+mark `?`, any following parameter by an ampersand `&`.
 
 The response to a count query request is an object with one predicate,
 `http://schema.org/numberOfItems`, with an integer value.

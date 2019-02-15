@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -24,16 +24,15 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.RouteTestTimeout
 import com.typesafe.config.ConfigFactory
+import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.groupsmessages.{GroupADM, GroupsADMJsonProtocol}
 import org.knora.webapi.messages.admin.responder.projectsmessages.{ProjectADM, ProjectsADMJsonProtocol}
 import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
 import org.knora.webapi.messages.admin.responder.usersmessages.UsersADMJsonProtocol._
-import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, TriplestoreJsonProtocol}
+import org.knora.webapi.messages.store.triplestoremessages.TriplestoreJsonProtocol
 import org.knora.webapi.messages.v1.responder.sessionmessages.SessionJsonProtocol
 import org.knora.webapi.messages.v1.routing.authenticationmessages.CredentialsV1
 import org.knora.webapi.util.{AkkaHttpUtils, MutableTestIri}
-import org.knora.webapi.{E2ESpec, IRI, SharedTestDataADM, SharedTestDataV1}
-import spray.json._
 
 import scala.concurrent.duration._
 
@@ -41,8 +40,8 @@ import scala.concurrent.duration._
 object UsersADME2ESpec {
     val config = ConfigFactory.parseString(
         """
-          akka.loglevel = "ERROR"
-          akka.stdout-loglevel = "ERROR"
+          akka.loglevel = "DEBUG"
+          akka.stdout-loglevel = "DEBUG"
         """.stripMargin)
 }
 
@@ -55,40 +54,43 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
 
     implicit override lazy val log = akka.event.Logging(system, this.getClass())
 
-    private val rdfDataObjects = List.empty[RdfDataObject]
-
     val rootCreds = CredentialsV1(
-        SharedTestDataV1.rootUser.userData.user_id.get,
-        SharedTestDataV1.rootUser.userData.email.get,
+        SharedTestDataADM.rootUser.id,
+        SharedTestDataADM.rootUser.email,
+        "test"
+    )
+
+    val projectAdminCreds = CredentialsV1(
+        SharedTestDataADM.imagesUser01.id,
+        SharedTestDataADM.imagesUser01.email,
         "test"
     )
 
     val normalUserCreds = CredentialsV1(
-        SharedTestDataV1.normalUser.userData.user_id.get,
-        SharedTestDataV1.normalUser.userData.email.get,
+        SharedTestDataADM.normalUser.id,
+        SharedTestDataADM.normalUser.email,
         "test"
     )
 
-    val inactiveUserEmailEnc = java.net.URLEncoder.encode(SharedTestDataV1.inactiveUser.userData.email.get, "utf-8")
+    private val inactiveUserEmailEnc = java.net.URLEncoder.encode(SharedTestDataV1.inactiveUser.userData.email.get, "utf-8")
 
+    private val normalUserIri = SharedTestDataV1.normalUser.userData.user_id.get
+    private val normalUserIriEnc = java.net.URLEncoder.encode(normalUserIri, "utf-8")
 
-    val normalUserIri = SharedTestDataV1.normalUser.userData.user_id.get
-    val normalUserIriEnc = java.net.URLEncoder.encode(normalUserIri, "utf-8")
+    private val multiUserIri = SharedTestDataV1.multiuserUser.userData.user_id.get
+    private val multiUserIriEnc = java.net.URLEncoder.encode(multiUserIri, "utf-8")
 
-    val multiUserIri = SharedTestDataV1.multiuserUser.userData.user_id.get
-    val multiUserIriEnc = java.net.URLEncoder.encode(multiUserIri, "utf-8")
+    private val wrongEmail = "wrong@example.com"
+    private val wrongEmailEnc = java.net.URLEncoder.encode(wrongEmail, "utf-8")
 
-    val wrongEmail = "wrong@example.com"
-    val wrongEmailEnc = java.net.URLEncoder.encode(wrongEmail, "utf-8")
+    private val testPass = java.net.URLEncoder.encode("test", "utf-8")
+    private val wrongPass = java.net.URLEncoder.encode("wrong", "utf-8")
 
-    val testPass = java.net.URLEncoder.encode("test", "utf-8")
-    val wrongPass = java.net.URLEncoder.encode("wrong", "utf-8")
+    private val imagesProjectIri = SharedTestDataADM.imagesProject.id
+    private val imagesProjectIriEnc = java.net.URLEncoder.encode(imagesProjectIri, "utf-8")
 
-    val imagesProjectIri = SharedTestDataADM.imagesProject.id
-    val imagesProjectIriEnc = java.net.URLEncoder.encode(imagesProjectIri, "utf-8")
-
-    val imagesReviewerGroupIri = SharedTestDataADM.imagesReviewerGroup.id
-    val imagesReviewerGroupIriEnc = java.net.URLEncoder.encode(imagesReviewerGroupIri, "utf-8")
+    private val imagesReviewerGroupIri = SharedTestDataADM.imagesReviewerGroup.id
+    private val imagesReviewerGroupIriEnc = java.net.URLEncoder.encode(imagesReviewerGroupIri, "utf-8")
 
     /**
       * Convenience method returning the users project memberships.
@@ -98,7 +100,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
       */
     private def getUserProjectMemberships(userIri: IRI, credentials: CredentialsV1): Seq[ProjectADM] = {
         val userIriEnc = java.net.URLEncoder.encode(userIri, "utf-8")
-        val request = Get(baseApiUrl + "/admin/users/projects/" + userIriEnc) ~> addCredentials(BasicHttpCredentials(credentials.email, credentials.password))
+        val request = Get(baseApiUrl + s"/admin/users/iri/$userIriEnc/project-memberships") ~> addCredentials(BasicHttpCredentials(credentials.email, credentials.password))
         val response: HttpResponse = singleAwaitingRequest(request)
         AkkaHttpUtils.httpResponseToJson(response).fields("projects").convertTo[Seq[ProjectADM]]
     }
@@ -111,7 +113,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
       */
     private def getUserProjectAdminMemberships(userIri: IRI, credentials: CredentialsV1): Seq[ProjectADM] = {
         val userIriEnc = java.net.URLEncoder.encode(userIri, "utf-8")
-        val request = Get(baseApiUrl + "/admin/users/projects-admin/" + userIriEnc) ~> addCredentials(BasicHttpCredentials(credentials.email, credentials.password))
+        val request = Get(baseApiUrl + s"/admin/users/iri/$userIriEnc/project-admin-memberships") ~> addCredentials(BasicHttpCredentials(credentials.email, credentials.password))
         val response: HttpResponse = singleAwaitingRequest(request)
         AkkaHttpUtils.httpResponseToJson(response).fields("projects").convertTo[Seq[ProjectADM]]
     }
@@ -124,32 +126,25 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
       */
     private def getUserGroupMemberships(userIri: IRI, credentials: CredentialsV1): Seq[GroupADM] = {
         val userIriEnc = java.net.URLEncoder.encode(userIri, "utf-8")
-        val request = Get(baseApiUrl + "/admin/users/groups/" + userIriEnc) ~> addCredentials(BasicHttpCredentials(credentials.email, credentials.password))
+        val request = Get(baseApiUrl + s"/admin/users/iri/$userIriEnc/group-memberships") ~> addCredentials(BasicHttpCredentials(credentials.email, credentials.password))
         val response: HttpResponse = singleAwaitingRequest(request)
         AkkaHttpUtils.httpResponseToJson(response).fields("groups").convertTo[Seq[GroupADM]]
     }
 
-    "Load test data" in {
-        // send POST to 'v1/store/ResetTriplestoreContent'
-        val request = Post(baseApiUrl + "/admin/store/ResetTriplestoreContent", HttpEntity(ContentTypes.`application/json`, rdfDataObjects.toJson.compactPrint))
-        // log.debug(s"request: ${request.toString}")
-        singleAwaitingRequest(request, 300.seconds)
-    }
+    "The Users Route ('admin/users')" when {
 
-    "The Users Route ('v1/users')" when {
-
-        "used to query user information" should {
+        "used to query user information [FUNCTIONALITY]" should {
 
             "return all users" in {
                 val request = Get(baseApiUrl + s"/admin/users") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
-                // log.debug(s"response: ${response.toString}")
+                log.debug(s"response: ${response.toString}")
                 response.status should be(StatusCodes.OK)
             }
 
             "return a single user profile identified by iri" in {
                 /* Correct username and password */
-                val request = Get(baseApiUrl + s"/admin/users/${rootCreds.urlEncodedIri}") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Get(baseApiUrl + s"/admin/users/iri/${rootCreds.urlEncodedIri}") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 response.status should be(StatusCodes.OK)
@@ -157,10 +152,50 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
 
             "return a single user profile identified by email" in {
                 /* Correct username and password */
-                val request = Get(baseApiUrl + s"/admin/users/${rootCreds.urlEncodedEmail}?identifier=email") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Get(baseApiUrl + s"/admin/users/email/${rootCreds.urlEncodedEmail}") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 response.status should be(StatusCodes.OK)
+            }
+
+        }
+
+        "used to query user information [PERMISSIONS]" should {
+
+            "return single user for SystemAdmin" in {
+                val request = Get(baseApiUrl + s"/admin/users/iri/$normalUserIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.OK)
+            }
+
+            "return single user for itself" in {
+                val request = Get(baseApiUrl + s"/admin/users/iri/$normalUserIriEnc") ~> addCredentials(BasicHttpCredentials(normalUserCreds.email, normalUserCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.OK)
+            }
+
+            "return 'Forbiden' for single user for non SystemAdmin" in {
+                val request = Get(baseApiUrl + s"/admin/users/iri/$normalUserIriEnc") ~> addCredentials(BasicHttpCredentials(projectAdminCreds.email, projectAdminCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.Forbidden)
+            }
+
+            "return all users for SystemAdmin" in {
+                val request = Get(baseApiUrl + s"/admin/users") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.OK)
+            }
+
+            "return 'Forbidden' for all users for ProjectAdmin" in {
+                val request = Get(baseApiUrl + s"/admin/users") ~> addCredentials(BasicHttpCredentials(projectAdminCreds.email, projectAdminCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.Forbidden)
+            }
+
+            "return 'Forbidden' for all users for normal user" in {
+                val request = Get(baseApiUrl + s"/admin/users") ~> addCredentials(BasicHttpCredentials(normalUserCreds.email, normalUserCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.Forbidden)
             }
 
         }
@@ -169,11 +204,12 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
 
             val donaldIri = new MutableTestIri
 
-            "create the user and return it's profile if the supplied email is unique " in {
+            "create the user if the supplied email is unique " in {
 
                 val params =
                     s"""
                    |{
+                   |    "username": "donald.duck",
                    |    "email": "donald.duck@example.org",
                    |    "givenName": "Donald",
                    |    "familyName": "Duck",
@@ -191,6 +227,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 response.status should be(StatusCodes.OK)
 
                 val result: UserADM = AkkaHttpUtils.httpResponseToJson(response).fields("user").convertTo[UserADM]
+                result.username should be("donald.duck")
                 result.email should be("donald.duck@example.org")
                 result.givenName should be("Donald")
                 result.familyName should be("Duck")
@@ -206,6 +243,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 val params =
                     s"""
                     {
+                        "username": "donald.big.duck",
                         "email": "donald.big.duck@example.org",
                         "givenName": "Big Donald",
                         "familyName": "Duckmann",
@@ -214,12 +252,13 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                     """.stripMargin
 
                 val userIriEncoded = java.net.URLEncoder.encode(donaldIri.get, "utf-8")
-                val request = Put(baseApiUrl + s"/admin/users/" + userIriEncoded, HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Put(baseApiUrl + s"/admin/users/iri/$userIriEncoded/BasicUserInformation", HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 response.status should be(StatusCodes.OK)
 
                 val result: UserADM = AkkaHttpUtils.httpResponseToJson(response).fields("user").convertTo[UserADM]
+                result.username should be("donald.big.duck")
                 result.email should be("donald.big.duck@example.org")
                 result.givenName should be("Big Donald")
                 result.familyName should be("Duckmann")
@@ -237,7 +276,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                     """.stripMargin
 
 
-                val request1 = Put(baseApiUrl + s"/admin/users/" + normalUserCreds.urlEncodedIri, HttpEntity(ContentTypes.`application/json`, params01)) ~> addCredentials(BasicHttpCredentials(normalUserCreds.email, "test")) // requester's password
+                val request1 = Put(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/Password", HttpEntity(ContentTypes.`application/json`, params01)) ~> addCredentials(BasicHttpCredentials(normalUserCreds.email, "test")) // requester's password
                 val response1: HttpResponse = singleAwaitingRequest(request1)
                 log.debug(s"response: ${response1.toString}")
                 response1.status should be(StatusCodes.OK)
@@ -259,7 +298,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                     """.stripMargin
 
 
-                val request1 = Put(baseApiUrl + s"/admin/users/" + normalUserCreds.urlEncodedIri, HttpEntity(ContentTypes.`application/json`, params01)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, "test")) // requester's password
+                val request1 = Put(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/Password", HttpEntity(ContentTypes.`application/json`, params01)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, "test")) // requester's password
                 val response1: HttpResponse = singleAwaitingRequest(request1)
                 log.debug(s"response: ${response1.toString}")
                 response1.status should be(StatusCodes.OK)
@@ -282,7 +321,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                     """.stripMargin
 
 
-                val request = Put(baseApiUrl + s"/admin/users/" + donaldIriEncoded, HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Put(baseApiUrl + s"/admin/users/iri/$donaldIriEncoded/Status", HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 response.status should be(StatusCodes.OK)
@@ -302,7 +341,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                     """.stripMargin
 
 
-                val request = Put(baseApiUrl + s"/admin/users/" + donaldIriEncoded, HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Put(baseApiUrl + s"/admin/users/iri/$donaldIriEncoded/SystemAdmin" , HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 response.status should be(StatusCodes.OK)
@@ -312,12 +351,63 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 // log.debug(jsonResult)
 
             }
+
+            "not allow changing the system user" in {
+
+                val systemUserIriEncoded = java.net.URLEncoder.encode(KnoraSystemInstances.Users.SystemUser.id, "utf-8")
+
+                val params =
+                    s"""
+                    {
+                        "status": false
+                    }
+                    """.stripMargin
+
+
+                val request = Put(baseApiUrl + s"/admin/users/iri/$systemUserIriEncoded/Status", HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.BadRequest)
+            }
+
+            "not allow changing the anonymous user" in {
+
+                val anonymousUserIriEncoded = java.net.URLEncoder.encode(KnoraSystemInstances.Users.AnonymousUser.id, "utf-8")
+
+                val params =
+                    s"""
+                    {
+                        "status": false
+                    }
+                    """.stripMargin
+
+
+                val request = Put(baseApiUrl + s"/admin/users/iri/$anonymousUserIriEncoded/Status", HttpEntity(ContentTypes.`application/json`, params)) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.BadRequest)
+            }
+
+            "not allow deleting the system user" in {
+                val systemUserIriEncoded = java.net.URLEncoder.encode(KnoraSystemInstances.Users.SystemUser.id, "utf-8")
+
+                val request = Delete(baseApiUrl + s"/admin/users/iri/$systemUserIriEncoded") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.BadRequest)
+            }
+
+            "not allow deleting the anonymous user" in {
+                val anonymousUserIriEncoded = java.net.URLEncoder.encode(KnoraSystemInstances.Users.AnonymousUser.id, "utf-8")
+
+                val request = Delete(baseApiUrl + s"/admin/users/iri/$anonymousUserIriEncoded") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val response: HttpResponse = singleAwaitingRequest(request)
+                response.status should be(StatusCodes.BadRequest)
+            }
+
         }
 
         "used to query project memberships" should {
 
             "return all projects the user is a member of" in {
-                val request = Get(baseApiUrl + s"/admin/users/projects/$multiUserIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Get(baseApiUrl + s"/admin/users/iri/$multiUserIriEnc/project-memberships") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -337,7 +427,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 val membershipsBeforeUpdate = getUserProjectMemberships(normalUserCreds.userIri, rootCreds)
                 membershipsBeforeUpdate should equal(Seq())
 
-                val request = Post(baseApiUrl + "/admin/users/projects/" + normalUserCreds.urlEncodedIri + "/" + imagesProjectIriEnc) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Post(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/project-memberships/$imagesProjectIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -351,7 +441,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 val membershipsBeforeUpdate = getUserProjectMemberships(normalUserCreds.userIri, rootCreds)
                 membershipsBeforeUpdate should equal(Seq(SharedTestDataADM.imagesProject))
 
-                val request = Delete(baseApiUrl + "/admin/users/projects/" + normalUserCreds.urlEncodedIri + "/" + imagesProjectIriEnc) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Delete(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/project-memberships/$imagesProjectIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -364,7 +454,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
         "used to query project admin group memberships" should {
 
             "return all projects the user is a member of the project admin group" in {
-                val request = Get(baseApiUrl + s"/admin/users/projects-admin/$multiUserIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Get(baseApiUrl + s"/admin/users/iri/$multiUserIriEnc/project-admin-memberships") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -384,7 +474,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 //log.debug(s"membershipsBeforeUpdate: $membershipsBeforeUpdate")
                 membershipsBeforeUpdate should equal(Seq())
 
-                val request = Post(baseApiUrl + "/admin/users/projects-admin/" + normalUserCreds.urlEncodedIri + "/" + imagesProjectIriEnc) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Post(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/project-admin-memberships/$imagesProjectIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 //log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -400,7 +490,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 // log.debug(s"membershipsBeforeUpdate: $membershipsBeforeUpdate")
                 membershipsBeforeUpdate should equal(Seq(SharedTestDataADM.imagesProject))
 
-                val request = Delete(baseApiUrl + "/admin/users/projects-admin/" + normalUserCreds.urlEncodedIri + "/" + imagesProjectIriEnc) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Delete(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/project-admin-memberships/$imagesProjectIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -415,7 +505,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
         "used to query group memberships" should {
 
             "return all groups the user is a member of" in {
-                val request = Get(baseApiUrl + s"/admin/users/groups/$multiUserIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Get(baseApiUrl + s"/admin/users/iri/$multiUserIriEnc/group-memberships") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -435,7 +525,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 val membershipsBeforeUpdate = getUserGroupMemberships(normalUserCreds.userIri, rootCreds)
                 membershipsBeforeUpdate should equal(Seq.empty[GroupADM])
 
-                val request = Post(baseApiUrl + "/admin/users/groups/" + normalUserCreds.urlEncodedIri + "/" + imagesReviewerGroupIriEnc) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Post(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/group-memberships/$imagesReviewerGroupIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)
@@ -449,7 +539,7 @@ class UsersADME2ESpec extends E2ESpec(UsersADME2ESpec.config) with ProjectsADMJs
                 val membershipsBeforeUpdate = getUserGroupMemberships(normalUserCreds.userIri, rootCreds)
                 membershipsBeforeUpdate should equal(Seq(SharedTestDataADM.imagesReviewerGroup))
 
-                val request = Delete(baseApiUrl + "/admin/users/groups/" + normalUserCreds.urlEncodedIri + "/" + imagesReviewerGroupIriEnc) ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
+                val request = Delete(baseApiUrl + s"/admin/users/iri/${normalUserCreds.urlEncodedIri}/group-memberships/$imagesReviewerGroupIriEnc") ~> addCredentials(BasicHttpCredentials(rootCreds.email, rootCreds.password))
                 val response: HttpResponse = singleAwaitingRequest(request)
                 // log.debug(s"response: ${response.toString}")
                 assert(response.status === StatusCodes.OK)

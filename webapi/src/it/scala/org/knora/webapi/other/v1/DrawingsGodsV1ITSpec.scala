@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -26,11 +26,8 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import com.typesafe.config.ConfigFactory
 import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, TriplestoreJsonProtocol}
-import org.knora.webapi.util.TestingUtilities
 import org.knora.webapi.{ITKnoraLiveSpec, InvalidApiJsonException}
 import spray.json._
-
-import scala.concurrent.duration._
 
 object DrawingsGodsV1ITSpec {
     val config = ConfigFactory.parseString(
@@ -43,32 +40,16 @@ object DrawingsGodsV1ITSpec {
 /**
   * End-to-End (E2E) test specification for additional testing of permissions.
   */
-class DrawingsGodsV1ITSpec extends ITKnoraLiveSpec(DrawingsGodsV1ITSpec.config) with TriplestoreJsonProtocol with TestingUtilities {
+class DrawingsGodsV1ITSpec extends ITKnoraLiveSpec(DrawingsGodsV1ITSpec.config) with TriplestoreJsonProtocol {
 
     implicit override lazy val log = akka.event.Logging(system, this.getClass())
 
-    private val rdfDataObjects: List[RdfDataObject] = List(
+    override lazy val rdfDataObjects: List[RdfDataObject] = List(
         RdfDataObject(path = "_test_data/other.v1.DrawingsGodsV1Spec/drawings-gods_admin-data.ttl", name = "http://www.knora.org/data/admin"),
         RdfDataObject(path = "_test_data/other.v1.DrawingsGodsV1Spec/drawings-gods_permissions-data.ttl", name = "http://www.knora.org/data/permissions"),
         RdfDataObject(path = "_test_data/other.v1.DrawingsGodsV1Spec/drawings-gods_ontology.ttl", name = "http://www.knora.org/ontology/0105/drawings-gods"),
         RdfDataObject(path = "_test_data/other.v1.DrawingsGodsV1Spec/drawings-gods_data.ttl", name = "http://www.knora.org/data/0105/drawings-gods")
     )
-
-    // creates tmp directory if not found
-    createTmpFileDir()
-
-    "Check if Sipi is running" in {
-        // This requires that (1) fileserver.docroot is set in Sipi's config file and (2) it contains a file test.html.
-        val request = Get(baseSipiUrl + "/server/test.html")
-        val response = singleAwaitingRequest(request)
-        assert(response.status == StatusCodes.OK, s"Sipi is probably not running: ${response.status}")
-    }
-
-    "Load test data" in {
-        // send POST to 'v1/store/ResetTriplestoreContent'
-        val request = Post(baseApiUrl + "/admin/store/ResetTriplestoreContent", HttpEntity(ContentTypes.`application/json`, rdfDataObjects.toJson.compactPrint))
-        singleAwaitingRequest(request, 300.seconds)
-    }
 
     "issue: https://github.com/dhlab-basel/Knora/issues/408" should {
 

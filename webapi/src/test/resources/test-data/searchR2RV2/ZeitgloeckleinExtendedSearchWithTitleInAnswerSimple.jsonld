@@ -1,19 +1,28 @@
 {
   "@graph" : [ {
-    "@id" : "http://rdfh.ch/c5058f3a",
+    "@id" : "http://rdfh.ch/0803/c5058f3a",
     "@type" : "incunabula:book",
     "incunabula:title" : "Zeitglöcklein des Lebens und Leidens Christi",
+    "knora-api:arkUrl" : {
+      "@type" : "xsd:anyURI",
+      "@value" : "http://0.0.0.0:3336/ark:/72163/1/0803/c5058f3a5"
+    },
     "rdfs:label" : "Zeitglöcklein des Lebens und Leidens Christi"
   }, {
-    "@id" : "http://rdfh.ch/ff17e5ef9601",
+    "@id" : "http://rdfh.ch/0803/ff17e5ef9601",
     "@type" : "incunabula:book",
     "incunabula:title" : "Zeitglöcklein des Lebens und Leidens Christi",
+    "knora-api:arkUrl" : {
+      "@type" : "xsd:anyURI",
+      "@value" : "http://0.0.0.0:3336/ark:/72163/1/0803/ff17e5ef9601j"
+    },
     "rdfs:label" : "Zeitglöcklein des Lebens und Leidens Christi"
   } ],
   "@context" : {
     "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "knora-api" : "http://api.knora.org/ontology/knora-api/simple/v2#",
     "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
-    "incunabula" : "http://0.0.0.0:3333/ontology/0803/incunabula/simple/v2#"
+    "incunabula" : "http://0.0.0.0:3333/ontology/0803/incunabula/simple/v2#",
+    "xsd" : "http://www.w3.org/2001/XMLSchema#"
   }
 }

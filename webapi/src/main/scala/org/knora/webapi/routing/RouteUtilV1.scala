@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,7 +19,7 @@
 
 package org.knora.webapi.routing
 
-import akka.actor.ActorSelection
+import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.{RequestContext, RouteResult}
@@ -45,7 +45,7 @@ object RouteUtilV1 {
     /**
       * Sends a message to a responder and completes the HTTP request by returning the response as JSON.
       *
-      * @param requestMessage   a future containing a [[KnoraRequestV1]] message that should be sent to the responder manager.
+      * @param requestMessage   a [[KnoraRequestV1]] message that should be sent to the responder manager.
       * @param requestContext   the akka-http [[RequestContext]].
       * @param settings         the application's settings.
       * @param responderManager a reference to the responder manager.
@@ -57,7 +57,7 @@ object RouteUtilV1 {
     def runJsonRoute(requestMessage: KnoraRequestV1,
                      requestContext: RequestContext,
                      settings: SettingsImpl,
-                     responderManager: ActorSelection,
+                     responderManager: ActorRef,
                      log: LoggingAdapter)
                     (implicit timeout: Timeout, executionContext: ExecutionContext): Future[RouteResult] = {
         // Optionally log the request message. TODO: move this to the testing framework.
@@ -110,7 +110,7 @@ object RouteUtilV1 {
     def runJsonRouteWithFuture[RequestMessageT <: KnoraRequestV1](requestMessageF: Future[RequestMessageT],
                                                                   requestContext: RequestContext,
                                                                   settings: SettingsImpl,
-                                                                  responderManager: ActorSelection,
+                                                                  responderManager: ActorRef,
                                                                   log: LoggingAdapter)
                                                                  (implicit timeout: Timeout, executionContext: ExecutionContext): Future[RouteResult] = {
         for {
@@ -130,7 +130,7 @@ object RouteUtilV1 {
       *
       * @tparam RequestMessageT the type of request message to be sent to the responder.
       * @tparam ReplyMessageT   the type of reply message expected from the responder.
-      * @param requestMessage   the message that should be sent to the responder manager.
+      * @param requestMessageF  a [[Future]] containing the message that should be sent to the responder manager.
       * @param viewHandler      a function that can generate HTML from the responder's reply message.
       * @param requestContext   the [[RequestContext]].
       * @param settings         the application's settings.
@@ -139,20 +139,23 @@ object RouteUtilV1 {
       * @param timeout          a timeout for `ask` messages.
       * @param executionContext an execution context for futures.
       */
-    def runHtmlRoute[RequestMessageT <: KnoraRequestV1, ReplyMessageT <: KnoraResponseV1 : ClassTag](requestMessage: RequestMessageT,
-                                                                                                     viewHandler: (ReplyMessageT, ActorSelection) => String,
+    def runHtmlRoute[RequestMessageT <: KnoraRequestV1, ReplyMessageT <: KnoraResponseV1 : ClassTag](requestMessageF: Future[RequestMessageT],
+                                                                                                     viewHandler: (ReplyMessageT, ActorRef) => String,
                                                                                                      requestContext: RequestContext,
                                                                                                      settings: SettingsImpl,
-                                                                                                     responderManager: ActorSelection,
+                                                                                                     responderManager: ActorRef,
                                                                                                      log: LoggingAdapter)
                                                                                                     (implicit timeout: Timeout, executionContext: ExecutionContext): Future[RouteResult] = {
 
-        // Optionally log the request message. TODO: move this to the testing framework.
-        if (settings.dumpMessages) {
-            log.debug(requestMessage.toString)
-        }
-
         val httpResponse: Future[HttpResponse] = for {
+
+            requestMessage <- requestMessageF
+
+            // Optionally log the request message. TODO: move this to the testing framework.
+            _ = if (settings.dumpMessages) {
+                log.debug(requestMessage.toString)
+            }
+
             // Make sure the responder sent a reply of type ReplyMessageT.
             knoraResponse <- (responderManager ? requestMessage).map {
                 case replyMessage: ReplyMessageT => replyMessage
@@ -202,13 +205,13 @@ object RouteUtilV1 {
                                   acceptStandoffLinksToClientIDs: Boolean,
                                   userProfile: UserADM,
                                   settings: SettingsImpl,
-                                  responderManager: ActorSelection,
+                                  responderManager: ActorRef,
                                   log: LoggingAdapter)(implicit timeout: Timeout, executionContext: ExecutionContext): Future[TextWithStandoffTagsV2] = {
 
         for {
 
             // get the mapping directly from v2 responder directly (to avoid useless back and forth conversions between v2 and v1 message formats)
-            mappingResponse: GetMappingResponseV2 <- (responderManager ? GetMappingRequestV2(mappingIri = mappingIri, userProfile = userProfile)).mapTo[GetMappingResponseV2]
+            mappingResponse: GetMappingResponseV2 <- (responderManager ? GetMappingRequestV2(mappingIri = mappingIri, requestingUser = userProfile)).mapTo[GetMappingResponseV2]
 
             textWithStandoffTagV1 = StandoffTagUtilV2.convertXMLtoStandoffTagV2(
                 xml = xml,

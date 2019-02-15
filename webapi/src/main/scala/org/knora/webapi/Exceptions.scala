@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -219,6 +219,14 @@ case class FileUploadException(message: String = "Error during file upload. Plea
   * @param message a description of the error.
   */
 case class UpdateNotPerformedException(message: String = "A requested update was not performed. Please report this as a possible bug.") extends InternalServerException(message)
+
+/**
+  * An exception indicating that an unsupported value was passed.
+  * This probably indicates a bug.
+  *
+  * @param message a description of the error.
+  */
+case class UnsupportedValueException(message: String = "An unsupported value was given. Please report this as a possible bug.") extends InternalServerException(message)
 
 /**
   * An abstract class for exceptions indicating that something went wrong with the triplestore.

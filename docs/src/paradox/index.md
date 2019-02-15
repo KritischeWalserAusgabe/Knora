@@ -1,5 +1,5 @@
 <!---
-Copyright © 2015-2018 the contributors (see Contributors.md).
+Copyright © 2015-2019 the contributors (see Contributors.md).
 
 This file is part of Knora.
 
@@ -24,7 +24,6 @@ Knora Documentation
 
 @@@ index
 
-* [Release Notes](00-release-notes/index.md)
 * [Introduction](01-introduction/index.md)
 * [Knora Ontologies](02-knora-ontologies/index.md)
 * [Knora APIs](03-apis/index.md)
@@ -33,5 +32,6 @@ Knora Documentation
 * [Salsah](06-salsah/index.md)
 * [Sipi](07-sipi/index.md)
 * [Frequently Asked Questions](faq.md)
+* [Release Notes](00-release-notes/index.md)
 
 @@@

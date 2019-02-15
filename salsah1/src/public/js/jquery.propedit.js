@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -1505,7 +1505,10 @@
 						tmpele.val(front + '<+LINKTO RESID=' + dropdata.resid + '+>'+ back);
 					});*/
 					if (!is_new_value) {
-						tmpele.append(propinfo[prop].values[value_index].utf8str);
+						// encode '<strong>' in '&lt;strong&gt;'
+						tmpele.text(propinfo[prop].values[value_index].utf8str);
+						// replace the remaining '\n' with '<br>'
+						tmpele.html(tmpele.html().replace(/\n/g, '<br>'));
 					}
 					value_container.append(tmpele);
 					tmpele.focus();
@@ -1724,8 +1727,12 @@
 					    type: "checkbox"
 					});
 
-					if (propinfo[prop].values[value_index]) {
-						checkbox.attr('checked', true);
+					if (is_new_value) {
+						checkbox.attr('checked', false);
+					} else {
+						if (propinfo[prop].values[value_index]) {
+							checkbox.attr('checked', true);
+						}
 					}
 
 					checkbox.attr(attributes);
@@ -1741,7 +1748,7 @@
 					$.each(attrs, function() {
 						var attr = this.split('=');
 						if (attr[0] == 'hlist') {
-							//hlist_id = attr[1]; // "<http://data.knora.org/lists/d4f8e79ce2>"
+							//hlist_id = attr[1]; // "<http://rdfh.ch/lists/d4f8e79ce2>"
 							hlist_id = attr[1].replace("<", "").replace(">", ""); // remove brackets from Iri to make it a valid URL
 						}
 					});

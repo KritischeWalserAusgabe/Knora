@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,16 +21,15 @@ package org.knora.webapi.responders.admin
 
 import java.util.UUID
 
-import akka.actor.Status
 import akka.http.scaladsl.util.FastFuture
 import akka.pattern._
 import org.knora.webapi.messages.admin.responder.groupsmessages._
 import org.knora.webapi.messages.admin.responder.projectsmessages.{ProjectADM, ProjectGetADM}
-import org.knora.webapi.messages.admin.responder.usersmessages.{UserADM, UserGetADM, UserInformationTypeADM}
+import org.knora.webapi.messages.admin.responder.usersmessages.{UserADM, UserGetADM, UserIdentifierADM, UserInformationTypeADM}
 import org.knora.webapi.messages.store.triplestoremessages._
 import org.knora.webapi.messages.v1.responder.projectmessages._
-import org.knora.webapi.responders.{IriLocker, Responder}
-import org.knora.webapi.util.ActorUtil._
+import org.knora.webapi.responders.Responder.handleUnexpectedMessage
+import org.knora.webapi.responders.{IriLocker, Responder, ResponderData}
 import org.knora.webapi.util.KnoraIdUtil
 import org.knora.webapi.{DuplicateValueException, _}
 
@@ -40,7 +39,7 @@ import scala.concurrent.Future
 /**
   * Returns information about Knora projects.
   */
-class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
+class GroupsResponderADM(responderData: ResponderData) extends Responder(responderData) with GroupsADMJsonProtocol  {
 
     // Creates IRIs for new Knora user objects.
     val knoraIdUtil = new KnoraIdUtil
@@ -49,19 +48,18 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
     val GROUPS_GLOBAL_LOCK_IRI = "http://rdfh.ch/groups"
 
     /**
-      * Receives a message extending [[ProjectsResponderRequestV1]], and returns an appropriate response message, or
-      * [[Status.Failure]]. If a serious error occurs (i.e. an error that isn't the client's fault), this
-      * method first returns `Failure` to the sender, then throws an exception.
+      * Receives a message extending [[ProjectsResponderRequestV1]], and returns an appropriate response message
       */
-    def receive: PartialFunction[Any, Unit] = {
-        case GroupsGetADM(requestingUser) => future2Message(sender(), groupsGetADM(requestingUser), log)
-        case GroupsGetRequestADM(requestingUser) => future2Message(sender(), groupsGetRequestADM(requestingUser), log)
-        case GroupGetADM(groupIri, requestingUser) => future2Message(sender(), groupGetADM(groupIri, requestingUser), log)
-        case GroupGetRequestADM(groupIri, requestingUser) => future2Message(sender(), groupGetRequestADM(groupIri, requestingUser), log)
-        case GroupMembersGetRequestADM(groupIri, userProfileV1) => future2Message(sender(), groupMembersGetRequestADM(groupIri, userProfileV1), log)
-        case GroupCreateRequestADM(newGroupInfo, userProfile, apiRequestID) => future2Message(sender(), createGroupADM(newGroupInfo, userProfile, apiRequestID), log)
-        case GroupChangeRequestADM(groupIri, changeGroupRequest, userProfileV1, apiRequestID) => future2Message(sender(), changeGroupBasicInformationRequestADM(groupIri, changeGroupRequest, userProfileV1, apiRequestID), log)
-        case other => handleUnexpectedMessage(sender(), other, log, this.getClass.getName)
+    def receive(msg: GroupsResponderRequestADM) = msg match {
+        case GroupsGetADM(requestingUser) => groupsGetADM(requestingUser)
+        case GroupsGetRequestADM(requestingUser) => groupsGetRequestADM(requestingUser)
+        case GroupGetADM(groupIri, requestingUser) => groupGetADM(groupIri, requestingUser)
+        case MultipleGroupsGetRequestADM(groupIris, requestingUser) => multipleGroupsGetRequestADM(groupIris, requestingUser)
+        case GroupGetRequestADM(groupIri, requestingUser) => groupGetRequestADM(groupIri, requestingUser)
+        case GroupMembersGetRequestADM(groupIri, userProfileV1) => groupMembersGetRequestADM(groupIri, userProfileV1)
+        case GroupCreateRequestADM(newGroupInfo, userProfile, apiRequestID) => createGroupADM(newGroupInfo, userProfile, apiRequestID)
+        case GroupChangeRequestADM(groupIri, changeGroupRequest, userProfileV1, apiRequestID) => changeGroupBasicInformationRequestADM(groupIri, changeGroupRequest, userProfileV1, apiRequestID)
+        case other => handleUnexpectedMessage(other, log, this.getClass.getName)
     }
 
     /**
@@ -172,9 +170,24 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
             maybeGroupADM: Option[GroupADM] <- groupGetADM(groupIri, requestingUser)
             result = maybeGroupADM match {
                 case Some(group) => GroupGetResponseADM(group = group)
-                case None => throw NotFoundException(s"For the given group iri '$groupIri' no information was found")
+                case None => throw NotFoundException(s"Group <$groupIri> not found")
             }
         } yield result
+    }
+
+    /**
+      * Gets the groups with the given IRIs and returns a set of [[GroupGetResponseADM]] objects.
+      *
+      * @param groupIris the IRIs of the groups being requested.
+      * @param requestingUser the user initiating the request.
+      * @return information about the group as a set of [[GroupGetResponseADM]] objects.
+      */
+    private def multipleGroupsGetRequestADM(groupIris: Set[IRI], requestingUser: UserADM): Future[Set[GroupGetResponseADM]] = {
+        val groupResponseFutures: Set[Future[GroupGetResponseADM]] = groupIris.map {
+            groupIri => groupGetRequestADM(groupIri = groupIri, requestingUser = requestingUser)
+        }
+
+        Future.sequence(groupResponseFutures)
     }
 
     /**
@@ -184,14 +197,14 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
       * @param requestingUser the user initiating the request.
       * @return
       */
-    def groupMembersGetRequestADM(groupIri: IRI, requestingUser: UserADM): Future[GroupMembersGetResponseADM] = {
+    private def groupMembersGetRequestADM(groupIri: IRI, requestingUser: UserADM): Future[GroupMembersGetResponseADM] = {
 
         //log.debug("groupMembersByIRIGetRequestV1 - groupIri: {}", groupIri)
 
         for {
             groupExists: Boolean <- groupExists(groupIri)
 
-            _ = if (!groupExists) throw NotFoundException(s"Group '$groupIri' not found.")
+            _ = if (!groupExists) throw NotFoundException(s"Group <$groupIri> not found")
 
             sparqlQueryString <- Future(queries.sparql.v1.txt.getGroupMembersByIri(
                 triplestore = settings.triplestoreType,
@@ -212,7 +225,7 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
             _ = log.debug("groupMembersGetRequestADM - groupMemberIris: {}", groupMemberIris)
 
             maybeUsersFutures: Seq[Future[Option[UserADM]]] = groupMemberIris.map {
-                userIri => (responderManager ? UserGetADM(maybeIri = Some(userIri), maybeEmail = None, userInformationTypeADM = UserInformationTypeADM.RESTRICTED, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[UserADM]]
+                userIri => (responderManager ? UserGetADM(UserIdentifierADM(maybeIri = Some(userIri)), userInformationTypeADM = UserInformationTypeADM.RESTRICTED, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[UserADM]]
             }
             maybeUsers: Seq[Option[UserADM]] <- Future.sequence(maybeUsersFutures)
             users: Seq[UserADM] = maybeUsers.flatten
@@ -247,14 +260,14 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
 
             nameExists <- groupByNameAndProjectExists(name = createRequest.name, projectIri = createRequest.project)
             _ = if (nameExists) {
-                throw DuplicateValueException(s"Group with the name: '${createRequest.name}' already exists")
+                throw DuplicateValueException(s"Group with the name '${createRequest.name}' already exists")
             }
 
             maybeProjectADM: Option[ProjectADM] <- (responderManager ? ProjectGetADM(maybeIri = Some(createRequest.project), maybeShortcode = None, maybeShortname = None, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[ProjectADM]]
 
             projectADM: ProjectADM = maybeProjectADM match {
                 case Some(p) => p
-                case None => throw NotFoundException(s"Cannot create group inside project: '${createRequest.project}. The project was not found.")
+                case None => throw NotFoundException(s"Cannot create group inside project <${createRequest.project}>. The project was not found.")
             }
 
             /* generate a new random group IRI */
@@ -316,7 +329,7 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
 
             /* Get the project IRI which also verifies that the group exists. */
             maybeGroupADM <- groupGetADM(groupIri, KnoraSystemInstances.Users.SystemUser)
-            groupADM: GroupADM = maybeGroupADM.getOrElse(throw NotFoundException(s"Group '$groupIri' not found. Aborting update request."))
+            groupADM: GroupADM = maybeGroupADM.getOrElse(throw NotFoundException(s"Group <$groupIri> not found. Aborting update request."))
 
             /* check if the requesting user is allowed to perform updates */
             _ = if (!requestingUser.permissions.isProjectAdmin(groupADM.project.id) && !requestingUser.permissions.isSystemAdmin) {
@@ -371,7 +384,7 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
         for {
             /* Verify that the group exists. */
             maybeGroupADM <- groupGetADM(groupIri = groupIri, requestingUser = KnoraSystemInstances.Users.SystemUser)
-            groupADM: GroupADM = maybeGroupADM.getOrElse(throw NotFoundException(s"Group '$groupIri' not found. Aborting update request."))
+            groupADM: GroupADM = maybeGroupADM.getOrElse(throw NotFoundException(s"Group <$groupIri> not found. Aborting update request."))
 
             /* Verify that the potentially new name is unique */
             groupByNameAlreadyExists <- if (groupUpdatePayload.name.nonEmpty) {
@@ -383,7 +396,7 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
 
             _ = if (groupByNameAlreadyExists) {
                 log.debug("updateGroupADM - about to throw an exception. Group with that name already exists.")
-                throw BadRequestException(s"Group with the name: '${groupUpdatePayload.name.get}' already exists.")
+                throw BadRequestException(s"Group with the name '${groupUpdatePayload.name.get}' already exists.")
             }
 
 
@@ -486,7 +499,7 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
       * @param groupIri the IRI of the group.
       * @return a [[Boolean]].
       */
-    def groupExists(groupIri: IRI): Future[Boolean] = {
+    private def groupExists(groupIri: IRI): Future[Boolean] = {
         for {
             askString <- Future(queries.sparql.admin.txt.checkGroupExistsByIri(groupIri = groupIri).toString)
             //_ = log.debug("groupExists - query: {}", askString)
@@ -504,7 +517,7 @@ class GroupsResponderADM extends Responder with GroupsADMJsonProtocol {
       * @param projectIri the IRI of the project.
       * @return a [[Boolean]].
       */
-    def groupByNameAndProjectExists(name: String, projectIri: IRI): Future[Boolean] = {
+    private def groupByNameAndProjectExists(name: String, projectIri: IRI): Future[Boolean] = {
 
         for {
             askString <- Future(queries.sparql.admin.txt.checkGroupExistsByName(projectIri = projectIri, name = name).toString)

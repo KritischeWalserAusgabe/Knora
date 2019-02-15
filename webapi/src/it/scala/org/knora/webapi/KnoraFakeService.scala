@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -25,8 +25,11 @@ import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import org.knora.webapi.util.StringFormatter
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
+
 /**
-  * Created by subotic on 26.06.17.
+  * A fake Knora service that Sipi can use to get file permissions.
   */
 trait KnoraFakeService {
 
@@ -35,16 +38,21 @@ trait KnoraFakeService {
     // Initialise StringFormatter with the system settings.
     StringFormatter.initForTest()
 
+
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
+
+    implicit val executionContext: ExecutionContext = system.dispatchers.lookup(KnoraDispatchers.KnoraBlockingDispatcher)
+
     /**
       * Timeout definition (need to be high enough to allow reloading of data so that checkActorSystem doesn't timeout)
       */
-    implicit private val timeout = settings.defaultRestoreTimeout
+    implicit private val timeout: FiniteDuration = settings.defaultTimeout
 
     /**
       * Faked `webapi` routes
       */
     private val apiRoutes = {
-        path("v1" / "files" / Segment) { file =>
+        path("admin" / "files" / Segments(2)) { projectIDAndFile =>
             get {
                 complete(
                     """
@@ -62,12 +70,6 @@ trait KnoraFakeService {
       * Starts the Faked Knora API server.
       */
     def startService(): Unit = {
-
-        implicit val materializer = ActorMaterializer()
-
-        // needed for startup flags and the future map/flatmap in the end
-        implicit val executionContext = system.dispatcher
-
         Http().bindAndHandle(Route.handlerFlow(apiRoutes), settings.internalKnoraApiHost, settings.internalKnoraApiPort)
         println(s"Knora API Server started at http://${settings.internalKnoraApiHost}:${settings.internalKnoraApiPort}.")
     }

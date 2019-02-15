@@ -12,6 +12,9 @@ knora-api:Annotation a owl:Class;
   rdfs:label "Annotation";
   rdfs:subClassOf knora-api:Resource, [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 1;
@@ -38,6 +41,9 @@ knora-api:Resource a owl:Class;
   rdfs:label "Resource";
   rdfs:subClassOf [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 0;
@@ -53,6 +59,11 @@ knora-api:Resource a owl:Class;
       owl:onProperty rdfs:label
     ] .
 
+knora-api:arkUrl a owl:DatatypeProperty;
+  knora-api:objectType xsd:anyURI;
+  rdfs:comment "Provides the ARK URL of a resource.";
+  rdfs:label "ARK URL" .
+
 knora-api:creationDate a owl:DatatypeProperty;
   knora-api:objectType xsd:dateTimeStamp;
   knora-api:subjectType knora-api:Resource;
@@ -64,6 +75,13 @@ knora-api:hasComment a owl:DatatypeProperty;
   rdfs:comment "Represents a comment on a resource as a knora-base:TextValue";
   rdfs:label "Comment";
   rdfs:subPropertyOf knora-api:hasValue .
+
+knora-api:hasIncomingLink a owl:ObjectProperty;
+  knora-api:objectType knora-api:Resource;
+  knora-api:subjectType knora-api:Resource;
+  rdfs:comment "Indicates that this resource referred to by another resource";
+  rdfs:label "has incoming link";
+  rdfs:subPropertyOf knora-api:hasLinkTo .
 
 knora-api:hasStandoffLinkTo a owl:ObjectProperty;
   knora-api:objectType knora-api:Resource;
@@ -85,6 +103,12 @@ knora-api:AudioRepresentation a owl:Class;
   rdfs:comment "Represents a file containing audio data";
   rdfs:label "Representation (Audio)";
   rdfs:subClassOf knora-api:Representation, [ a owl:Restriction;
+      owl:minCardinality 1;
+      owl:onProperty knora-api:hasAudioFile
+    ], [ a owl:Restriction;
+      owl:minCardinality 0;
+      owl:onProperty knora-api:hasIncomingLink
+    ], [ a owl:Restriction;
       owl:minCardinality 0;
       owl:onProperty knora-api:hasStandoffLinkTo
     ], [ a owl:Restriction;
@@ -95,19 +119,19 @@ knora-api:AudioRepresentation a owl:Class;
       owl:onProperty rdfs:label
     ], [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
-    ], [ a owl:Restriction;
-      owl:minCardinality 1;
-      owl:onProperty knora-api:hasAudioFile
-    ], [ a owl:Restriction;
-      owl:minCardinality 0;
-      owl:onProperty knora-api:hasIncomingLink
     ] .
 
 knora-api:Representation a owl:Class;
   rdfs:comment "A resource that can store one or more files";
   rdfs:label "Representation";
   rdfs:subClassOf knora-api:Resource, [ a owl:Restriction;
+      owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
       owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
@@ -149,6 +173,9 @@ knora-api:DDDRepresentation a owl:Class;
   rdfs:label "Representation (3D)";
   rdfs:subClassOf knora-api:Representation, [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 1;
@@ -188,6 +215,9 @@ knora-api:DocumentRepresentation a owl:Class;
   rdfs:label "Representation (Document)";
   rdfs:subClassOf knora-api:Representation, [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 1;
@@ -222,6 +252,9 @@ knora-api:ForbiddenResource a owl:Class;
   rdfs:comment "A ForbiddenResource is a proxy for a resource that the client has insufficient permissions to see.";
   rdfs:label "A ForbiddenResource is a proxy for a resource that the client has insufficient permissions to see.";
   rdfs:subClassOf knora-api:Resource, [ a owl:Restriction;
+      owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
       owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
@@ -272,6 +305,9 @@ knora-api:LinkObj a owl:Class;
   rdfs:label "Link Object";
   rdfs:subClassOf knora-api:Resource, [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 0;
@@ -305,6 +341,9 @@ knora-api:MovingImageRepresentation a owl:Class;
   rdfs:label "Representation (Movie)";
   rdfs:subClassOf knora-api:Representation, [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 0;
@@ -335,6 +374,9 @@ knora-api:Region a owl:Class;
   rdfs:comment "Represents a geometric region of a resource. The geometry is represented currently as JSON string.";
   rdfs:label "Region";
   rdfs:subClassOf knora-api:Resource, [ a owl:Restriction;
+      owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
       owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
@@ -391,364 +433,13 @@ knora-api:hasFile a owl:DatatypeProperty;
   rdfs:label "has file";
   rdfs:subPropertyOf knora-api:hasValue .
 
-knora-api:StandoffBooleanTag a owl:Class;
-  rdfs:comment "Represents a boolean in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:StandoffDataTypeTag a owl:Class;
-  rdfs:comment "Represents a knora-base value type in a TextValue";
-  rdfs:subClassOf knora-api:StandoffTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:standoffTagHasEnd a owl:DatatypeProperty;
-  knora-api:objectType xsd:integer;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasEndIndex a owl:DatatypeProperty;
-  knora-api:objectType xsd:integer;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasEndParent a owl:ObjectProperty;
-  knora-api:objectType knora-api:StandoffTag;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasOriginalXMLID a owl:DatatypeProperty;
-  knora-api:objectType xsd:string;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasStart a owl:DatatypeProperty;
-  knora-api:objectType xsd:integer;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasStartIndex a owl:DatatypeProperty;
-  knora-api:objectType xsd:integer;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasStartParent a owl:ObjectProperty;
-  knora-api:objectType knora-api:StandoffTag;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:standoffTagHasUUID a owl:DatatypeProperty;
-  knora-api:objectType xsd:string;
-  knora-api:subjectType knora-api:StandoffTag .
-
-knora-api:StandoffColorTag a owl:Class;
-  rdfs:comment "Represents a color in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:StandoffTag a owl:Class;
-  rdfs:comment "Represents a standoff markup tag";
-  rdfs:subClassOf [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:StandoffDateTag a owl:Class;
-  rdfs:comment "Represents a date in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ] .
-
-knora-api:StandoffDecimalTag a owl:Class;
-  rdfs:comment "Represents a decimal (floating point) value in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:StandoffIntegerTag a owl:Class;
-  rdfs:comment "Represents an integer value in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:StandoffInternalReferenceTag a owl:Class;
-  rdfs:comment "Represents an internal reference in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasInternalReference
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:standoffTagHasInternalReference a owl:ObjectProperty;
-  knora-api:objectType knora-api:StandoffTag;
-  knora-api:subjectType knora-api:StandoffInternalReferenceTag .
-
-knora-api:StandoffIntervalTag a owl:Class;
-  rdfs:comment "Represents an interval in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:StandoffLinkTag a owl:Class;
-  rdfs:comment "Represents a reference to a Knora resource in a TextValue";
-  rdfs:subClassOf knora-api:StandoffTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasLink
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
-knora-api:standoffTagHasLink a owl:ObjectProperty;
-  knora-api:objectType knora-api:Resource;
-  knora-api:subjectType knora-api:StandoffLinkTag .
-
-knora-api:StandoffUriTag a owl:Class;
-  rdfs:comment "Represents an arbitrary URI in a TextValue";
-  rdfs:subClassOf knora-api:StandoffDataTypeTag, [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasEnd
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasEndParent
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasOriginalXMLID
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStart
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartIndex
-    ], [ a owl:Restriction;
-      owl:maxCardinality 1;
-      owl:onProperty knora-api:standoffTagHasStartParent
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
-      owl:onProperty knora-api:standoffTagHasUUID
-    ] .
-
 knora-api:StillImageRepresentation a owl:Class;
   rdfs:comment "A resource that can contain two-dimensional still image files";
   rdfs:label "Representation (Image)";
   rdfs:subClassOf knora-api:Representation, [ a owl:Restriction;
+      owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
       owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
@@ -780,6 +471,9 @@ knora-api:TextRepresentation a owl:Class;
   rdfs:label "Representation (Text)";
   rdfs:subClassOf knora-api:Representation, [ a owl:Restriction;
       owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
       owl:onProperty knora-api:creationDate
     ], [ a owl:Restriction;
       owl:minCardinality 0;
@@ -810,15 +504,6 @@ knora-api:XSLTransformation a owl:Class;
   rdfs:label "a TextRepresentation representing an XSL transformation that can be applied to an XML created from standoff. The transformation's result is ecptected to be HTML.";
   rdfs:subClassOf knora-api:TextRepresentation, [ a owl:Restriction;
       owl:cardinality 1;
-      owl:onProperty knora-api:creationDate
-    ], [ a owl:Restriction;
-      owl:minCardinality 0;
-      owl:onProperty knora-api:hasIncomingLink
-    ], [ a owl:Restriction;
-      owl:minCardinality 0;
-      owl:onProperty knora-api:hasStandoffLinkTo
-    ], [ a owl:Restriction;
-      owl:cardinality 1;
       owl:onProperty knora-api:hasTextFile
     ], [ a owl:Restriction;
       owl:maxCardinality 1;
@@ -826,6 +511,18 @@ knora-api:XSLTransformation a owl:Class;
     ], [ a owl:Restriction;
       owl:cardinality 1;
       owl:onProperty rdfs:label
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
+      owl:onProperty knora-api:arkUrl
+    ], [ a owl:Restriction;
+      owl:cardinality 1;
+      owl:onProperty knora-api:creationDate
+    ], [ a owl:Restriction;
+      owl:minCardinality 0;
+      owl:onProperty knora-api:hasIncomingLink
+    ], [ a owl:Restriction;
+      owl:minCardinality 0;
+      owl:onProperty knora-api:hasStandoffLinkTo
     ] .
 
 knora-api:error a owl:DatatypeProperty;
@@ -868,6 +565,16 @@ knora-api:objectType a rdf:Property;
   rdfs:comment "Specifies the required type of the objects of a property";
   rdfs:label "Object type" .
 
+knora-api:projectRestrictedViewSize a owl:DatatypeProperty;
+  knora-api:objectType xsd:string;
+  knora-api:subjectType knora-api:knoraProject;
+  rdfs:comment "The size of the image (as defined by IIIF) returned for restricted view" .
+
+knora-api:projectRestrictedViewWatermark a owl:DatatypeProperty;
+  knora-api:objectType xsd:string;
+  knora-api:subjectType knora-api:knoraProject;
+  rdfs:comment "Path to the restricted view watermark" .
+
 knora-api:resourceIcon a owl:DatatypeProperty;
   knora-api:objectType xsd:string;
   knora-api:subjectType owl:Class .
@@ -886,3 +593,8 @@ knora-api:seqnum a owl:DatatypeProperty;
 knora-api:subjectType a rdf:Property;
   rdfs:comment "Specifies the required type of the subjects of a property";
   rdfs:label "Subject type" .
+
+knora-api:username a owl:DatatypeProperty;
+  knora-api:objectType xsd:string;
+  knora-api:subjectType knora-api:User;
+  rdfs:comment "The username and login name of a user of Knora" .

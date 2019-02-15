@@ -1,5 +1,5 @@
 @*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -17,6 +17,7 @@
  * License along with Knora.  If not, see <http://www.gnu.org/licenses/>.
  *@
 
+@import java.time.Instant
 @import org.knora.webapi.IRI
 
 @**
@@ -36,7 +37,7 @@
   mapEntryIri: IRI,
   mapEntryKey: String,
   mapEntryValue: String,
-  currentTime: String)
+  currentTime: Instant)
 
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -63,10 +64,10 @@ DELETE {
             knora-base:isInMap ?map ;
             knora-base:mapEntryKey "@mapEntryKey"^^xsd:string ;
             knora-base:mapEntryValue """@mapEntryValue"""^^xsd:string ;
-            knora-base:lastModificationDate "@currentTime"^^xsd:dateTimeStamp .
+            knora-base:lastModificationDate "@currentTime"^^xsd:dateTime .
 
         @* Update the map's last modification date. *@
-        ?map knora-base:lastModificationDate "@currentTime"^^xsd:dateTimeStamp .
+        ?map knora-base:lastModificationDate "@currentTime"^^xsd:dateTime .
     }
 }
 @* Ensure that inference is not used in the WHERE clause of this update. *@

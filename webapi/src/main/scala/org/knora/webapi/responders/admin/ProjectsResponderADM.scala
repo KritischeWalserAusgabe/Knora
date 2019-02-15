@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,27 +21,27 @@ package org.knora.webapi.responders.admin
 
 import java.util.UUID
 
-import akka.actor.Status
 import akka.http.scaladsl.util.FastFuture
 import akka.pattern._
 import org.knora.webapi._
+import org.knora.webapi.annotation.ApiMayChange
 import org.knora.webapi.messages.admin.responder.projectsmessages._
-import org.knora.webapi.messages.admin.responder.usersmessages.{UserADM, UserGetADM, UserInformationTypeADM}
+import org.knora.webapi.messages.admin.responder.usersmessages.{UserADM, UserGetADM, UserIdentifierADM, UserInformationTypeADM}
 import org.knora.webapi.messages.store.triplestoremessages._
 import org.knora.webapi.messages.v1.responder.projectmessages._
-import org.knora.webapi.messages.v2.responder.ontologymessages.{OntologyMetadataGetRequestV2, OntologyMetadataV2, ReadOntologyMetadataV2}
-import org.knora.webapi.responders.{IriLocker, Responder}
-import org.knora.webapi.util.ActorUtil._
-import org.knora.webapi.util.{KnoraIdUtil, StringFormatter}
+import org.knora.webapi.messages.v2.responder.ontologymessages.{OntologyMetadataGetByProjectRequestV2, ReadOntologyMetadataV2}
+import org.knora.webapi.responders.Responder.handleUnexpectedMessage
+import org.knora.webapi.responders.{IriLocker, Responder, ResponderData}
 import org.knora.webapi.util.IriConversions._
-import org.knora.webapi.util.{SmartIri, StringFormatter}
+import org.knora.webapi.util.{KnoraIdUtil, StringFormatter}
 
 import scala.concurrent.Future
 
 /**
   * Returns information about Knora projects.
   */
-class ProjectsResponderADM extends Responder {
+class ProjectsResponderADM(responderData: ResponderData) extends Responder(responderData) {
+
 
     // Creates IRIs for new Knora user objects.
     val knoraIdUtil = new KnoraIdUtil
@@ -50,22 +50,22 @@ class ProjectsResponderADM extends Responder {
     val PROJECTS_GLOBAL_LOCK_IRI = "http://rdfh.ch/projects"
 
     /**
-      * Receives a message extending [[org.knora.webapi.messages.v1.responder.projectmessages.ProjectsResponderRequestV1]], and returns an appropriate response message, or
-      * [[Status.Failure]]. If a serious error occurs (i.e. an error that isn't the client's fault), this
-      * method first returns `Failure` to the sender, then throws an exception.
+      * Receives a message extending [[ProjectsResponderRequestV1]], and returns an appropriate response message.
       */
-    def receive: PartialFunction[Any, Unit] = {
-        case ProjectsGetADM(requestingUser) => future2Message(sender(), projectsGetADM(requestingUser), log)
-        case ProjectsGetRequestADM(requestingUser) => future2Message(sender(), projectsGetRequestADM(requestingUser), log)
-        case ProjectGetADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => future2Message(sender(), projectGetADM(maybeIri, maybeShortname, maybeShortcode, requestingUser), log)
-        case ProjectGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => future2Message(sender(), projectGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser), log)
-        case ProjectMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => future2Message(sender(), projectMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser), log)
-        case ProjectAdminMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => future2Message(sender(), projectAdminMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser), log)
-        case ProjectsKeywordsGetRequestADM(requestingUser) => future2Message(sender(), projectsKeywordsGetRequestADM(requestingUser), log)
-        case ProjectKeywordsGetRequestADM(projectIri, requestingUser) => future2Message(sender(), projectKeywordsGetRequestADM(projectIri, requestingUser), log)
-        case ProjectCreateRequestADM(createRequest, requestingUser, apiRequestID) => future2Message(sender(), projectCreateRequestADM(createRequest, requestingUser, apiRequestID), log)
-        case ProjectChangeRequestADM(projectIri, changeProjectRequest, requestingUser, apiRequestID) => future2Message(sender(), changeBasicInformationRequestADM(projectIri, changeProjectRequest, requestingUser, apiRequestID), log)
-        case other => handleUnexpectedMessage(sender(), other, log, this.getClass.getName)
+    def receive(msg: ProjectsResponderRequestADM) = msg match {
+        case ProjectsGetADM(requestingUser) => projectsGetADM(requestingUser)
+        case ProjectsGetRequestADM(requestingUser) => projectsGetRequestADM(requestingUser)
+        case ProjectGetADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => projectGetADM(maybeIri, maybeShortname, maybeShortcode, requestingUser)
+        case ProjectGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => projectGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser)
+        case ProjectMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => projectMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser)
+        case ProjectAdminMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser) => projectAdminMembersGetRequestADM(maybeIri, maybeShortname, maybeShortcode, requestingUser)
+        case ProjectsKeywordsGetRequestADM(requestingUser) => projectsKeywordsGetRequestADM(requestingUser)
+        case ProjectKeywordsGetRequestADM(projectIri, requestingUser) => projectKeywordsGetRequestADM(projectIri, requestingUser)
+        case ProjectRestrictedViewSettingsGetADM(identifier, requestingUser) => projectRestrictedViewSettingsGetADM(identifier, requestingUser)
+        case ProjectRestrictedViewSettingsGetRequestADM(identifier, requestingUser) => projectRestrictedViewSettingsGetRequestADM(identifier, requestingUser)
+        case ProjectCreateRequestADM(createRequest, requestingUser, apiRequestID) => projectCreateRequestADM(createRequest, requestingUser, apiRequestID)
+        case ProjectChangeRequestADM(projectIri, changeProjectRequest, requestingUser, apiRequestID) => changeBasicInformationRequestADM(projectIri, changeProjectRequest, requestingUser, apiRequestID)
+        case other => handleUnexpectedMessage(other, log, this.getClass.getName)
     }
 
     /**
@@ -115,7 +115,7 @@ class ProjectsResponderADM extends Responder {
       */
     private def getOntologiesForProjects(projectIris: Set[IRI], requestingUser: UserADM): Future[Map[IRI, Seq[IRI]]] = {
         for {
-            ontologyMetadataResponse: ReadOntologyMetadataV2 <- (responderManager ? OntologyMetadataGetRequestV2(projectIris = projectIris.map(_.toSmartIri), requestingUser = requestingUser)).mapTo[ReadOntologyMetadataV2]
+            ontologyMetadataResponse: ReadOntologyMetadataV2 <- (responderManager ? OntologyMetadataGetByProjectRequestV2(projectIris = projectIris.map(_.toSmartIri), requestingUser = requestingUser)).mapTo[ReadOntologyMetadataV2]
         } yield ontologyMetadataResponse.ontologies.map {
             ontology =>
                 val ontologyIri: IRI = ontology.ontologyIri.toString
@@ -155,11 +155,10 @@ class ProjectsResponderADM extends Responder {
     }
 
 
-
     /**
       * Gets the project with the given project IRI, shortname, or shortcode and returns the information as a [[ProjectADM]].
       *
-      * @param maybeIri           the IRI of the project.
+      * @param maybeIri       the IRI of the project.
       * @param maybeShortname the project's short name.
       * @param maybeShortcode the project's shortcode.
       * @param requestingUser the user making the request.
@@ -233,7 +232,7 @@ class ProjectsResponderADM extends Responder {
       * @param maybeShortname the project's short name.
       * @param maybeShortcode the project's shortcode.
       * @param requestingUser the user making the request.
-      * @return the members of a project as a [[ProjectMembersGetResponseV1]]
+      * @return the members of a project as a [[ProjectMembersGetResponseADM]]
       */
     private def projectMembersGetRequestADM(maybeIri: Option[IRI], maybeShortname: Option[String], maybeShortcode: Option[String], requestingUser: UserADM): Future[ProjectMembersGetResponseADM] = {
 
@@ -241,10 +240,14 @@ class ProjectsResponderADM extends Responder {
 
         for {
 
-            /* Verify that the project exists. */
-            exists <- projectExists(maybeIri, maybeShortname, maybeShortcode)
-            _ = if (!exists) {
+            /* Get project and verify permissions. */
+            project <- projectGetADM(maybeIri, maybeShortname, maybeShortcode, KnoraSystemInstances.Users.SystemUser)
+            _ = if (project.isEmpty) {
                 throw NotFoundException(s"Project '${Seq(maybeIri, maybeShortname, maybeShortcode).flatten.head}' not found.")
+            } else {
+                if (!requestingUser.permissions.isSystemAdmin && !requestingUser.permissions.isProjectAdmin(project.get.id) && !requestingUser.isSystemUser) {
+                    throw ForbiddenException("SystemAdmin or ProjectAdmin permissions are required.")
+                }
             }
 
             sparqlQueryString <- Future(queries.sparql.admin.txt.getProjectMembers(
@@ -269,7 +272,7 @@ class ProjectsResponderADM extends Responder {
             }
 
             maybeUserFutures: Seq[Future[Option[UserADM]]] = userIris.map {
-                userIri => (responderManager ? UserGetADM(maybeIri = Some(userIri), maybeEmail = None, userInformationTypeADM = UserInformationTypeADM.RESTRICTED, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[UserADM]]
+                userIri => (responderManager ? UserGetADM(identifier = UserIdentifierADM(maybeIri = Some(userIri)), userInformationTypeADM = UserInformationTypeADM.RESTRICTED, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[UserADM]]
             }
             maybeUsers: Seq[Option[UserADM]] <- Future.sequence(maybeUserFutures)
             users: Seq[UserADM] = maybeUsers.flatten
@@ -295,10 +298,14 @@ class ProjectsResponderADM extends Responder {
 
         for {
 
-            /* Verify that the project exists. */
-            exists <- projectExists(maybeIri, maybeShortname, maybeShortcode)
-            _ = if (!exists) {
+            /* Get project and verify permissions. */
+            project <- projectGetADM(maybeIri, maybeShortname, maybeShortcode, KnoraSystemInstances.Users.SystemUser)
+            _ = if (project.isEmpty) {
                 throw NotFoundException(s"Project '${Seq(maybeIri, maybeShortname, maybeShortcode).flatten.head}' not found.")
+            } else {
+                if (!requestingUser.permissions.isSystemAdmin && !requestingUser.permissions.isProjectAdmin(project.get.id)) {
+                    throw ForbiddenException("SystemAdmin or ProjectAdmin permissions are required.")
+                }
             }
 
             sparqlQueryString <- Future(queries.sparql.admin.txt.getProjectAdminMembers(
@@ -309,10 +316,10 @@ class ProjectsResponderADM extends Responder {
             ).toString())
             //_ = log.debug(s"projectAdminMembersByIRIGetRequestV1 - query: $sparqlQueryString")
 
-            projectMembersResponse <- (storeManager ? SparqlExtendedConstructRequest(sparqlQueryString)).mapTo[SparqlExtendedConstructResponse]
+            projectAdminMembersResponse <- (storeManager ? SparqlExtendedConstructRequest(sparqlQueryString)).mapTo[SparqlExtendedConstructResponse]
             //_ = log.debug(s"projectAdminMembersByIRIGetRequestV1 - result: ${MessageUtil.toSource(projectMembersResponse)}")
 
-            statements = projectMembersResponse.statements.toList
+            statements = projectAdminMembersResponse.statements.toList
 
             // get project member IRI from results rows
             userIris: Seq[IRI] = if (statements.nonEmpty) {
@@ -322,7 +329,7 @@ class ProjectsResponderADM extends Responder {
             }
 
             maybeUserFutures: Seq[Future[Option[UserADM]]] = userIris.map {
-                userIri => (responderManager ? UserGetADM(maybeIri = Some(userIri), maybeEmail = None, userInformationTypeADM = UserInformationTypeADM.RESTRICTED, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[UserADM]]
+                userIri => (responderManager ? UserGetADM(identifier = UserIdentifierADM(maybeIri = Some(userIri)), userInformationTypeADM = UserInformationTypeADM.RESTRICTED, requestingUser = KnoraSystemInstances.Users.SystemUser)).mapTo[Option[UserADM]]
             }
             maybeUsers: Seq[Option[UserADM]] <- Future.sequence(maybeUserFutures)
             users: Seq[UserADM] = maybeUsers.flatten
@@ -351,7 +358,7 @@ class ProjectsResponderADM extends Responder {
     /**
       * Gets all keywords for a single project and returns them. Returns an empty list if none are found.
       *
-      * @param projectIri the IRI of the project.
+      * @param projectIri     the IRI of the project.
       * @param requestingUser the user making the request.
       * @return keywords for a projects as [[ProjectKeywordsGetResponseADM]]
       */
@@ -368,6 +375,76 @@ class ProjectsResponderADM extends Responder {
         } yield ProjectKeywordsGetResponseADM(keywords = keywords)
     }
 
+
+    /**
+      * Get project's restricted view settings.
+      *
+      * @param identifier     the project's identifier (IRI / shortcode / shortname)
+      * @param requestingUser the user making the request.
+      * @return [[ProjectRestrictedViewSettingsADM]]
+      */
+    @ApiMayChange
+    private def projectRestrictedViewSettingsGetADM(identifier: ProjectIdentifierADM, requestingUser: UserADM): Future[Option[ProjectRestrictedViewSettingsADM]] = {
+
+        // ToDo: We have two possible NotFound scenarios: 1. Project, 2. ProjectRestricedViewSettings resource. How to send the client the correct NotFound reply?
+
+        val maybeIri = identifier.toIriOption
+        val maybeShortname = identifier.toShortnameOption
+        val maybeShortcode = identifier.toShortcodeOption
+
+        for {
+            sparqlQuery <- Future(queries.sparql.admin.txt.getProjects(
+                triplestore = settings.triplestoreType,
+                maybeIri = maybeIri,
+                maybeShortname = maybeShortname,
+                maybeShortcode = maybeShortcode
+            ).toString())
+
+            projectResponse <- (storeManager ? SparqlExtendedConstructRequest(sparqlQuery)).mapTo[SparqlExtendedConstructResponse]
+
+            restrictedViewSettings = if (projectResponse.statements.nonEmpty) {
+
+                val (_, propsMap): (SubjectV2, Map[IRI, Seq[LiteralV2]]) = projectResponse.statements.head
+
+                val size = propsMap.get(OntologyConstants.KnoraBase.ProjectRestrictedViewSize).map(_.head.asInstanceOf[StringLiteralV2].value)
+                val watermark = propsMap.get(OntologyConstants.KnoraBase.ProjectRestrictedViewWatermark).map(_.head.asInstanceOf[StringLiteralV2].value)
+
+                Some(ProjectRestrictedViewSettingsADM(size, watermark))
+            } else {
+                None
+            }
+
+        } yield restrictedViewSettings
+
+    }
+
+    /**
+      * Get project's restricted view settings.
+      *
+      * @param identifier     the project's identifier (IRI / shortcode / shortname)
+      * @param requestingUser the user making the request.
+      * @return [[ProjectRestrictedViewSettingsGetResponseADM]]
+      */
+    @ApiMayChange
+    private def projectRestrictedViewSettingsGetRequestADM(identifier: ProjectIdentifierADM, requestingUser: UserADM): Future[ProjectRestrictedViewSettingsGetResponseADM] = {
+
+        val maybeIri = identifier.toIriOption
+        val maybeShortname = identifier.toShortnameOption
+        val maybeShortcode = identifier.toShortcodeOption
+
+        for {
+            maybeSettings: Option[ProjectRestrictedViewSettingsADM] <- projectRestrictedViewSettingsGetADM(identifier, requestingUser)
+
+            settings = maybeSettings match {
+                case Some(s) => s
+                case None => throw NotFoundException(s"Project '${Seq(maybeIri, maybeShortname, maybeShortcode).flatten.head}' not found.")
+            }
+
+        } yield ProjectRestrictedViewSettingsGetResponseADM(settings)
+
+    }
+
+
     /**
       * Creates a project.
       *
@@ -375,9 +452,9 @@ class ProjectsResponderADM extends Responder {
       * @param requestingUser the user that is making the request.
       * @param apiRequestID   the unique api request ID.
       * @return a [[ProjectOperationResponseADM]].
-      * @throws ForbiddenException in the case that the user is not allowed to perform the operation.
+      * @throws ForbiddenException      in the case that the user is not allowed to perform the operation.
       * @throws DuplicateValueException in the case when either the shortname or shortcode are not unique.
-      * @throws BadRequestException in the case when the shortcode is invalid.
+      * @throws BadRequestException     in the case when the shortcode is invalid.
       */
     private def projectCreateRequestADM(createRequest: CreateProjectApiRequestADM, requestingUser: UserADM, apiRequestID: UUID): Future[ProjectOperationResponseADM] = {
 
@@ -423,8 +500,12 @@ class ProjectsResponderADM extends Responder {
                 shortname = createRequest.shortname,
                 shortcode = validatedShortcode,
                 maybeLongname = createRequest.longname,
-                maybeDescriptions = if(createRequest.description.nonEmpty) {Some(createRequest.description)} else None,
-                maybeKeywords = if (createRequest.keywords.nonEmpty) {Some(createRequest.keywords)} else None,
+                maybeDescriptions = if (createRequest.description.nonEmpty) {
+                    Some(createRequest.description)
+                } else None,
+                maybeKeywords = if (createRequest.keywords.nonEmpty) {
+                    Some(createRequest.keywords)
+                } else None,
                 maybeLogo = createRequest.logo,
                 status = createRequest.status,
                 hasSelfJoinEnabled = createRequest.selfjoin
@@ -472,10 +553,10 @@ class ProjectsResponderADM extends Responder {
     /**
       * Changes project's basic information.
       *
-      * @param projectIri the IRI of the project.
+      * @param projectIri           the IRI of the project.
       * @param changeProjectRequest the change payload.
-      * @param requestingUser the user making the request.
-      * @param apiRequestID the unique api request ID.
+      * @param requestingUser       the user making the request.
+      * @param apiRequestID         the unique api request ID.
       * @return a [[ProjectOperationResponseADM]].
       * @throws ForbiddenException in the case that the user is not allowed to perform the operation.
       */
@@ -527,7 +608,7 @@ class ProjectsResponderADM extends Responder {
     /**
       * Main project update method.
       *
-      * @param projectIri the IRI of the project.
+      * @param projectIri           the IRI of the project.
       * @param projectUpdatePayload the data to be updated. Update means exchanging what is in the triplestore with
       *                             this data. If only some parts of the data need to be changed, then this needs to
       *                             be prepared in the step before this one.
@@ -570,7 +651,7 @@ class ProjectsResponderADM extends Responder {
                 maybeSelfjoin = projectUpdatePayload.selfjoin
             ).toString)
 
-             // _ = log.debug(s"updateProjectADM - update query: {}", updateProjectSparqlString)
+            // _ = log.debug(s"updateProjectADM - update query: {}", updateProjectSparqlString)
 
             updateProjectResponse <- (storeManager ? SparqlUpdateRequest(updateProjectSparqlString)).mapTo[SparqlUpdateResponse]
 
@@ -622,9 +703,9 @@ class ProjectsResponderADM extends Responder {
     /**
       * Helper method that turns SPARQL result rows into a [[ProjectInfoV1]].
       *
-      * @param statements results from the SPARQL query representing information about the project.
-      * @param ontologies the ontologies in the project.
-      * @param requestingUser     the user making the request.
+      * @param statements     results from the SPARQL query representing information about the project.
+      * @param ontologies     the ontologies in the project.
+      * @param requestingUser the user making the request.
       * @return a [[ProjectADM]] representing information about project.
       */
     private def statements2ProjectADM(statements: (SubjectV2, Map[IRI, Seq[LiteralV2]]), ontologies: Seq[IRI], requestingUser: UserADM): ProjectADM = {
@@ -651,12 +732,12 @@ class ProjectsResponderADM extends Responder {
     /**
       * Helper method for checking if a project exists.
       *
-      * @param maybeIri the IRI of the project.
+      * @param maybeIri       the IRI of the project.
       * @param maybeShortname the shortname of the project.
       * @param maybeShortcode the shortcode of the project.
       * @return a [[Boolean]].
       */
-    def projectExists(maybeIri: Option[IRI], maybeShortname: Option[String], maybeShortcode: Option[String]): Future[Boolean] = {
+    private def projectExists(maybeIri: Option[IRI], maybeShortname: Option[String], maybeShortcode: Option[String]): Future[Boolean] = {
 
         if (maybeIri.nonEmpty) {
             projectByIriExists(maybeIri.get)
@@ -675,7 +756,7 @@ class ProjectsResponderADM extends Responder {
       * @param projectIri the IRI of the project.
       * @return a [[Boolean]].
       */
-    def projectByIriExists(projectIri: IRI): Future[Boolean] = {
+    private def projectByIriExists(projectIri: IRI): Future[Boolean] = {
         for {
             askString <- Future(queries.sparql.admin.txt.checkProjectExistsByIri(projectIri = projectIri).toString)
             //_ = log.debug("projectExists - query: {}", askString)
@@ -692,7 +773,7 @@ class ProjectsResponderADM extends Responder {
       * @param shortname the shortname of the project.
       * @return a [[Boolean]].
       */
-    def projectByShortnameExists(shortname: String): Future[Boolean] = {
+    private def projectByShortnameExists(shortname: String): Future[Boolean] = {
         for {
             askString <- Future(queries.sparql.admin.txt.checkProjectExistsByShortname(shortname = shortname).toString)
             //_ = log.debug("projectExists - query: {}", askString)
@@ -709,7 +790,7 @@ class ProjectsResponderADM extends Responder {
       * @param shortcode the shortcode of the project.
       * @return a [[Boolean]].
       */
-    def projectByShortcodeExists(shortcode: String): Future[Boolean] = {
+    private def projectByShortcodeExists(shortcode: String): Future[Boolean] = {
         for {
             askString <- Future(queries.sparql.admin.txt.checkProjectExistsByShortcode(shortcode = shortcode).toString)
             //_ = log.debug("projectExists - query: {}", askString)

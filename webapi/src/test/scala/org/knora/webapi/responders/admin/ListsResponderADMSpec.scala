@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -21,18 +21,14 @@ package org.knora.webapi.responders.admin
 
 import java.util.UUID
 
-import akka.actor.Props
 import akka.actor.Status.Failure
 import akka.testkit._
 import com.typesafe.config.{Config, ConfigFactory}
 import org.knora.webapi.SharedTestDataV1._
 import org.knora.webapi._
 import org.knora.webapi.messages.admin.responder.listsmessages._
-import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, ResetTriplestoreContent, ResetTriplestoreContentACK, StringLiteralV2}
-import org.knora.webapi.messages.v1.responder.ontologymessages.{LoadOntologiesRequest, LoadOntologiesResponse}
-import org.knora.webapi.responders._
+import org.knora.webapi.messages.store.triplestoremessages.{RdfDataObject, StringLiteralV2}
 import org.knora.webapi.responders.admin.ListsResponderADM._
-import org.knora.webapi.store.{STORE_MANAGER_ACTOR_NAME, StoreManager}
 import org.knora.webapi.util.MutableTestIri
 
 import scala.concurrent.duration._
@@ -52,29 +48,23 @@ object ListsResponderADMSpec {
   */
 class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with ImplicitSender {
 
-    // Construct the actors needed for this test.
-    private val actorUnderTest = TestActorRef[ListsResponderADM]
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
-
     // The default timeout for receiving reply messages from actors.
     implicit val timeout = 5.seconds
 
-    val rdfDataObjects = List(
+    override lazy val rdfDataObjects = List(
         RdfDataObject(path = "_test_data/demo_data/images-demo-data.ttl", name = "http://www.knora.org/data/00FF/images"),
         RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/0001/anything")
     )
 
-    private val bigListInfo: ListInfoADM = SharedListsTestDataADM.bigListInfo
+    private val treeListInfo: ListRootNodeInfoADM = SharedListsTestDataADM.treeListInfo
 
     private val summerNodeInfo: ListNodeInfoADM = SharedListsTestDataADM.summerNodeInfo
 
-    private val otherTreeListInfo: ListInfoADM = SharedListsTestDataADM.otherTreeListInfo
+    private val otherTreeListInfo: ListRootNodeInfoADM = SharedListsTestDataADM.otherTreeListInfo
 
     private val keywordChildNodes: Seq[ListNodeADM] = Seq.empty[ListNodeADM]
 
-    private val bigListNodes: Seq[ListNodeADM] = SharedListsTestDataADM.bigListNodes
+    private val treeListChildNodes: Seq[ListNodeADM] = SharedListsTestDataADM.treeListChildNodes
 
     private val imageCategory = Seq.empty[ListNodeADM]
 
@@ -82,20 +72,12 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
 
     private val nodePath = SharedListsTestDataADM.nodePath
 
-    "Load test data " in {
-        storeManager ! ResetTriplestoreContent(rdfDataObjects)
-        expectMsg(300.seconds, ResetTriplestoreContentACK())
-
-        responderManager ! LoadOntologiesRequest(SharedTestDataADM.rootUser)
-        expectMsg(10.seconds, LoadOntologiesResponse())
-    }
-
     "The Lists Responder" when {
 
         "used to query information about lists" should {
 
             "return all lists" in {
-                actorUnderTest ! ListsGetRequestADM(requestingUser = SharedTestDataADM.imagesUser01)
+                responderManager ! ListsGetRequestADM(requestingUser = SharedTestDataADM.imagesUser01)
 
                 val received: ListsGetResponseADM = expectMsgType[ListsGetResponseADM](timeout)
 
@@ -103,7 +85,7 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "return all lists belonging to the images project" in {
-                actorUnderTest ! ListsGetRequestADM(projectIri = Some(IMAGES_PROJECT_IRI), requestingUser = SharedTestDataADM.imagesUser01)
+                responderManager ! ListsGetRequestADM(projectIri = Some(IMAGES_PROJECT_IRI), requestingUser = SharedTestDataADM.imagesUser01)
 
                 val received: ListsGetResponseADM = expectMsgType[ListsGetResponseADM](timeout)
 
@@ -113,7 +95,7 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "return all lists belonging to the anything project" in {
-                actorUnderTest ! ListsGetRequestADM(projectIri = Some(ANYTHING_PROJECT_IRI), requestingUser = SharedTestDataADM.imagesUser01)
+                responderManager ! ListsGetRequestADM(projectIri = Some(ANYTHING_PROJECT_IRI), requestingUser = SharedTestDataADM.imagesUser01)
 
                 val received: ListsGetResponseADM = expectMsgType[ListsGetResponseADM](timeout)
 
@@ -122,23 +104,23 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
                 received.lists.size should be(2)
             }
 
-            "return basic list information (images list)" in {
-                actorUnderTest ! ListInfoGetRequestADM(
-                    iri = "http://rdfh.ch/lists/00FF/73d0ec0302",
-                    requestingUser = SharedTestDataADM.imagesUser01
+            "return basic list information (anything list)" in {
+                responderManager ! ListInfoGetRequestADM(
+                    iri = "http://rdfh.ch/lists/0001/treeList",
+                    requestingUser = SharedTestDataADM.anythingUser1
                 )
 
                 val received: ListInfoGetResponseADM = expectMsgType[ListInfoGetResponseADM](timeout)
 
                 // log.debug("returned basic keyword list information: {}", MessageUtil.toSource(received.items.head))
 
-                received.listinfo.sorted should be(bigListInfo.sorted)
+                received.listinfo.sorted should be(treeListInfo.sorted)
             }
 
-            "return basic list information (anything list)" in {
-                actorUnderTest ! ListInfoGetRequestADM(
+            "return basic list information (anything other list)" in {
+                responderManager ! ListInfoGetRequestADM(
                     iri = "http://rdfh.ch/lists/0001/otherTreeList",
-                    requestingUser = SharedTestDataADM.imagesUser01
+                    requestingUser = SharedTestDataADM.anythingUser1
                 )
 
                 val received: ListInfoGetResponseADM = expectMsgType[ListInfoGetResponseADM](timeout)
@@ -149,7 +131,7 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "return basic node information (images list - sommer)" in {
-                actorUnderTest ! ListNodeInfoGetRequestADM(
+                responderManager ! ListNodeInfoGetRequestADM(
                     iri = "http://rdfh.ch/lists/00FF/526f26ed04",
                     requestingUser = SharedTestDataADM.imagesUser01
                 )
@@ -162,29 +144,33 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "return a full list response" in {
-                actorUnderTest ! ListGetRequestADM(
-                    iri = "http://rdfh.ch/lists/00FF/73d0ec0302",
-                    requestingUser = SharedTestDataADM.imagesUser01
+                responderManager ! ListGetRequestADM(
+                    iri = "http://rdfh.ch/lists/0001/treeList",
+                    requestingUser = SharedTestDataADM.anythingUser1
                 )
 
                 val received: ListGetResponseADM = expectMsgType[ListGetResponseADM](timeout)
 
                 // log.debug("returned whole keyword list: {}", MessageUtil.toSource(received.items.head))
 
-                received.list.listinfo.sorted should be(bigListInfo.sorted)
+                received.list.listinfo.sorted should be(treeListInfo.sorted)
 
-                received.list.children.map(_.sorted) should be(bigListNodes.map(_.sorted))
+                received.list.children.map(_.sorted) should be(treeListChildNodes.map(_.sorted))
             }
         }
 
         "used to modify lists" should {
 
             val newListIri = new MutableTestIri
+            val firstChildIri = new MutableTestIri
+            val secondChildIri = new MutableTestIri
+            val thirdChildIri = new MutableTestIri
 
             "create a list" in {
-                actorUnderTest ! ListCreateRequestADM(
+                responderManager ! ListCreateRequestADM(
                     createListRequest = CreateListApiRequestADM(
                         projectIri = IMAGES_PROJECT_IRI,
+                        name = Some("neuelistename"),
                         labels = Seq(StringLiteralV2(value = "Neue Liste", language = Some("de"))),
                         comments = Seq.empty[StringLiteralV2]
                     ),
@@ -196,6 +182,8 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
 
                 val listInfo = received.list.listinfo
                 listInfo.projectIri should be (IMAGES_PROJECT_IRI)
+
+                listInfo.name should be (Some("neuelistename"))
 
                 val labels: Seq[StringLiteralV2] = listInfo.labels.stringLiterals
                 labels.size should be (1)
@@ -212,9 +200,10 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "return a 'ForbiddenException' if the user creating the list is not project or system admin" in {
-                actorUnderTest ! ListCreateRequestADM(
+                responderManager ! ListCreateRequestADM(
                     createListRequest = CreateListApiRequestADM(
                         projectIri = IMAGES_PROJECT_IRI,
+                        name = None,
                         labels = Seq(StringLiteralV2(value = "Neue Liste", language = Some("de"))),
                         comments = Seq.empty[StringLiteralV2]
                     ),
@@ -226,7 +215,7 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "update basic list information" in {
-                actorUnderTest ! ListInfoChangeRequestADM(
+                responderManager ! ListInfoChangeRequestADM(
                     listIri = newListIri.get,
                     changeListRequest = ChangeListInfoApiRequestADM(
                         listIri = newListIri.get,
@@ -266,7 +255,7 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
             }
 
             "return a 'ForbiddenException' if the user changing the list is not project or system admin" in {
-                actorUnderTest ! ListInfoChangeRequestADM(
+                responderManager ! ListInfoChangeRequestADM(
                     listIri = newListIri.get,
                     changeListRequest = ChangeListInfoApiRequestADM(
                         listIri = newListIri.get,
@@ -287,21 +276,148 @@ class ListsResponderADMSpec extends CoreSpec(ListsResponderADMSpec.config) with 
                 expectMsg(Failure(ForbiddenException(LIST_CHANGE_PERMISSION_ERROR)))
             }
 
-            "add flat nodes" ignore {
+            "add child to list - to the root node" in {
+                responderManager ! ListChildNodeCreateRequestADM(
+                    parentNodeIri = newListIri.get,
+                    createChildNodeRequest = CreateChildNodeApiRequestADM(
+                        parentNodeIri = newListIri.get,
+                        projectIri = IMAGES_PROJECT_IRI,
+                        name = Some("first"),
+                        labels = Seq(StringLiteralV2(value = "New First Child List Node Value", language = Some("en"))),
+                        comments = Seq(StringLiteralV2(value = "New First Child List Node Comment", language = Some("en")))
+                    ),
+                    requestingUser = SharedTestDataADM.imagesUser01,
+                    apiRequestID = UUID.randomUUID
+                )
 
+                val received: ListNodeInfoGetResponseADM = expectMsgType[ListNodeInfoGetResponseADM](timeout)
+                val nodeInfo = received.nodeinfo
+
+                // check correct node info
+                val childNodeInfo = nodeInfo match {
+                    case info: ListChildNodeInfoADM => info
+                    case something => fail(s"expecting ListChildNodeInfoADM but got ${something.getClass.toString} instead.")
+                }
+
+                // check labels
+                val labels: Seq[StringLiteralV2] = childNodeInfo.labels.stringLiterals
+                labels.size should be (1)
+                labels.sorted should be (Seq(StringLiteralV2(value = "New First Child List Node Value", language = Some("en"))))
+
+                // check comments
+                val comments = childNodeInfo.comments.stringLiterals
+                comments.size should be (1)
+                comments.sorted should be (Seq(StringLiteralV2(value = "New First Child List Node Comment", language = Some("en"))))
+
+                // check position
+                val position = childNodeInfo.position
+                position should be (0)
+
+                // check has root node
+                val rootNode = childNodeInfo.hasRootNode
+                rootNode should be (newListIri.get)
+
+                firstChildIri.set(childNodeInfo.id)
             }
 
-            "add hierarchical nodes" ignore {
+            "add second child to list - to the root node" in {
+                responderManager ! ListChildNodeCreateRequestADM(
+                   parentNodeIri = newListIri.get,
+                   createChildNodeRequest = CreateChildNodeApiRequestADM(
+                       parentNodeIri = newListIri.get,
+                       projectIri = IMAGES_PROJECT_IRI,
+                       name = Some("second"),
+                       labels = Seq(StringLiteralV2(value = "New Second Child List Node Value", language = Some("en"))),
+                       comments = Seq(StringLiteralV2(value = "New Second Child List Node Comment", language = Some("en")))
+                   ),
+                   requestingUser = SharedTestDataADM.imagesUser01,
+                   apiRequestID = UUID.randomUUID
+               )
 
-            }
+               val received: ListNodeInfoGetResponseADM = expectMsgType[ListNodeInfoGetResponseADM](timeout)
+               val nodeInfo = received.nodeinfo
 
-            "change node order" ignore {
+               // check correct node info
+               val childNodeInfo = nodeInfo match {
+                   case info: ListChildNodeInfoADM => info
+                   case something => fail(s"expecting ListChildNodeInfoADM but got ${something.getClass.toString} instead.")
+               }
 
-            }
+               // check labels
+               val labels: Seq[StringLiteralV2] = childNodeInfo.labels.stringLiterals
+               labels.size should be (1)
+               labels.sorted should be (Seq(StringLiteralV2(value = "New Second Child List Node Value", language = Some("en"))))
 
-            "delete node if not in use" ignore {
 
-            }
+               // check comments
+               val comments = childNodeInfo.comments.stringLiterals
+               comments.size should be (1)
+               comments.sorted should be (Seq(StringLiteralV2(value = "New Second Child List Node Comment", language = Some("en"))))
+
+               // check position
+               val position = childNodeInfo.position
+               position should be (1)
+
+               // check has root node
+               val rootNode = childNodeInfo.hasRootNode
+               rootNode should be (newListIri.get)
+
+               secondChildIri.set(childNodeInfo.id)
+           }
+
+           "add child to second child node" in {
+               responderManager ! ListChildNodeCreateRequestADM(
+                   parentNodeIri = secondChildIri.get,
+                   createChildNodeRequest = CreateChildNodeApiRequestADM(
+                       parentNodeIri = secondChildIri.get,
+                       projectIri = IMAGES_PROJECT_IRI,
+                       name = Some("third"),
+                       labels = Seq(StringLiteralV2(value = "New Third Child List Node Value", language = Some("en"))),
+                       comments = Seq(StringLiteralV2(value = "New Third Child List Node Comment", language = Some("en")))
+                   ),
+                   requestingUser = SharedTestDataADM.imagesUser01,
+                   apiRequestID = UUID.randomUUID
+               )
+
+               val received: ListNodeInfoGetResponseADM = expectMsgType[ListNodeInfoGetResponseADM](timeout)
+               val nodeInfo = received.nodeinfo
+
+               // check correct node info
+               val childNodeInfo = nodeInfo match {
+                   case info: ListChildNodeInfoADM => info
+                   case something => fail(s"expecting ListChildNodeInfoADM but got ${something.getClass.toString} instead.")
+               }
+
+               // check labels
+               val labels: Seq[StringLiteralV2] = childNodeInfo.labels.stringLiterals
+               labels.size should be (1)
+               labels.sorted should be (Seq(StringLiteralV2(value = "New Third Child List Node Value", language = Some("en"))))
+
+
+               // check comments
+               val comments = childNodeInfo.comments.stringLiterals
+               comments.size should be (1)
+               comments.sorted should be (Seq(StringLiteralV2(value = "New Third Child List Node Comment", language = Some("en"))))
+
+               // check position
+               val position = childNodeInfo.position
+               position should be (0)
+
+               // check has root node
+               val rootNode = childNodeInfo.hasRootNode
+               rootNode should be (newListIri.get)
+
+               thirdChildIri.set(childNodeInfo.id)
+           }
+
+
+           "change node order" ignore {
+
+           }
+
+           "delete node if not in use" ignore {
+
+           }
 
         }
     }

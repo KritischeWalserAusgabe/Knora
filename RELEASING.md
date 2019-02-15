@@ -2,15 +2,13 @@
 
  1. Communicate that a release is about to be released in the [DaSCH Github Channel](https://github.com/orgs/dhlab-basel/teams/dasch), so that no new Pull Requests are merged
  1. Create a new branch, e.g., `releasing-vX.X.X`
- 1. Update the version number in `webapi/WebapiBuild.sbt`, `salsah1/SalsahBuild.sbt`, `docs/DocsBuild.sbt`.
- 1. Remove the `(not released yet)` text in the title of the release notes.
- 1. Create a new page with the next version number including the `(not released yet)` text and add page to TOC.
- 1. Update links in the new page to point to correct release tag and milestone.
+ 1. Move the release notes from `next` to either a new page for a major release or to the corresponding minor release notes page.
+ 1. Run `GenerateContributorsFile`, passing it a GitHub API token (`runMain org.knora.webapi.util.GenerateContributorsFile [ -t TOKEN ]`), to generate `Contributors.md`, then commit that file.
+ 1. Push and merge PR to `develop`.
  1. On Github - Create new milestone
  1. On Github - Move any open issues from current release milestone to the next release milestone and so on.
  1. On Github - Close current milestone.
- 1. Run `GenerateContributorsFile`, passing it a GitHub API token (`runMain org.knora.webapi.util.GenerateContributorsFile [ -t TOKEN ]`), to generate `Contributors.md`, then commit that file.
- 1. Push and merge PR to `develop`.
+ 
  1. Travis CI will start a [CI build](https://travis-ci.org/dhlab-basel/Knora/builds) for the new tag and publish
     artifacts to Docker Hub.
  1. On Github - Tag the commit with the version string, e.g., `vX.X.X` and create a release.
@@ -18,7 +16,6 @@
  1. Publish documentation.
 
 -> in general, releases should be cut at least once per month and on the last working day of the month.
-
 
 
 ## Under the Travis hood

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -22,19 +22,14 @@ package org.knora.webapi.e2e.v1
 import java.io.File
 import java.net.URLEncoder
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model.{HttpEntity, _}
 import akka.http.scaladsl.testkit.RouteTestTimeout
-import akka.pattern._
-import akka.util.Timeout
 import org.knora.webapi.SharedTestDataV1._
 import org.knora.webapi._
 import org.knora.webapi.messages.store.triplestoremessages._
-import org.knora.webapi.messages.v1.responder.ontologymessages.LoadOntologiesRequest
-import org.knora.webapi.responders.{ResponderManager, _}
-import org.knora.webapi.routing.v1.{ResourcesRouteV1, StandoffRouteV1, ValuesRouteV1}
-import org.knora.webapi.store._
+import org.knora.webapi.routing.v1.{StandoffRouteV1, ValuesRouteV1}
 import org.knora.webapi.util.{AkkaHttpUtils, MutableTestIri}
 import org.xmlunit.builder.{DiffBuilder, Input}
 import org.xmlunit.diff.Diff
@@ -58,35 +53,24 @@ class StandoffV1R2RSpec extends R2RSpec {
          # akka.stdout-loglevel = "DEBUG"
         """.stripMargin
 
-    private val responderManager = system.actorOf(Props(new ResponderManager with LiveActorMaker), name = RESPONDER_MANAGER_ACTOR_NAME)
-    private val storeManager = system.actorOf(Props(new StoreManager with LiveActorMaker), name = STORE_MANAGER_ACTOR_NAME)
-
-    private val standoffPath = StandoffRouteV1.knoraApiPath(system, settings, log)
-    private val resourcesPath = ResourcesRouteV1.knoraApiPath(system, settings, log)
-    private val valuesPath = ValuesRouteV1.knoraApiPath(system, settings, log)
+    private val standoffPath = new StandoffRouteV1(routeData).knoraApiPath
+    private val valuesPath = new ValuesRouteV1(routeData).knoraApiPath
 
     private val anythingUser = SharedTestDataV1.anythingUser1
     private val anythingUserEmail = anythingUser.userData.email.get
 
     private val password = "test"
 
-    implicit private val timeout: Timeout = settings.defaultRestoreTimeout
-
-    implicit def default(implicit system: ActorSystem) = RouteTestTimeout(new DurationInt(30).second)
+    implicit def default(implicit system: ActorSystem) = RouteTestTimeout(settings.defaultTimeout)
 
     implicit val ec = system.dispatcher
 
-    private val rdfDataObjects = List(
+    override lazy val rdfDataObjects = List(
         RdfDataObject(path = "_test_data/all_data/anything-data.ttl", name = "http://www.knora.org/data/0001/anything"),
         RdfDataObject(path = "_test_data/demo_data/images-demo-data.ttl", name = "http://www.knora.org/data/00FF/images"),
         RdfDataObject(path = "_test_data/all_data/beol-data.ttl", name = "http://www.knora.org/data/0801/beol"),
         RdfDataObject(path = "_test_data/all_data/incunabula-data.ttl", name = "http://www.knora.org/data/0803/incunabula")
     )
-
-    "Load test data" in {
-        Await.result(storeManager ? ResetTriplestoreContent(rdfDataObjects), 360.seconds)
-        Await.result(responderManager ? LoadOntologiesRequest(SharedTestDataADM.rootUser), 30.seconds)
-    }
 
     private val firstTextValueIri = new MutableTestIri
     private val secondTextValueIri = new MutableTestIri
@@ -951,7 +935,7 @@ class StandoffV1R2RSpec extends R2RSpec {
                 assert(status == StatusCodes.OK, "creation of a TextValue from XML returned a non successful HTTP status code: " + responseAs[String])
 
                 thirdTextValueIri.set(ResponseUtils.getStringMemberFromResponse(response, "id"))
-                
+
             }
 
         }
@@ -1190,6 +1174,104 @@ class StandoffV1R2RSpec extends R2RSpec {
 
 
             }
+
+        }
+
+        "create a mapping containing an element with a class that separates words" in {
+
+            val mapping = """<?xml version="1.0" encoding="UTF-8"?>
+                <mapping xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../src/main/resources/mappingXMLToStandoff.xsd">
+                    <mappingElement>
+                        <tag><name>text</name>
+                            <class>noClass</class>
+                            <namespace>noNamespace</namespace>
+                            <separatesWords>false</separatesWords></tag>
+                        <standoffClass>
+                            <classIri>http://www.knora.org/ontology/standoff#StandoffRootTag</classIri>
+                            <attributes>
+                                <attribute>
+                                    <attributeName>documentType</attributeName>
+                                    <namespace>noNamespace</namespace>
+                                    <propertyIri>http://www.knora.org/ontology/standoff#standoffRootTagHasDocumentType</propertyIri>
+                                </attribute>
+                            </attributes>
+                        </standoffClass>
+                    </mappingElement>
+
+                    <mappingElement>
+                        <tag>
+                            <name>div</name>
+                            <class>paragraph</class>
+                            <namespace>noNamespace</namespace>
+                            <separatesWords>true</separatesWords>
+                        </tag>
+                        <standoffClass>
+                            <classIri>http://www.knora.org/ontology/standoff#StandoffParagraphTag</classIri>
+                        </standoffClass>
+                    </mappingElement>
+                </mapping>""".stripMargin
+
+            val params =
+                s"""
+                   |{
+                   |  "project_id": "$ANYTHING_PROJECT_IRI",
+                   |  "label": "mapping for elements separating words",
+                   |  "mappingName": "MappingSeparatingWords"
+                   |}
+             """.stripMargin
+
+
+
+            val formDataMapping = Multipart.FormData(
+                Multipart.FormData.BodyPart(
+                    "json",
+                    HttpEntity(ContentTypes.`application/json`, params)
+                ),
+                Multipart.FormData.BodyPart(
+                    "xml",
+                    HttpEntity(ContentTypes.`text/xml(UTF-8)`, mapping),
+                    Map("filename" -> "mapping.xml")
+                )
+            )
+
+            // send mapping xml to route
+            Post("/v1/mapping", formDataMapping) ~> addCredentials(BasicHttpCredentials(anythingUserEmail, password)) ~> standoffPath ~> check {
+
+                assert(status == StatusCodes.OK)
+
+            }
+
+        }
+
+        "create a TextValue from a XML using an element with a class that separates words" in {
+
+            val xmlToSend =
+                """<?xml version="1.0" encoding="UTF-8"?>
+                <text documentType="html">
+                    <div class="paragraph">
+                        This an element that has a class and it separates words.
+                    </div>
+                </text>""".stripMargin
+
+            val newValueParams =
+                s"""
+                    {
+                      "project_id": "http://rdfh.ch/projects/0001",
+                      "res_id": "http://rdfh.ch/0001/a-thing",
+                      "prop": "http://www.knora.org/ontology/0001/anything#hasText",
+                      "richtext_value": {
+                            "xml": ${JsString(xmlToSend)},
+                            "mapping_id": "$ANYTHING_PROJECT_IRI/mappings/MappingSeparatingWords"
+                      }
+                    }""".stripMargin
+
+            // create standoff from XML
+            Post("/v1/values", HttpEntity(ContentTypes.`application/json`, newValueParams)) ~> addCredentials(BasicHttpCredentials(anythingUserEmail, password)) ~> valuesPath ~> check {
+
+                assert(status == StatusCodes.OK, "creation of a TextValue from XML returned a non successful HTTP status code: " + responseAs[String])
+
+            }
+
 
         }
 

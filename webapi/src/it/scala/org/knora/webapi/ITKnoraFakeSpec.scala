@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2018 the contributors (see Contributors.md).
+ * Copyright © 2015-2019 the contributors (see Contributors.md).
  *
  * This file is part of Knora.
  *
@@ -19,13 +19,24 @@
 
 package org.knora.webapi
 
+import java.io.File
+import java.nio.file.{Files, Paths}
+
 import akka.actor.ActorSystem
 import akka.event.LoggingAdapter
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.client.RequestBuilding
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import com.typesafe.config.{Config, ConfigFactory}
 import org.knora.webapi.util.StringFormatter
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatest.{BeforeAndAfterAll, Matchers, Suite, WordSpecLike}
+import spray.json.{JsObject, _}
 
+import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.{Await, Future}
 import scala.languageFeature.postfixOps
+
 
 object ITKnoraFakeSpec {
     val defaultConfig: Config = ConfigFactory.load()
@@ -35,10 +46,11 @@ object ITKnoraFakeSpec {
   * This class can be used in End-to-End testing. It starts a Fake Knora server and
   * provides access to settings and logging.
   */
-class ITKnoraFakeSpec(_system: ActorSystem) extends Core with KnoraFakeService with Suite with BeforeAndAfterAll {
+class ITKnoraFakeSpec(_system: ActorSystem) extends Core with KnoraFakeService with Suite with WordSpecLike with Matchers with BeforeAndAfterAll with RequestBuilding {
 
     /* needed by the core trait */
     implicit lazy val settings: SettingsImpl = Settings(system)
+
     StringFormatter.initForTest()
 
     def this(name: String, config: Config) = this(ActorSystem(name, config.withFallback(ITKnoraFakeSpec.defaultConfig)))
@@ -68,6 +80,40 @@ class ITKnoraFakeSpec(_system: ActorSystem) extends Core with KnoraFakeService w
         /* Stop the server when everything else has finished */
         log.debug(s"Stopping Knora Service")
         stopService()
+    }
+
+    protected def singleAwaitingRequest(request: HttpRequest, duration: Duration = 15.seconds): HttpResponse = {
+        val responseFuture = Http().singleRequest(request)
+        Await.result(responseFuture, duration)
+    }
+
+    protected def getResponseString(request: HttpRequest): String = {
+        val response = singleAwaitingRequest(request)
+        val responseBodyStr = Await.result(Unmarshal(response.entity).to[String], 6.seconds)
+        assert(response.status === StatusCodes.OK, s",\n REQUEST: $request,\n RESPONSE: $responseBodyStr")
+        responseBodyStr
+    }
+
+    protected def checkResponseOK(request: HttpRequest): Unit = {
+        getResponseString(request)
+    }
+
+    protected def getResponseJson(request: HttpRequest): JsObject = {
+        getResponseString(request).parseJson.asJsObject
+    }
+
+    /**
+      * Creates the Knora API server's temporary upload directory if it doesn't exist.
+      */
+    def createTmpFileDir(): Unit = {
+        if (!Files.exists(Paths.get(settings.tmpDataDir))) {
+            try {
+                val tmpDir = new File(settings.tmpDataDir)
+                tmpDir.mkdir()
+            } catch {
+                case e: Throwable => throw FileWriteException(s"Tmp data directory ${settings.tmpDataDir} could not be created: ${e.getMessage}")
+            }
+        }
     }
 
 }
