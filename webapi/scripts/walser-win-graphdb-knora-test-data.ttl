@@ -6,16 +6,37 @@ load ../../knora-ontologies/standoff-data.ttl into http://www.knora.org/data/sta
 load ../../knora-ontologies/salsah-gui.ttl into http://www.knora.org/ontology/salsah-gui .
 load ../_test_data/all_data/admin-data.ttl into http://www.knora.org/data/admin .
 load ../_test_data/all_data/permissions-data.ttl into http://www.knora.org/data/permissions .
-load ../_test_data/all_data/system-data.ttl into http://www.knora.org/data/FFFF/SystemProject .
+load ../_test_data/all_data/system-data.ttl into http://www.knora.org/data/0000/SystemProject .
 load ../_test_data/ontologies/incunabula-onto.ttl into http://www.knora.org/ontology/0803/incunabula .
 load ../_test_data/ontologies/dokubib-onto.ttl into http://www.knora.org/ontology/0804/dokubib .
 load ../_test_data/ontologies/images-onto.ttl into http://www.knora.org/ontology/00FF/images .
 load ../_test_data/ontologies/anything-onto.ttl into http://www.knora.org/ontology/0001/anything .
-load ../_test_data/all_data/anything-data.ttl into http://www.knora.org/data/anything .
+load ../_test_data/all_data/anything-data.ttl into http://www.knora.org/data/0001/anything .
 load ../_test_data/ontologies/something-onto.ttl into http://www.knora.org/ontology/0001/something .
 load ../_test_data/ontologies/beol-onto.ttl into http://www.knora.org/ontology/0801/beol .
 load ../_test_data/ontologies/biblio-onto.ttl into http://www.knora.org/ontology/0801/biblio .
 load ../_test_data/ontologies/webern-onto.ttl into http://www.knora.org/ontology/08AE/webern .
+
+load ../_test_data/ontologies/nie-ine/agent-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/concept-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/device-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/document-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/event-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/human-geography-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/human-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/information-carrier-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/language-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/linguistics-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/mathematics-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/organization-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/physical-geography-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/physical-resource-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/publishing-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/text-editing-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/text-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/text-structure-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+load ../_test_data/ontologies/nie-ine/literature-ontology-knora.ttl into http://www.knora.org/ontology/08AE/SystemProject .
+
 load ../_test_data/ontologies/walser-project.ttl into http://www.knora.org/data/kwa .
 load ../_test_data/ontologies/walser-onto.ttl into http://www.knora.org/ontology/CAFE/kwa .
 close .
