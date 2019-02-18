@@ -58,6 +58,7 @@ document:Structure
 
 #° document:Reference
 
+#MS: knora resources may not have restrictions on properties and on their subproperties
 document:ContentStructure
 	a owl:Class;
 	rdfs:label "document content structure"@en, "Dokumentinhaltstruktur"@de;
