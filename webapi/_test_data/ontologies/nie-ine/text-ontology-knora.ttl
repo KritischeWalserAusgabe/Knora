@@ -6,24 +6,24 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
 @prefix cidoc: <http://www.cidoc-crm.org/cidoc-crm/>.
 @prefix frbroo: <http://iflastandards.info/ns/fr/frbr/frbroo/>.
-@prefix event: <http://www.knora.org/ontology/0000/event#>.
-@prefix human: <http://www.knora.org/ontology/0000/human#>.
-@prefix org: <http://www.knora.org/ontology/0000/organization#>.
-@prefix language: <http://www.knora.org/ontology/0000/language#>.
-@prefix concept: <http://www.knora.org/ontology/0000/concept#>.
-@prefix math: <http://www.knora.org/ontology/0000/mathematics#>.
-@prefix document: <http://www.knora.org/ontology/0000/document#>.
-@prefix text-structure: <http://www.knora.org/ontology/0000/text-structure#>.
-@prefix textedit: <http://www.knora.org/ontology/0000/text-editing#>.
-@prefix infocar: <http://www.knora.org/ontology/0000/information-carrier#>.
-@prefix publish: <http://www.knora.org/ontology/0000/publishing#>.
-@prefix litera: <http://www.knora.org/ontology/0000/literature#>.
+@prefix event: <http://www.knora.org/ontology/shared/event#>.
+@prefix human: <http://www.knora.org/ontology/shared/human#>.
+@prefix org: <http://www.knora.org/ontology/shared/organization#>.
+@prefix language: <http://www.knora.org/ontology/shared/language#>.
+@prefix concept: <http://www.knora.org/ontology/shared/concept#>.
+@prefix math: <http://www.knora.org/ontology/shared/mathematics#>.
+@prefix document: <http://www.knora.org/ontology/shared/document#>.
+@prefix text-structure: <http://www.knora.org/ontology/shared/text-structure#>.
+@prefix textedit: <http://www.knora.org/ontology/shared/text-editing#>.
+@prefix infocar: <http://www.knora.org/ontology/shared/information-carrier#>.
+@prefix publish: <http://www.knora.org/ontology/shared/publishing#>.
+@prefix litera: <http://www.knora.org/ontology/shared/literature#>.
 @prefix knora-base: <http://www.knora.org/ontology/knora-base#>.
 
-@base <http://www.knora.org/ontology/0000/text>.
-@prefix text: <http://www.knora.org/ontology/0000/text#>.
+@base <http://www.knora.org/ontology/shared/text>.
+@prefix text: <http://www.knora.org/ontology/shared/text#>.
 
-<http://www.knora.org/ontology/0000/text>
+<http://www.knora.org/ontology/shared/text>
 	a owl:Ontology;
 	dct:title "An ontology about text"@en;
 	dct:description """Formal description of text in broadest sense, general subclasses, related classes, and properties."""@en;

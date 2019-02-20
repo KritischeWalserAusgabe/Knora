@@ -9,6 +9,8 @@
 @prefix salsah-gui: <http://www.knora.org/ontology/salsah-gui#> .
 @prefix standoff: <http://www.knora.org/ontology/standoff#> .
 
+@prefix human: <http://www.knora.org/ontology/shared/human#>.
+
 @base <http://www.knora.org/ontology/CAFE/kwa> .
 
 @prefix walser: <http://www.knora.org/ontology/CAFE/kwa#> .
@@ -808,86 +810,13 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 		rdfs:comment "A pseudonym is a type of persona that an actor takes to publish works." ;
               rdfs:label "Pseudonym"@de ,
               "pseudonym"@en .                       
-#
-# this is probably bullshit... can be done with a literal author name property on a publication
-#:AutorAbbreviation rdf:type owl:Class ;
-#	rdfs:subClassOf :Persona; 
-#		rdfs:comment "A autor abbreviation is a persona consisting of an abbreviation of a persons name." ;
-#              rdfs:label "Pseudonym"@de ,
-#              "pseudonym"@en .               
-              
-:hasGivenName  rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  :hasName ;
-          rdfs:label "Vorname"@de ,
-                     "first name."@en ;
-          knora-base:subjectClassConstraint :Person;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                     
 
-:hasFamilyName  rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
-          rdfs:label "Nachname"@de ,
-                     "family name."@en ;
-          knora-base:subjectClassConstraint :Person;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .
-                     
-:hasAlias  rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
-          rdfs:label "Alias"@de ,
-                     "alias"@en ;
-          knora-base:subjectClassConstraint :Person;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                     
-#
-# the weird name results from name collision with book titles
-#
-:hasPersonTitle rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
-          rdfs:label "Titel"@de ,
-                     "title."@en ;                        
-          knora-base:subjectClassConstraint :Person;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner . 
-                                                                                       
-:hasBirthdate
-	a owl:ObjectProperty;
-	rdfs:label "has birthdate"@en, "hat Geburtsdatum"@de;
-	rdfs:comment """Relating a person to the birthdate of that person."""@en;
-	rdfs:subPropertyOf knora-base:hasValue;	
-	knora-base:subjectClassConstraint :Person;
-    knora-base:objectClassConstraint knora-base:DateValue.
-    
-:hasDeathDate
-	a owl:ObjectProperty;
-	rdfs:label "has death date"@en, "hat Todesdatum"@de;
-	rdfs:comment """Relating a person to the death date of that person."""@en;
-	rdfs:subPropertyOf knora-base:hasValue;	
-	knora-base:subjectClassConstraint :Person;
-    knora-base:objectClassConstraint knora-base:DateValue.      
-
-#TODO: relate to NIE-INE human:Person    
 :Person rdf:type owl:Class ;
-	rdfs:subClassOf :Agent, foaf:Person,  
-	    [a owl:Restriction; owl:onProperty :hasBirthdate; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-		[a owl:Restriction; owl:onProperty :hasDeathDate; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
-		[a owl:Restriction; owl:onProperty :hasFamilyName; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
-		[a owl:Restriction; owl:onProperty :hasGivenName; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
-		[a owl:Restriction; owl:onProperty :hasAlias; owl:minCardinality "0"^^xsd:nonNegativeInteger], 
-		[a owl:Restriction; owl:onProperty :hasPersonTitle; owl:minCardinality "0"^^xsd:nonNegativeInteger];		 
-	    rdfs:comment "A natural person" ;
+	rdfs:subClassOf human:Person; 
+		rdfs:comment "A person that is referenced in the context of the KWA." ;
               rdfs:label "Person"@de ,
               "person"@en .        
-                  
-                                          
+                                                            
 :PublishingCompany rdf:type owl:Class ;
 	rdfs:subClassOf :Agent;
 	rdfs:comment "A publishing company, i. e. a company publishing books and/or periodicals" ;

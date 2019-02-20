@@ -7,19 +7,19 @@
 @prefix unicore: <http://purl.uniprot.org/core/>.
 @prefix cidoc: <http://www.cidoc-crm.org/cidoc-crm/>.
 @prefix frbroo: <http://iflastandards.info/ns/fr/frbr/frbroo/>.
-@prefix event: <http://www.knora.org/ontology/0000/event#>.
-@prefix agent: <http://www.knora.org/ontology/0000/agent#>.
-@prefix human: <http://www.knora.org/ontology/0000/human#>.
-@prefix concept: <http://www.knora.org/ontology/0000/concept#>.
-@prefix text: <http://www.knora.org/ontology/0000/text#>.
-@prefix device: <http://www.knora.org/ontology/0000/device#>.
-@prefix ling: <http://www.knora.org/ontology/0000/linguistics#>.
+@prefix event: <http://www.knora.org/ontology/shared/event#>.
+@prefix agent: <http://www.knora.org/ontology/shared/agent#>.
+@prefix human: <http://www.knora.org/ontology/shared/human#>.
+@prefix concept: <http://www.knora.org/ontology/shared/concept#>.
+@prefix text: <http://www.knora.org/ontology/shared/text#>.
+@prefix device: <http://www.knora.org/ontology/shared/device#>.
+@prefix ling: <http://www.knora.org/ontology/shared/linguistics#>.
 @prefix knora-base: <http://www.knora.org/ontology/knora-base#>.
 
-@base <http://www.knora.org/ontology/0000/language>.
-@prefix language: <http://www.knora.org/ontology/0000/language#>.
+@base <http://www.knora.org/ontology/shared/language>.
+@prefix language: <http://www.knora.org/ontology/shared/language#>.
 
-<http://www.knora.org/ontology/0000/language>
+<http://www.knora.org/ontology/shared/language>
 	a owl:Ontology;
 	dct:title "An ontology about language"@en;
 	dct:description """Formal description of language, general subclasses, related classes and properties."""@en;

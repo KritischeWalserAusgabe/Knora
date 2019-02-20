@@ -6,20 +6,20 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
 @prefix cidoc: <http://www.cidoc-crm.org/cidoc-crm/>.
 @prefix frbroo: <http://iflastandards.info/ns/fr/frbr/frbroo/>.
-@prefix physical: <http://www.knora.org/ontology/0000/physical-resource#>.
-@prefix event: <http://www.knora.org/ontology/0000/event#>.
-@prefix human: <http://www.knora.org/ontology/0000/human#>.
-@prefix concept: <http://www.knora.org/ontology/0000/concept#>.
-@prefix document: <http://www.knora.org/ontology/0000/document#>.
-@prefix text: <http://www.knora.org/ontology/0000/text#>.
-@prefix device: <http://www.knora.org/ontology/0000/device#>.
-@prefix ling: <http://www.knora.org/ontology/0000/linguistics#>.
+@prefix physical: <http://www.knora.org/ontology/shared/physical-resource#>.
+@prefix event: <http://www.knora.org/ontology/shared/event#>.
+@prefix human: <http://www.knora.org/ontology/shared/human#>.
+@prefix concept: <http://www.knora.org/ontology/shared/concept#>.
+@prefix document: <http://www.knora.org/ontology/shared/document#>.
+@prefix text: <http://www.knora.org/ontology/shared/text#>.
+@prefix device: <http://www.knora.org/ontology/shared/device#>.
+@prefix ling: <http://www.knora.org/ontology/shared/linguistics#>.
 @prefix knora-base: <http://www.knora.org/ontology/knora-base#>.
 
-@base <http://www.knora.org/ontology/0000/information-carrier>.
-@prefix infocar: <http://www.knora.org/ontology/0000/information-carrier#>.
+@base <http://www.knora.org/ontology/shared/information-carrier>.
+@prefix infocar: <http://www.knora.org/ontology/shared/information-carrier#>.
 
-<http://www.knora.org/ontology/0000/information-carrier>
+<http://www.knora.org/ontology/shared/information-carrier>
 	a owl:Ontology;
 	dct:title "An ontology about information carrier"@en;
 	dct:description """Formal description of information carrier in broadest sense, general subclasses, related classes, and properties."""@en;
