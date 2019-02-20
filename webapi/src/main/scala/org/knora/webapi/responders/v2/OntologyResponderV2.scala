@@ -717,7 +717,7 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
                     }
 
                     // It cannot have cardinalities both on property P and on a subproperty of P.
-
+/*
                     val maybePropertyAndSubproperty: Option[(SmartIri, SmartIri)] = findPropertyAndSubproperty(
                         propertyIris = allPropertyIrisForCardinalitiesInClass,
                         subPropertyOfRelations = allSubPropertyOfRelations
@@ -729,7 +729,7 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
 
                         case None => ()
                     }
-
+*/
                     if (isKnoraResourceClass) {
                         // If it's a resource class, all its directly defined cardinalities must be on Knora resource properties, not including knora-base:resourceProperty or knora-base:hasValue.
 
@@ -2095,7 +2095,7 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
         )
 
         // It cannot have cardinalities both on property P and on a subproperty of P.
-
+/*
         val maybePropertyAndSubproperty: Option[(SmartIri, SmartIri)] = findPropertyAndSubproperty(
             propertyIris = cardinalitiesForClassWithInheritance.keySet,
             subPropertyOfRelations = cacheData.subPropertyOfRelations
@@ -2107,7 +2107,7 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
 
             case None => ()
         }
-
+*/
         (classDefWithAddedLinkValueProps, cardinalitiesForClassWithInheritance)
     }
 
