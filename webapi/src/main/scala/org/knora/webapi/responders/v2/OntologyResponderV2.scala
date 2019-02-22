@@ -2094,7 +2094,6 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
             errorFun = { msg: String => throw BadRequestException(msg) }
         )
 
-        //MS: fix this
         // It cannot have cardinalities both on property P and on a subproperty of P.
         val maybePropertyAndSubproperty: Option[(SmartIri, SmartIri)] = findPropertyAndSubproperty(
             propertyIris = cardinalitiesForClassWithInheritance.keySet,
