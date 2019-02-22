@@ -2094,8 +2094,8 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
             errorFun = { msg: String => throw BadRequestException(msg) }
         )
 
+        //MS: fix this
         // It cannot have cardinalities both on property P and on a subproperty of P.
-/*
         val maybePropertyAndSubproperty: Option[(SmartIri, SmartIri)] = findPropertyAndSubproperty(
             propertyIris = cardinalitiesForClassWithInheritance.keySet,
             subPropertyOfRelations = cacheData.subPropertyOfRelations
@@ -2103,11 +2103,27 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
 
         maybePropertyAndSubproperty match {
             case Some((basePropertyIri, propertyIri)) =>
-                throw BadRequestException(s"Class <${classDefWithAddedLinkValueProps.classIri.toOntologySchema(ApiV2WithValueObjects)}> has a cardinality on property <${basePropertyIri.toOntologySchema(ApiV2WithValueObjects)}> and on its subproperty <${propertyIri.toOntologySchema(ApiV2WithValueObjects)}>")
+                        val thisClassKnoraCardinality: KnoraCardinalityInfo = Cardinality.owlCardinality2KnoraCardinality(
+                            propertyIri = propertyIri.toString,
+                            owlCardinality = thisClassKnoraCardinalities(propertyIri)
+                        )
+
+                        val inheritableKnoraCardinality: KnoraCardinalityInfo = Cardinality.owlCardinality2KnoraCardinality(
+                            propertyIri = basePropertyIri.toString,
+                            owlCardinality = inheritableKnoraCardinalities(basePropertyIri)
+                        )
+
+                        if (!Cardinality.isCompatible(directCardinality = thisClassKnoraCardinality.cardinality, inheritableCardinality = inheritableKnoraCardinality.cardinality)) {
+                            // No. Throw an exception.
+                            throw BadRequestException(s"Class <${classDefWithAddedLinkValueProps.classIri.toOntologySchema(ApiV2WithValueObjects)}> has a cardinality on property <${basePropertyIri.toOntologySchema(ApiV2WithValueObjects)}> and on its subproperty <${propertyIri.toOntologySchema(ApiV2WithValueObjects)}>")
+                        }
+                        else
+                          ()
+                              
 
             case None => ()
         }
-*/
+
         (classDefWithAddedLinkValueProps, cardinalitiesForClassWithInheritance)
     }
 
