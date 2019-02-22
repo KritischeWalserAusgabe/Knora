@@ -10,6 +10,8 @@
 @prefix standoff: <http://www.knora.org/ontology/standoff#> .
 
 @prefix human: <http://www.knora.org/ontology/shared/human#>.
+@prefix publish: <http://www.knora.org/ontology/shared/publishing#>.
+@prefix text: <http://www.knora.org/ontology/shared/text#>.
 
 @base <http://www.knora.org/ontology/CAFE/kwa> .
 
@@ -252,7 +254,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	a owl:ObjectProperty;
 	rdfs:label "has short code"@en, "hat Sigel"@de;
 	rdfs:comment """Relating a resource to a short code as a short identifier of the resource."""@en;
-	rdfs:subPropertyOf  knora-base:hasValue ;
+	rdfs:subPropertyOf text:hasName ;
 	knora-base:subjectClassConstraint knora-base:Resource;
 	knora-base:objectClassConstraint knora-base:TextValue;
     salsah-gui:guiElement salsah-gui:SimpleText ;
@@ -730,161 +732,24 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
 #
 #  General purpose properties
-#
-# NOTE: these are copied from NIE-INE Ontologies. They are supposed to be replaced as soon as i find time how to
-#       configure shared ontologies and use the NIE-INE ones.
-
-#
-#  Things can have names by which they are (non-exclusively) named
-#
-:hasName  rdf:type owl:ObjectProperty ;
-		  rdfs:subPropertyOf  knora-base:hasValue ;
-          rdfs:label "Name"@de ,
-                     "name"@en ;
-          knora-base:subjectClassConstraint knora-base:Resource;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .      
-
-# TODO: check if there should be a superclass of stuff carrying this property  (also check NIE-INE-Ontos)                                              
-:hasDescription rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf  knora-base:hasValue ;
-          rdfs:label "Beschreibung"@de ,
-                     "description."@en ;                        
-          knora-base:subjectClassConstraint knora-base:Resource;          
-          knora-base:objectClassConstraint knora-base:TextValue ;
-          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                                                                         
-                                                
-:hasPreferredName
-	a owl:ObjectProperty;
-	rdfs:label "has preferred name"@en, "hat bevorzugter Name"@de;
-	rdfs:comment """Relating a resource to a preferred name (as object)."""@en;
-	rdfs:subPropertyOf :hasName;
-	knora-base:subjectClassConstraint knora-base:Resource;
-	knora-base:objectClassConstraint knora-base:TextValue;
-	salsah-gui:guiElement salsah-gui:Richtext.		
-	
-:hidesAgent rdf:type owl:ObjectProperty ;
-            rdfs:subPropertyOf knora-base:hasLinkTo ;
-            rdfs:label "verbirgt"@de ,                      
-                      "hides"@en ;
-            knora-base:subjectClassConstraint :Persona;
-            knora-base:objectClassConstraint :Agent;                      
-            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-            knora-base:hasDefaultModifyPermission knora-base:Owner ;
-            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .                                                 
-                                                 
-:hidesAgentValue rdf:type owl:ObjectProperty ;
-		    rdfs:subPropertyOf knora-base:hasLinkToValue ;
-            rdfs:label "verbirgt"@de ,                      
-                      "hides"@en ;
-            knora-base:subjectClassConstraint :Persona ;
-            knora-base:objectClassConstraint knora-base:LinkValue ;
-            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
-            knora-base:hasDefaultModifyPermission knora-base:Owner ;           
-            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                 knora-base:Owner .	
-
-:Agent rdf:type owl:Class ;
-	rdfs:subClassOf knora-base:Resource, foaf:Agent, 
-			[ a owl:Restriction; owl:onProperty :hasName; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-			[ a owl:Restriction; owl:onProperty :hasDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger];
-		rdfs:comment "An entity that takes the responsibility for actions such as authorship or editorship of works." ;
-        rdfs:label "Agent"@de ,
-              "agent"@en .                                                 
-                                                 
-:Persona rdf:type owl:Class ;
-	rdfs:subClassOf :Agent, 	
-			[a owl:Restriction; owl:onProperty :hidesAgent; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-			[a owl:Restriction; owl:onProperty :hidesAgentValue; owl:minCardinality "0"^^xsd:nonNegativeInteger];
-		rdfs:comment "A persona is a sign or pseudonym taken by a person or a collective or to act anonymously or in a roleplay fashion." ;
-        rdfs:label "Persona"@de ,
-              "persona"@en .                                  
-              
-:Pseudonym rdf:type owl:Class ;
-	rdfs:subClassOf :Persona; 
-		rdfs:comment "A pseudonym is a type of persona that an actor takes to publish works." ;
-              rdfs:label "Pseudonym"@de ,
-              "pseudonym"@en .                       
+#                       
 
 :Person rdf:type owl:Class ;
 	rdfs:subClassOf human:Person; 
 		rdfs:comment "A person that is referenced in the context of the KWA." ;
               rdfs:label "Person"@de ,
-              "person"@en .        
-                                                            
-:PublishingCompany rdf:type owl:Class ;
-	rdfs:subClassOf :Agent;
-	rdfs:comment "A publishing company, i. e. a company publishing books and/or periodicals" ;
-              rdfs:label "Verlag"@de ,
-              "publishing company"@en .
+              "person"@en .                     
               
-:hasPublisher
-	a owl:ObjectProperty;
-	rdfs:label "has publisher"@en, "hat Verleger"@de;
-	rdfs:comment "Relating a publication to its publisher."@en;
-	rdfs:subPropertyOf knora-base:hasLinkTo;
-	knora-base:subjectClassConstraint :Publication;
-	knora-base:objectClassConstraint :Agent.
-
-:hasPublisherValue
-	a owl:ObjectProperty;
-	rdfs:label "has publisher - statement"@en, "hat Verleger - Festlegung"@de;
-	rdfs:comment "Relating a publication to a reification statement of the relation between the publication and its publisher."@en;
-	rdfs:subPropertyOf knora-base:hasLinkToValue;
-	knora-base:subjectClassConstraint :Publication;
-	knora-base:objectClassConstraint knora-base:LinkValue.
-		
-:hasEditor
-	a owl:ObjectProperty;
-	rdfs:label "has editor"@en, "hat Herausgeber"@de;
-	rdfs:comment "Relating a publication to its editor."@en;
-	rdfs:subPropertyOf knora-base:hasLinkTo;
-	knora-base:subjectClassConstraint :Publication;
-	knora-base:objectClassConstraint :Agent.
-
-:hasEditorValue
-	a owl:ObjectProperty;
-	rdfs:label "has editor - statement"@en, "hat Herausgeber - Festlegung"@de;
-	rdfs:comment "Relating a publication to a reification statement of the relation between the publication and its editor."@en;
-	rdfs:subPropertyOf knora-base:hasLinkToValue;
-	knora-base:subjectClassConstraint :Publication;
-	knora-base:objectClassConstraint knora-base:LinkValue.	
-              
-:Publication rdf:type owl:Class ;
-	rdfs:subClassOf knora-base:Resource,  
-	[a owl:Restriction; owl:onProperty :hasTitle; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-	[a owl:Restriction; owl:onProperty :hasEditor; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-	[a owl:Restriction; owl:onProperty :hasEditorValue; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-	[a owl:Restriction; owl:onProperty :hasPublisher; owl:minCardinality "0"^^xsd:nonNegativeInteger],
-	[a owl:Restriction; owl:onProperty :hasPublisherValue; owl:minCardinality "0"^^xsd:nonNegativeInteger];              
-    rdfs:comment "A publication of some sort" ;
-              rdfs:label "Publikation"@de ,
-              "publication"@en .          
-              
-# TODO: make this a subclass publication? Why? Why not?
-#       Add publisher and editor
-:Periodical rdf:type owl:Class ;
-	rdfs:subClassOf knora-base:Resource,  
-	[a owl:Restriction; owl:onProperty :hasTitle; owl:minCardinality "1"^^xsd:nonNegativeInteger],
-	[a owl:Restriction; owl:onProperty :hasShortCode; owl:cardinality "1"^^xsd:nonNegativeInteger],
-	[a owl:Restriction; owl:onProperty :hasDescription; owl:minCardinality "0"^^xsd:nonNegativeInteger];
-    rdfs:comment "A periodical publication medium" ;
-              rdfs:label "Publikation"@de ,
-              "publication"@en .          
-
 :Newspaper rdf:type owl:Class ;
-	rdfs:subClassOf walser:Periodical;  
+	rdfs:subClassOf publish:Periodical, 
+			[a owl:Restriction; owl:onProperty :hasShortCode; owl:cardinality "1"^^xsd:nonNegativeInteger];  
     rdfs:comment "A newspaper as periodical publication medium" ;
               rdfs:label "Zeitung"@de ,
               "newspaper"@en .
               
 :Magazine rdf:type owl:Class ;
-	rdfs:subClassOf walser:Periodical;  
+	rdfs:subClassOf publish:Periodical, 
+			[a owl:Restriction; owl:onProperty :hasShortCode; owl:cardinality "1"^^xsd:nonNegativeInteger];
     rdfs:comment "A magazine as periodical publication medium" ;
               rdfs:label "Zeitschrift"@de ,
               "magazine"@en .              
