@@ -342,43 +342,53 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
-                                                                                                                            
+                                                                  
+:include-in-kwae rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf knora-base:hasValue;
+          rdfs:label "in kwae sichtbar"@de ,
+                     "included/visible in kwae"@en ;
+          rdfs:comment "Wether the textcarrier should be visible/openable in the kwae application." ;
+          knora-base:subjectClassConstraint :textcarrier;
+          knora-base:objectClassConstraint knora-base:BooleanValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .                                                
+                                                
          
 #################
 # Class TEXTCARRIER
-:textcarrier rdf:type owl:Class ;
-					
+:textcarrier rdf:type owl:Class ;					
              rdfs:subClassOf knora-base:Resource  ,				
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :textcarrier-name;
 					owl:cardinality "1"^^xsd:nonNegativeInteger ;
-					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger
-				] ,
+				 ],
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :textcarrier-description;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
-					salsah-gui:guiOrder "1"^^xsd:nonNegativeInteger
-				] ,									
+				 ],									
 				 [
 					rdf:type owl:Restriction ;
 					owl:onProperty :textcarrier-kwa-id ;
 					owl:cardinality "1"^^xsd:nonNegativeInteger ; 
-					salsah-gui:guiOrder "3"^^xsd:nonNegativeInteger 
-				] ,	
+				 ],	
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :kwa-volume;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
-					salsah-gui:guiOrder "4"^^xsd:nonNegativeInteger ;
-				] ,
+				 ],
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :kwa-page-no;
-					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
-					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger ;
-				] ;
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger ;					
+				 ],
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :include-in-kwae;
+					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
+				 ];
 					
 		     rdfs:label "Textträger"@de ,
                      "textcarrier"@en ;					

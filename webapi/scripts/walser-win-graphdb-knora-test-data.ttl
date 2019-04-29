@@ -39,5 +39,8 @@ load ../_test_data/ontologies/nie-ine/literature-ontology-knora.ttl into http://
 
 load ../_test_data/ontologies/walser-project.ttl into http://www.knora.org/data/kwa .
 load ../_test_data/ontologies/walser-onto.ttl into http://www.knora.org/ontology/CAFE/kwa .
+
+# load ../../../tripleTools/fowl/ontologies/fowl.ttl into http://www.knora.org/ontology/shared/fwlo .
+
 close .
 exit .
