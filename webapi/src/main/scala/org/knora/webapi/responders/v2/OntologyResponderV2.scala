@@ -722,13 +722,13 @@ class OntologyResponderV2(responderData: ResponderData) extends Responder(respon
                         propertyIris = allPropertyIrisForCardinalitiesInClass,
                         subPropertyOfRelations = allSubPropertyOfRelations
                     )
-
+/*
                     maybePropertyAndSubproperty match {
                         case Some((basePropertyIri, propertyIri)) =>
                             throw InconsistentTriplestoreDataException(s"Class $classIri has a cardinality on property $basePropertyIri and on its subproperty $propertyIri")
 
                         case None => ()
-                    }
+                    }*/
 
                     if (isKnoraResourceClass) {
                         // If it's a resource class, all its directly defined cardinalities must be on Knora resource properties, not including knora-base:resourceProperty or knora-base:hasValue.

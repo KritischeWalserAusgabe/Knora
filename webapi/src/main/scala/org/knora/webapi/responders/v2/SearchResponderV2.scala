@@ -137,8 +137,8 @@ class SearchResponderV2(responderData: ResponderData) extends ResponderWithStand
 
         val groupConcatSeparator = StringFormatter.INFORMATION_SEPARATOR_ONE
 
-        val searchTerms: CombineSearchTerms = CombineSearchTerms(searchValue)
-
+        val searchTerms: CombineSearchTerms = CombineSearchTerms(searchValue)   
+        
         for {
             searchSparql <- Future(queries.sparql.v2.txt.searchFulltext(
                 triplestore = settings.triplestoreType,
@@ -152,7 +152,7 @@ class SearchResponderV2(responderData: ResponderData) extends ResponderWithStand
                 countQuery = false
             ).toString())
 
-            // _ = println(searchSparql)
+            _ = println(searchSparql)
 
             prequeryResponse: SparqlSelectResponse <- (storeManager ? SparqlSelectRequest(searchSparql)).mapTo[SparqlSelectResponse]
 
@@ -417,7 +417,7 @@ class SearchResponderV2(responderData: ResponderData) extends ResponderWithStand
                 transformer = triplestoreSpecificQueryPatternTransformerSelect
             )
 
-            // _ = println(triplestoreSpecificPrequery.toSparql)
+           //_ = println(triplestoreSpecificPrequery.toSparql)
 
             prequeryResponse: SparqlSelectResponse <- (storeManager ? SparqlSelectRequest(triplestoreSpecificPrequery.toSparql)).mapTo[SparqlSelectResponse]
 
