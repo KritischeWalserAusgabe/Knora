@@ -28,7 +28,7 @@ cat win-graphdb-knora-test-data.ttl | $CONSOLE
 
 printf "\n\n${GREEN}${DELIMITER}Creating Lucene index${NO_COLOUR}\n\n"
 
-STATUS=$(curl -s -w '%{http_code}' -S -X POST -H "Content-Type:text/turtle" --data-binary @./graphdb-free-knora-test-index-config.ttl $GRAPHDB/repositories/knora-test/statements)
+STATUS=$(curl -s -w '%{http_code}' -S -X POST --data-urlencode 'update@./graphdb-knora-index-create.rq' $GRAPHDB/repositories/knora-test/statements)
 
 if [ "$STATUS" == "204" ]
 then
