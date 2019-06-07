@@ -404,7 +404,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## The text concept, by contrast of the textmanifest, is a concept of a text
 ## that can be realized in different variants on different textcarriers, e.g.
 ## there may be a micrographic draft, a print manuscript and a print in a journal.
-## The words of the textmanifests that realize a concept may variant, but they still
+## The words of the textmanifests that realize a concept may vary, but they still
 ## are variants of the same concept.
 ##
 ## Properties of TEXTCONCEPT
@@ -561,11 +561,24 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## TEXTMANIFEST
 ##############
 ## 
-## The text manifest, by contrast of the text concept, is a physical realization of the
-## text on a sequence of textcarriers
+## The text manifest is a physical realization of a
+## sequence of textexpressions on a sequence of textcarriers
 ##
 ## Properties of TEXTMANIFEST
 
+:hasKwaManifestId rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf knora-base:hasValue, dcterms:identifier,  :hasShortCode ;
+          rdfs:label "KWA Textmanifest-Id"@de ,
+                     "Kwa Textmanifest id"@en ;
+          rdfs:comment "An id of the textexpression in the context of the kwa. Corresponds to the texts database id (if any) plus some magic numbers" ;
+          knora-base:subjectClassConstraint :textmanifest;
+          knora-base:objectClassConstraint knora-base:TextValue ;
+          salsah-gui:guiElement salsah-gui:SimpleText ;
+          salsah-gui:guiAttribute "size=128" ,
+                                  "maxlength=128" ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .
                                                  
 ##############
 ## Class TEXTMANIFEST       
@@ -576,24 +589,23 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :hasTitle;
-					owl:cardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "0"^^xsd:nonNegativeInteger] ,								 
+					owl:cardinality "1"^^xsd:nonNegativeInteger] ,	
+				[
+					rdf:type owl:Restriction;
+					owl:onProperty :hasKwaManifestId;
+					owl:cardinality "1"^^xsd:nonNegativeInteger] ,					
 				[
 					rdf:type owl:Restriction;
 					owl:onProperty :textresource-fulltext;
-					owl:cardinality "1"^^xsd:nonNegativeInteger  ;	
-					salsah-gui:guiOrder "2"^^xsd:nonNegativeInteger ;]
-					, 									 
+					owl:cardinality "1"^^xsd:nonNegativeInteger], 									 
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :hasKWAVolume;
-					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "5"^^xsd:nonNegativeInteger] ,
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger] ,
 				 [
 					rdf:type owl:Restriction;
 					owl:onProperty :hasKWAPageNo;
-					owl:maxCardinality "1"^^xsd:nonNegativeInteger  ;					
-					salsah-gui:guiOrder "6"^^xsd:nonNegativeInteger] ;
+					owl:maxCardinality "1"^^xsd:nonNegativeInteger] ;
 					
               rdfs:comment "A single manifestation of a text (on a textcarrier)" ;
               rdfs:label "Textmanifest"@de ,
