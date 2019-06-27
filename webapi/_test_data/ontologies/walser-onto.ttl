@@ -289,7 +289,103 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .	
-                                                
+
+#
+# Properties to create a date hint system that allows to sort textcarriers in a meaningful way
+#  over all different types of textcarriers
+#
+
+# a superproperty of all dates
+:hasDate  rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  knora-base:hasValue ;
+          rdfs:label "hat Datierung"@de ,
+                     "has Date"@en ;
+          rdfs:comment "A date the resource can be sorted by";
+          knora-base:subjectClassConstraint knora-base:Resource;
+          knora-base:objectClassConstraint knora-base:DateValue ;
+          knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+          knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                knora-base:Owner .
+
+# the date property that should preferrably be used for sorting
+:hasPreferredSortDate rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  :hasDate ;
+	      rdfs:label "hat Sortierdatum"@de ,
+                     "has preferred sort date"@en ;
+          knora-base:subjectClassConstraint knora-base:Resource;
+          knora-base:objectClassConstraint knora-base:DateValue .	      
+
+#
+# A textual representation of a date as it has been found in the field
+#
+:hasDateBefund rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  text:hasText ;
+	      rdfs:label "hat Datierungsbefund"@de ,                      
+                      "has date befund"@en ;
+          knora-base:subjectClassConstraint knora-base:Resource;
+          knora-base:objectClassConstraint knora-base:TextValue .
+
+:hasDatingHint rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf knora-base:hasLinkTo ;
+           rdfs:label "hat Datierungshinweis"@de ,                      
+                      "has dating hint"@en ;
+           knora-base:subjectClassConstraint knora-base:Resource;
+           knora-base:objectClassConstraint :DatingHint ;                      
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
+                                               knora-base:UnknownUser ,
+                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
+
+:hasDatingHintValue rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf knora-base:hasLinkToValue ;
+                rdfs:label "hat Datierungshinweis"@de ,                      
+                      		"has dating hint"@en ;
+                knora-base:subjectClassConstraint knora-base:Resource ;
+          		knora-base:objectClassConstraint knora-base:LinkValue ;
+            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner . 
+                                                 
+                                                 
+# this will never work...
+#:hasInferredDate rdf:type owl:ObjectProperty ;
+#	      rdfs:subPropertyOf  :hasDate ;
+#	      owl:propertyChainAxiom ( :hasDatingHintValue  :hasDate ) ;
+#          knora-base:subjectClassConstraint knora-base:Resource;
+#         knora-base:objectClassConstraint knora-base:DateValue .                                                 
+                                                 
+	      
+##############################################
+# Class dating hint
+##############################################
+:DatingHint rdf:type owl:Class ;					
+            rdfs:subClassOf knora-base:Resource, 
+            [
+            	rdf:type owl:Restriction;
+				owl:onProperty :hasDate;
+				owl:cardinality "1"^^xsd:nonNegativeInteger ;
+            ],
+            [
+            	rdf:type owl:Restriction;
+				owl:onProperty :hasDateBefund;
+				owl:cardinality "1"^^xsd:nonNegativeInteger ;
+            ],
+            [
+            	rdf:type owl:Restriction;
+				owl:onProperty text:hasDescription;
+				owl:cardinality "1"^^xsd:nonNegativeInteger ;
+            ];
+            
+            rdfs:label "Datierungshinweis"@de ,
+                     "date hint"@en ;					
+					
+             rdfs:comment 
+                 "A dating hint is a hint that is used to date an object." .
+
+	      
 ###############################################
 ## TEXTCARRIER
 ##############
@@ -354,7 +450,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
                                                 
-         
+
 #################
 # Class TEXTCARRIER
 :textcarrier rdf:type owl:Class ;					
@@ -388,6 +484,18 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					rdf:type owl:Restriction;
 					owl:onProperty :include-in-kwae;
 					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
+				 ],
+				 [  rdf:type owl:Restriction;
+					owl:onProperty :hasDate;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger
+				 ],
+				 [  rdf:type owl:Restriction;
+					owl:onProperty :hasDatingHint;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger
+				 ],
+				 [  rdf:type owl:Restriction;
+					owl:onProperty :hasDatingHintValue;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger
 				 ];
 					
 		     rdfs:label "Textträger"@de ,
