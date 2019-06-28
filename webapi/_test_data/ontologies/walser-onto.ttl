@@ -39,7 +39,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Titel"@de ,
                      "title"@en ;
           rdfs:comment "A descriptive title of the surface" ;
-          knora-base:subjectClassConstraint :surface;
+          knora-base:subjectClassConstraint :Surface;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=128" ,
@@ -53,7 +53,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Bildname"@de ,
                      "image name."@en ;
           rdfs:comment "The name of the image of the surface" ;
-          knora-base:subjectClassConstraint :surface ;
+          knora-base:subjectClassConstraint :Surface ;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=10" ,
@@ -67,7 +67,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Transkriptionsdateiname"@de ,
                      "transcription file name."@en ;
           rdfs:comment "The name of the transcription file of the surface" ;
-          knora-base:subjectClassConstraint :surface ;
+          knora-base:subjectClassConstraint :Surface ;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=10" ,
@@ -83,7 +83,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                      "Image description."@en ;
 
           rdfs:comment "A descriptive string to be shown with the image, e.g. the image provenence." ;
-          knora-base:subjectClassConstraint :surface ;
+          knora-base:subjectClassConstraint :Surface ;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=10" ,
@@ -99,7 +99,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                      "image copyright."@en ;
 
           rdfs:comment "A copyright string to be shown with the image." ;
-          knora-base:subjectClassConstraint :surface ;
+          knora-base:subjectClassConstraint :Surface ;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=10" ,
@@ -113,7 +113,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Seitenzahl"@de ,
                      "page no."@en ;
           rdfs:comment "The page number of the page (explicit or [assigned by editor])" ;
-          knora-base:subjectClassConstraint :surface ;
+          knora-base:subjectClassConstraint :Surface ;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=10" ,
@@ -131,7 +131,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            rdfs:comment """Sequenznummer zur Sortierung der Seiten"""@de ,
                         """Cette \"property\" dénote la position dans un séquence."""@fr ,
                         """This property stands for the position within a set of rdered items (resoucres)"""@en ;
-           knora-base:subjectClassConstraint :surface ;
+           knora-base:subjectClassConstraint :Surface ;
            knora-base:objectClassConstraint knora-base:IntValue ;
            salsah-gui:guiElement salsah-gui:Spinbox ;
            salsah-gui:guiAttribute "min=0" ,
@@ -146,8 +146,8 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Gehört zu Textträger"@de ,
                      "is part of textcarrier."@en ;
           rdfs:comment "The textcarrier this page belongs to" ;
-          knora-base:subjectClassConstraint :surface;
-          knora-base:objectClassConstraint :textcarrier ;
+          knora-base:subjectClassConstraint :Surface;
+          knora-base:objectClassConstraint :Textcarrier ;
           salsah-gui:guiElement salsah-gui:Searchbox ;
           salsah-gui:guiAttribute "numprops=1" ;
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
@@ -159,13 +159,13 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:subPropertyOf knora-base:isPartOfValue ; 
           rdfs:label "Gehört zu Textträger"@de ,
                      "is part of textcarrier."@en ;
-          knora-base:subjectClassConstraint :surface ;
+          knora-base:subjectClassConstraint :Surface ;
           knora-base:objectClassConstraint knora-base:LinkValue .
           
 ##############
 ## Class SURFACE
 
-:surface rdf:type owl:Class ;
+:Surface rdf:type owl:Class ;
          #rdfs:subClassOf knora-base:StillImageRepresentation ,
          rdfs:subClassOf knora-base:Resource ,
           			[
@@ -234,34 +234,36 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                      
 ##########################################################
 # common properties of textual objects
-#  TODO: should there be a superclass for textual objects?
-#  TODO: use NIE-INE-Ontologies
-##########################################################
+##########################################################    
 :hasTitle
 	a owl:ObjectProperty;
-	rdfs:label "has title"@en, "hat Titel"@de;
+	rdfs:label "has title"@en, "hat Untertitel"@de;
 	rdfs:comment """Relating a resource to a title (as object) as a textual identifier of the resource."""@en;
-	rdfs:subPropertyOf  knora-base:hasValue, dcterms:title, text:hasTitle ; # Note: NIE-INE has a super-property hasText
+	rdfs:subPropertyOf  knora-base:hasValue, dcterms:title, text:hasTitle ; 
 	knora-base:subjectClassConstraint knora-base:Resource;
 	knora-base:objectClassConstraint knora-base:TextValue;
-    salsah-gui:guiElement salsah-gui:SimpleText ;
-    salsah-gui:guiAttribute "size=64" ,
-                                  "maxlength=64" ;
     knora-base:hasDefaultViewPermission knora-base:KnownUser ;
     knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
-	
-:hasShortCode
+
+:hasSubtitle
 	a owl:ObjectProperty;
+	rdfs:label "has title"@en, "hat Untertitel"@de;
+	rdfs:comment """Relating a resource to a title (as object) as a textual identifier of the resource."""@en;
+	rdfs:subPropertyOf  knora-base:hasValue, dcterms:title, text:hasTitle ; 
+	knora-base:subjectClassConstraint knora-base:Resource;
+	knora-base:objectClassConstraint knora-base:TextValue;
+    knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .    
+	
+:hasShortCode a owl:ObjectProperty;
 	rdfs:label "has short code"@en, "hat Sigel"@de;
 	rdfs:comment """Relating a resource to a short code as a short identifier of the resource."""@en;
 	rdfs:subPropertyOf text:hasName ;
 	knora-base:subjectClassConstraint knora-base:Resource;
 	knora-base:objectClassConstraint knora-base:TextValue;
-    salsah-gui:guiElement salsah-gui:SimpleText ;
-    salsah-gui:guiAttribute "size=10" ,
-                                  "maxlength=10" ;
     knora-base:hasDefaultViewPermission knora-base:KnownUser ;
-    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .	
+    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
+    
 	
 :hasKWAVolume rdf:type owl:ObjectProperty ;
 	      rdfs:subPropertyOf  knora-base:hasValue ;
@@ -290,6 +292,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .	
 
+:hasText a owl:ObjectProperty;
+	rdfs:label "has text"@en, "hat Text"@de;
+	rdfs:comment "Relating a ressource to a piece of textual information on it."@en,
+		         "Ein Befundtext wie er auf der Resource steht oder ihr zugewiesen werden kann."@en;
+	rdfs:subPropertyOf text:hasText ;
+	knora-base:subjectClassConstraint knora-base:Resource;
+	knora-base:objectClassConstraint knora-base:TextValue.                                                 
+                                                
 #
 # Properties to create a date hint system that allows to sort textcarriers in a meaningful way
 #  over all different types of textcarriers
@@ -319,18 +329,18 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 # A textual representation of a date as it has been found in the field
 #
 :hasDateBefund rdf:type owl:ObjectProperty ;
-	      rdfs:subPropertyOf  text:hasText ;
+	      rdfs:subPropertyOf :hasText ;
 	      rdfs:label "hat Datierungsbefund"@de ,                      
                       "has date befund"@en ;
           knora-base:subjectClassConstraint knora-base:Resource;
           knora-base:objectClassConstraint knora-base:TextValue .
 
-:hasDatingHint rdf:type owl:ObjectProperty ;
+:isDatingHintFor rdf:type owl:ObjectProperty ;
            rdfs:subPropertyOf knora-base:hasLinkTo ;
-           rdfs:label "hat Datierungshinweis"@de ,                      
-                      "has dating hint"@en ;
-           knora-base:subjectClassConstraint knora-base:Resource;
-           knora-base:objectClassConstraint :DatingHint ;                      
+           rdfs:label "ist Datierungshinweis zu"@de ,                      
+                      "is dating hint for"@en ;
+           knora-base:subjectClassConstraint :DatingHint;
+           knora-base:objectClassConstraint knora-base:Resource ;                      
            knora-base:hasDefaultViewPermission knora-base:KnownUser ,
                                                knora-base:UnknownUser ,
                                                knora-base:ProjectMember ;
@@ -338,25 +348,17 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner .
 
-:hasDatingHintValue rdf:type owl:ObjectProperty ;
+:isDatingHintForValue rdf:type owl:ObjectProperty ;
                 rdfs:subPropertyOf knora-base:hasLinkToValue ;
-                rdfs:label "hat Datierungshinweis"@de ,                      
-                      		"has dating hint"@en ;
-                knora-base:subjectClassConstraint knora-base:Resource ;
+                rdfs:label "ist Datierungshinweis zu"@de ,                      
+                     	 "is dating hint for"@en ;
+                      	knora-base:subjectClassConstraint :DatingHint;
           		knora-base:objectClassConstraint knora-base:LinkValue ;
             knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
            knora-base:hasDefaultModifyPermission knora-base:Owner ;
            knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                  knora-base:Owner . 
-                                                 
-                                                 
-# this will never work...
-#:hasInferredDate rdf:type owl:ObjectProperty ;
-#	      rdfs:subPropertyOf  :hasDate ;
-#	      owl:propertyChainAxiom ( :hasDatingHintValue  :hasDate ) ;
-#          knora-base:subjectClassConstraint knora-base:Resource;
-#         knora-base:objectClassConstraint knora-base:DateValue .                                                 
-                                                 
+                                   
 	      
 ##############################################
 # Class dating hint
@@ -376,8 +378,18 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
             [
             	rdf:type owl:Restriction;
 				owl:onProperty text:hasDescription;
-				owl:cardinality "1"^^xsd:nonNegativeInteger ;
-            ];
+				owl:minCardinality "0"^^xsd:nonNegativeInteger ;
+            ],
+            [
+            	rdf:type owl:Restriction;
+				owl:onProperty :isDatingHintFor;
+				owl:minCardinality "1"^^xsd:nonNegativeInteger ;
+			],
+            [
+            	rdf:type owl:Restriction;
+				owl:onProperty :isDatingHintForValue;
+				owl:minCardinality "1"^^xsd:nonNegativeInteger ;
+			];
             
             rdfs:label "Datierungshinweis"@de ,
                      "date hint"@en ;					
@@ -399,7 +411,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Titel"@de ,
                      "title"@en ;
           rdfs:comment "A descriptive title of the textcarrier" ;
-          knora-base:subjectClassConstraint :textcarrier;
+          knora-base:subjectClassConstraint :Textcarrier;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=128" ,
@@ -413,7 +425,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "Beschreibung"@de ,
                      "Description"@en ;
           rdfs:comment "A description of the textcarrier" ;
-          knora-base:subjectClassConstraint :textcarrier;
+          knora-base:subjectClassConstraint :Textcarrier;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:Textarea ;
           salsah-gui:guiAttribute "cols=60" ,
@@ -430,7 +442,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           rdfs:label "KWA Textträger-Id"@de ,
                      "Kwa textcarrier id"@en ;
           rdfs:comment "The Id of the textcarrier in the context of the kwa. A more convenient and stable alternative to the knora-id." ;
-          knora-base:subjectClassConstraint :textcarrier;
+          knora-base:subjectClassConstraint :Textcarrier;
           knora-base:objectClassConstraint knora-base:TextValue ;
           salsah-gui:guiElement salsah-gui:SimpleText ;
           salsah-gui:guiAttribute "size=128" ,
@@ -439,12 +451,12 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
                                                 knora-base:Owner .                                                
                                                                   
-:include-in-kwae rdf:type owl:ObjectProperty ;
+:includeInKWAe rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf knora-base:hasValue;
           rdfs:label "in kwae sichtbar"@de ,
                      "included/visible in kwae"@en ;
           rdfs:comment "Wether the textcarrier should be visible/openable in the kwae application." ;
-          knora-base:subjectClassConstraint :textcarrier;
+          knora-base:subjectClassConstraint :Textcarrier;
           knora-base:objectClassConstraint knora-base:BooleanValue ;
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
@@ -453,7 +465,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 
 #################
 # Class TEXTCARRIER
-:textcarrier rdf:type owl:Class ;					
+:Textcarrier rdf:type owl:Class ;					
              rdfs:subClassOf knora-base:Resource  ,				
 				 [
 					rdf:type owl:Restriction;
@@ -482,19 +494,11 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 				 ],
 				 [
 					rdf:type owl:Restriction;
-					owl:onProperty :include-in-kwae;
+					owl:onProperty :includeInKWAe;
 					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
 				 ],
 				 [  rdf:type owl:Restriction;
 					owl:onProperty :hasDate;
-					owl:minCardinality "0"^^xsd:nonNegativeInteger
-				 ],
-				 [  rdf:type owl:Restriction;
-					owl:onProperty :hasDatingHint;
-					owl:minCardinality "0"^^xsd:nonNegativeInteger
-				 ],
-				 [  rdf:type owl:Restriction;
-					owl:onProperty :hasDatingHintValue;
 					owl:minCardinality "0"^^xsd:nonNegativeInteger
 				 ];
 					
@@ -554,7 +558,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
                           
 ###############################################
 ## TEXTEXPRESSION
-##############
+###############################################
 ## 
 ## The text expression is an realization of the
 ## text concept that has been materialized in a textmanifest
@@ -715,7 +719,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					owl:onProperty :hasKWAPageNo;
 					owl:maxCardinality "1"^^xsd:nonNegativeInteger] ;
 					
-              rdfs:comment "A single manifestation of a text (on a textcarrier)" ;
+              rdfs:comment "A single manifestation of a text (on a textcarrier or a set of textcarriers)" ;
               rdfs:label "Textmanifest"@de ,
               "text manifest"@en .      
               
@@ -724,12 +728,9 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ## COLUMN
 ## A column corresponds to a column of text on a textcarrier.
 ## it is related to a textmanifest via StandoffSurfaceColumnTag
-## on different textcarriers).
+## on different textcarriers). It constitutes the relation of
+## textcarriers to textmanifests
 ##
-## One notation is written on one surface, possibly on more than one 
-## columns 
-          
-          
 :notation-sequence-no rdf:type owl:ObjectProperty ;
 		   rdfs:subPropertyOf knora-base:seqnum ;
           rdfs:label "Sequenznummer"@de ,
@@ -756,7 +757,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
            rdfs:label "Auf Textträger-Seite"@de ,                      
                       "On surface"@en ;
            knora-base:subjectClassConstraint :column;
-           knora-base:objectClassConstraint :surface ;                      
+           knora-base:objectClassConstraint :Surface ;                      
            salsah-gui:guiElement salsah-gui:Searchbox ;
            salsah-gui:guiAttribute "numprops=2" ;
            knora-base:hasDefaultViewPermission knora-base:KnownUser  ;
@@ -853,34 +854,195 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 ###########################################              
 #  Personen- und Rezeptionsdatenbank
 ###########################################
-# TODO: relate to human:Person and to text: and inherit stuff from there
-
-#
-#  General purpose properties
-#                       
+# TODO: relate to human:Person and to text: and inherit stuff from there              
 
 :Person rdf:type owl:Class ;
 	rdfs:subClassOf human:Person; 
 		rdfs:comment "A person that is referenced in the context of the KWA." ;
               rdfs:label "Person"@de ,
-              "person"@en .                     
+              "person"@en .                           
               
-:Newspaper rdf:type owl:Class ;
+:Periodical rdf:type owl:Class ;
 	rdfs:subClassOf publish:Periodical, 
 			[a owl:Restriction; owl:onProperty :hasShortCode; owl:cardinality "1"^^xsd:nonNegativeInteger];  
+    rdfs:comment "A periodical publication medium" ;
+              rdfs:label "periodicum"@de ,
+              "periodical"@en .              
+              
+:Newspaper rdf:type owl:Class ;
+	rdfs:subClassOf :Periodical, publish:Newspaper;  
     rdfs:comment "A newspaper as periodical publication medium" ;
               rdfs:label "Zeitung"@de ,
               "newspaper"@en .
               
 :Magazine rdf:type owl:Class ;
-	rdfs:subClassOf publish:Periodical, 
-			[a owl:Restriction; owl:onProperty :hasShortCode; owl:cardinality "1"^^xsd:nonNegativeInteger];
+	rdfs:subClassOf :Periodical, publish:Magazine;
     rdfs:comment "A magazine as periodical publication medium" ;
               rdfs:label "Zeitschrift"@de ,
               "magazine"@en .              
 
-              
-              
+       
+############################################################
+#
+# Concrete subclasses of textcarrier
+#
+############################################################
+
+:hasPublicationDate rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  :hasDate, publish:hasDate;
+	      rdfs:label "hat Publikationsdatum"@de ,
+                     "has publication date"@en ;
+          rdfs:comment "The date that is stated on the publication, the bibliographic publication date."@en,
+          				"Das Publikationsdatum wie aufgedruckt. Das bibliographische Publikationsdatum."@de;           
+          knora-base:subjectClassConstraint publish:Publication;
+          knora-base:objectClassConstraint knora-base:DateValue .
+
+:hasReleaseDate rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  :hasDate;
+	      rdfs:label "hat Erscheinungsdatum"@de ,
+                     "has issue date"@en ;
+          rdfs:comment "The date a publication has in fact been issued. May vary from the publication date."@en,
+          				"Das tatsächliche Ausgabedatum. Kann vom Publikationsdatum abweichen"@de;           
+          knora-base:subjectClassConstraint knora-base:Resource;
+          knora-base:objectClassConstraint knora-base:DateValue .
+
+:hasImprintedDate rdf:type owl:ObjectProperty ;
+	      rdfs:subPropertyOf  :hasDateBefund;
+	      rdfs:label "hat aufgedruckte Datumsinformation"@de ,
+                     "has imprinted date information"@en ;
+          rdfs:comment "Date information as printed on a textcarrier."@en,
+          				"Das aufgedruckte Datum nach Befund."@de;           
+          knora-base:subjectClassConstraint :PrintedPublicationTextcarrier;
+          knora-base:objectClassConstraint knora-base:TextValue .
+
+:PrintedPublicationTextcarrier rdf:type owl:Class;
+  	rdfs:subClassOf :Textcarrier, publish:Publication,
+  	[a owl:Restriction; owl:onProperty :hasPublicationDate; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :hasReleaseDate; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :hasImprintedDate; owl:cardinality "1"^^xsd:nonNegativeInteger],  
+  	[a owl:Restriction; owl:onProperty publish:hasTitle; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :hasSubtitle; owl:minCardinality "0"^^xsd:nonNegativeInteger];
+	rdfs:comment "A printed, published textcarrier";
+	rdfs:label "Druck"@de,
+			   "Print"@en .
+
+:Manuscript rdf:type owl:Class;
+	rdfs:subClassOf :Textcarrier,
+	[  
+		rdf:type owl:Restriction;
+		owl:onProperty :hasPreferredSortDate;
+		owl:maxCardinality "1"^^xsd:nonNegativeInteger
+	];
+	rdfs:comment "A manuscript";
+	rdfs:label "Manuskript"@de,
+			   "manuscript"@en .
+
+:Microgram rdf:type owl:Class;
+	rdfs:subClassOf :Manuscript;
+	rdfs:comment "A microgram";
+	rdfs:label "Mikrogramm"@de,
+			   "microgram"@en .			  			   
+			   
+:Book rdf:type owl:Class;
+  	rdfs:subClassOf :PrintedPublicationTextcarrier;
+	rdfs:comment "A book";
+	rdfs:label "Buch"@de,
+			   "book"@en .
+			   
+:isIssueOf rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf knora-base:hasLinkTo ;
+           rdfs:label "ist Ausgabe von"@de ,                      
+                      "is issue of"@en ;
+           knora-base:subjectClassConstraint :PeriodicalIssue;
+           knora-base:objectClassConstraint :Periodical .     
+           
+:isIssueOfValue rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf knora-base:hasLinkToValue ;
+           rdfs:label "ist Ausgabe von"@de ,                      
+                      "is issue of"@en ;
+           knora-base:subjectClassConstraint :PeriodicalIssue;
+           knora-base:objectClassConstraint knora-base:LinkValue .               
+                                                 
+:isIssueOfNewspaper rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :isIssueOf ;
+           rdfs:label "ist Ausgabe von"@de ,                      
+                      "is issue of"@en ;
+           knora-base:subjectClassConstraint :NewspaperIssue;
+           knora-base:objectClassConstraint :Newspaper ;                      
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
+                                               knora-base:UnknownUser ,
+                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .
+
+:isIssueOfNewspaperValue rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :isIssueOfValue ;
+           rdfs:label "ist Ausgabe von"@de ,                      
+                      "is issue of"@en ;
+           knora-base:subjectClassConstraint :NewspaperIssue;
+           knora-base:objectClassConstraint knora-base:LinkValue ;                      
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
+                                               knora-base:UnknownUser ,
+                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                 
+                                                 
+:isIssueOfMagazine rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :isIssueOf ;
+           rdfs:label "ist Ausgabe von"@de ,                      
+                      "is issue of"@en ;
+           knora-base:subjectClassConstraint :MagazineIssue;
+           knora-base:objectClassConstraint :Magazine ;                      
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
+                                               knora-base:UnknownUser ,
+                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .  
+                                                 
+:isIssueOfMagazineValue rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :isIssueOfValue ;
+           rdfs:label "ist Ausgabe von"@de ,                      
+                      "is issue of"@en ;
+           knora-base:subjectClassConstraint :MagazineIssue;
+           knora-base:objectClassConstraint knora-base:LinkValue ;                      
+           knora-base:hasDefaultViewPermission knora-base:KnownUser ,
+                                               knora-base:UnknownUser ,
+                                               knora-base:ProjectMember ;
+           knora-base:hasDefaultModifyPermission knora-base:Owner ;
+           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
+                                                 knora-base:Owner .                                                  
+			   
+:PeriodicalIssue rdf:type owl:Class;
+	rdfs:subClassOf :PrintedPublicationTextcarrier, publish:Publication,
+  	[a owl:Restriction; owl:onProperty publish:hasNumber; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :isIssueOf; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :isIssueOfValue; owl:cardinality "1"^^xsd:nonNegativeInteger];
+	rdfs:comment "An issue or number of a periodical, identified by an issue number."@en,
+				 "Eine Nummer einer periodischen Publikation."@de;
+	rdfs:label "Nummer"@de,
+			   "periodical issue"@en .
+			   
+:NewspaperIssue rdf:type owl:Class;			   
+    rdfs:subClassOf :PeriodicalIssue,
+  	[a owl:Restriction; owl:onProperty :isIssueOfNewspaper; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :isIssueOfNewspaperValue; owl:cardinality "1"^^xsd:nonNegativeInteger];
+	rdfs:comment "A newspaper issue"@en,
+				 "Eine nummer einer Zeitung"@de;
+	rdfs:label "Zeitungsnummer"@de,
+			   "newspaper issue"@en .  
+			   
+:MagazineIssue rdf:type owl:Class;			   
+    rdfs:subClassOf :PeriodicalIssue,
+  	[a owl:Restriction; owl:onProperty :isIssueOfMagazine; owl:cardinality "1"^^xsd:nonNegativeInteger],
+  	[a owl:Restriction; owl:onProperty :isIssueOfMagazineValue; owl:cardinality "1"^^xsd:nonNegativeInteger];
+	rdfs:comment "A magazine issue"@en,
+				 "Eine nummer einer Zeitschrift"@de;
+	rdfs:label "Zeitschriftennummer"@de,
+			   "magazine issue"@en .  			   
+			   
 ###########################################
 ## STANDOFF TAGS
 ###########################################
