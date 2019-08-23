@@ -244,7 +244,7 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	knora-base:objectClassConstraint knora-base:TextValue;
     knora-base:hasDefaultViewPermission knora-base:KnownUser ;
     knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
-
+    
 :hasSubtitle
 	a owl:ObjectProperty;
 	rdfs:label "has title"@en, "hat Untertitel"@de;
@@ -255,6 +255,16 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
     knora-base:hasDefaultViewPermission knora-base:KnownUser ;
     knora-base:hasDefaultModifyPermission knora-base:ProjectMember .    
 	
+:hasName
+	a owl:ObjectProperty;
+	rdfs:label "has name"@en, "hat Name"@de;
+	rdfs:comment """Relating a resource to a name as a textual identifier of the resource.."""@en;
+	rdfs:subPropertyOf  knora-base:hasValue, dcterms:title, text:hasName ; 
+	knora-base:subjectClassConstraint knora-base:Resource;
+	knora-base:objectClassConstraint knora-base:TextValue;
+    knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .            
+    
 :hasShortCode a owl:ObjectProperty;
 	rdfs:label "has short code"@en, "hat Sigel"@de;
 	rdfs:comment """Relating a resource to a short code as a short identifier of the resource."""@en;
@@ -263,7 +273,6 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	knora-base:objectClassConstraint knora-base:TextValue;
     knora-base:hasDefaultViewPermission knora-base:KnownUser ;
     knora-base:hasDefaultModifyPermission knora-base:ProjectMember .
-    
 	
 :hasKWAVolume rdf:type owl:ObjectProperty ;
 	      rdfs:subPropertyOf  knora-base:hasValue ;
@@ -460,7 +469,17 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
           knora-base:objectClassConstraint knora-base:BooleanValue ;
           knora-base:hasDefaultViewPermission knora-base:KnownUser ;
           knora-base:hasDefaultDeletePermission knora-base:ProjectMember ,
-                                                knora-base:Owner .                                                
+                                                knora-base:Owner .  
+                                                
+                                                
+:hasSignature a owl:ObjectProperty;
+	rdfs:label "has signature"@en, "hat Signatur"@de;
+	rdfs:comment """Relating a textcarrier to a library signature."""@en;
+	rdfs:subPropertyOf :hasShortCode ;
+	knora-base:subjectClassConstraint :Textcarrier;
+	knora-base:objectClassConstraint knora-base:TextValue;
+    knora-base:hasDefaultViewPermission knora-base:KnownUser ;
+    knora-base:hasDefaultModifyPermission knora-base:ProjectMember .                                                
                                                 
 
 #################
@@ -496,6 +515,21 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 					rdf:type owl:Restriction;
 					owl:onProperty :includeInKWAe;
 					owl:cardinality "1"^^xsd:nonNegativeInteger ;					
+				 ],
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :isKeptAt;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger ;
+				 ],
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :isKeptAtValue;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger ;
+				 ],
+				 [
+					rdf:type owl:Restriction;
+					owl:onProperty :hasSignature;
+					owl:minCardinality "0"^^xsd:nonNegativeInteger ;
 				 ],
 				 [  rdf:type owl:Restriction;
 					owl:onProperty :hasDate;
@@ -926,6 +960,14 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	rdfs:label "Druck"@de,
 			   "Print"@en .
 
+:Repository rdf:type owl:Class;
+	rdfs:subClassOf knora-base:Resource,
+	[rdf:type owl:Restriction;	owl:onProperty :hasShortCode; owl:maxCardinality "1"^^xsd:nonNegativeInteger],
+	[rdf:type owl:Restriction;	owl:onProperty :hasName; owl:maxCardinality "1"^^xsd:nonNegativeInteger];
+	rdfs:comment "A repository or library.";
+	rdfs:label "Standort"@de,
+			   "Repository"@en .
+			   
 :Manuscript rdf:type owl:Class;
 	rdfs:subClassOf :Textcarrier,
 	[  
@@ -941,7 +983,21 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	rdfs:subClassOf :Manuscript;
 	rdfs:comment "A microgram";
 	rdfs:label "Mikrogramm"@de,
-			   "microgram"@en .			  			   
+			   "microgram"@en .
+			   
+:isKeptAt rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf knora-base:hasLinkTo ;
+           rdfs:label "wird aufbewahrt von"@de ,                      
+                      "is kept at"@en ;
+           knora-base:subjectClassConstraint :Textcarrier;
+           knora-base:objectClassConstraint :Repository .
+           
+:isKeptAtValue rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf knora-base:hasLinkToValue ;
+           rdfs:label "wird aufbewahrt von"@de ,                      
+                      "is kept at"@en ;
+           knora-base:subjectClassConstraint :Textcarrier;
+           knora-base:objectClassConstraint knora-base:LinkValue .           
 			   
 :Book rdf:type owl:Class;
   	rdfs:subClassOf :PrintedPublicationTextcarrier;
@@ -1041,7 +1097,8 @@ knora-base:attachedToProject <http://data.knora.org/projects/kwa> .
 	rdfs:comment "A magazine issue"@en,
 				 "Eine nummer einer Zeitschrift"@de;
 	rdfs:label "Zeitschriftennummer"@de,
-			   "magazine issue"@en .  			   
+			   "magazine issue"@en .  
+			  			   
 			   
 ###########################################
 ## STANDOFF TAGS
