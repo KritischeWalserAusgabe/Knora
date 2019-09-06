@@ -38,13 +38,13 @@ class GraphDBConsistencyCheckingSpec extends CoreSpec(GraphDBConsistencyChecking
             }
         }
 
-        "not create a new resource with a missing inherited property that has owl:minCardinality 1" in {
-            storeManager ! SparqlUpdateRequest(missingFileValue)
+        "not create a new resource with a missing property that has owl:minCardinality 1" in {
+            storeManager ! SparqlUpdateRequest(missingComment)
 
             expectMsgPF(timeout) {
                 case akka.actor.Status.Failure(TriplestoreResponseException(msg: String, _)) =>
                     (msg.contains(s"$CONSISTENCY_CHECK_ERROR min_cardinality_1_any_object") &&
-                        msg.trim.endsWith("http://rdfh.ch/0803/missingFileValue http://www.knora.org/ontology/knora-base#hasStillImageFileValue *")) should ===(true)
+                        msg.trim.endsWith("http://rdfh.ch/0803/missingComment http://www.knora.org/ontology/knora-base#hasComment *")) should ===(true)
             }
         }
 
@@ -158,7 +158,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label0 ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -168,7 +168,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0_1 rdf:type ?valueType0_1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -177,7 +178,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0_1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0_1 knora-base:valueHasOrder ?nextOrder0_1 ;
@@ -195,7 +196,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0_2 rdf:type ?valueType0_2 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid2" .
           |
           |
           |                ?newValue0_2 knora-base:originalFilename "test.jpg" ;
@@ -203,9 +205,7 @@ object GraphDBConsistencyCheckingSpec {
           |                                     knora-base:internalFilename "full.jp2" ;
           |                                     knora-base:internalMimeType "image/jp2" ;
           |                                     knora-base:dimX 800 ;
-          |                                     knora-base:dimY 800 ;
-          |                                     knora-base:qualityLevel 100 ;
-          |                                     knora-base:valueHasQname "full" .
+          |                                     knora-base:dimY 800 .
           |
           |
           |
@@ -213,7 +213,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0_2 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                 knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                 knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0_2 knora-base:valueHasOrder ?nextOrder0_2 ;
@@ -232,7 +232,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0_3 rdf:type ?valueType0_3 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid3" .
           |
           |
           |                ?newValue0_3 knora-base:originalFilename "test.jpg" ;
@@ -240,9 +241,7 @@ object GraphDBConsistencyCheckingSpec {
           |                                     knora-base:internalFilename "thumb.jpg" ;
           |                                     knora-base:internalMimeType "image/jpeg" ;
           |                                     knora-base:dimX 80 ;
-          |                                     knora-base:dimY 80 ;
-          |                                     knora-base:qualityLevel 10 ;
-          |                                     knora-base:valueHasQname "thumbnail" .
+          |                                     knora-base:dimY 80 .
           |
           |
           |                    ?newValue0_3 knora-base:isPreview true .
@@ -253,7 +252,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0_3 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                 knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                 knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0_3 knora-base:valueHasOrder ?nextOrder0_3 ;
@@ -277,6 +276,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |        ?newLinkValue0_4 rdf:type knora-base:LinkValue ;
           |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid4" ;
           |            rdf:subject ?resource0 ;
           |            rdf:predicate ?linkProperty0_4 ;
           |            rdf:object ?linkTarget0_4 ;
@@ -287,7 +287,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newLinkValue0_4 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                 knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                 knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?resource0 ?linkValueProperty0_4 ?newLinkValue0_4 .
@@ -300,7 +300,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0_5 rdf:type ?valueType0_5 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid5" .
           |
           |
           |
@@ -310,7 +311,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0_5 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0_5 knora-base:valueHasOrder ?nextOrder0_5 ;
@@ -328,7 +329,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0_6 rdf:type ?valueType0_6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -337,7 +339,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0_6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0_6 knora-base:valueHasOrder ?nextOrder0_6 ;
@@ -539,33 +541,11 @@ object GraphDBConsistencyCheckingSpec {
           |
           |            BIND(0 AS ?nextOrder0_6)
           |
-          |
-          |
-          |
-          |    # Value 7
-          |    # Property: http://www.knora.org/ontology/0803/incunabula#pagenum
-          |
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#pagenum") AS ?property0_7)
-          |    BIND(IRI("http://rdfh.ch/0803/missingPartOf/values/nQ3tRObaQWe74WQv2_OdCg") AS ?newValue0_7)
-          |    BIND(IRI("http://www.knora.org/ontology/knora-base#TextValue") AS ?valueType0_7)
-          |
-          |
-          |
-          |    ?property0_7 knora-base:objectClassConstraint ?propertyRange0_7 .
-          |    ?valueType0_7 rdfs:subClassOf* ?propertyRange0_7 .
-          |
-          |
-          |
-          |
-          |
-          |
-          |            BIND(0 AS ?nextOrder0_1)
-          |
           |}
         """.stripMargin
 
-    // Tries to create an incunabula:page with a missing file value (the cardinality is inherited).
-    private val missingFileValue =
+    // Tries to create a knora-base:Annotation with a missing knora-base:hasComment.
+    private val missingComment =
         """
           |PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
           |PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -579,13 +559,13 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
           |
           |        # Value 0
-          |        # Property: http://www.knora.org/ontology/0803/incunabula#partOf
+          |        # Property: http://www.knora.org/ontology/knora-base#isAnnotationOf
           |
           |
           |
@@ -595,6 +575,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |        ?newLinkValue0 rdf:type knora-base:LinkValue ;
           |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" ;
           |            rdf:subject ?resource ;
           |            rdf:predicate ?linkProperty0 ;
           |            rdf:object ?linkTarget0 ;
@@ -605,125 +586,11 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newLinkValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |
           |        ?resource ?linkValueProperty0 ?newLinkValue0 .
-          |
-          |
-          |
-          |
-          |        # Value 1
-          |        # Property: http://www.knora.org/ontology/0803/incunabula#pagenum
-          |
-          |
-          |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
-          |
-          |
-          |
-          |                ?newValue1 knora-base:valueHasString "recto" .
-          |
-          |
-          |
-          |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
-          |
-          |
-          |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
-          |                             knora-base:valueCreationDate ?currentTime .
-          |
-          |
-          |
-          |
-          |        ?resource ?property1 ?newValue1 .
-          |
-          |
-          |
-          |
-          |        # Value 4
-          |        # Property: http://www.knora.org/ontology/0803/incunabula#hasRightSideband
-          |
-          |
-          |
-          |            ?resource ?linkProperty4 ?linkTarget4 .
-          |
-          |
-          |
-          |        ?newLinkValue4 rdf:type knora-base:LinkValue ;
-          |            knora-base:isDeleted "false"^^xsd:boolean ;
-          |            rdf:subject ?resource ;
-          |            rdf:predicate ?linkProperty4 ;
-          |            rdf:object ?linkTarget4 ;
-          |            knora-base:valueHasRefCount 1 ;
-          |
-          |            knora-base:valueHasOrder ?nextOrder4 ;
-          |            knora-base:valueCreationDate ?currentTime .
-          |
-          |
-          |            ?newLinkValue4 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
-          |
-          |
-          |
-          |        ?resource ?linkValueProperty4 ?newLinkValue4 .
-          |
-          |
-          |
-          |
-          |        # Value 5
-          |        # Property: http://www.knora.org/ontology/0803/incunabula#origname
-          |
-          |
-          |        ?newValue5 rdf:type ?valueType5 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
-          |
-          |
-          |
-          |                ?newValue5 knora-base:valueHasString "Blatt" .
-          |
-          |
-          |
-          |            ?newValue5 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
-          |
-          |
-          |        ?newValue5 knora-base:valueHasOrder ?nextOrder5 ;
-          |                             knora-base:valueCreationDate ?currentTime .
-          |
-          |
-          |
-          |        ?resource ?property5 ?newValue5 .
-          |
-          |
-          |
-          |
-          |        # Value 6
-          |        # Property: http://www.knora.org/ontology/0803/incunabula#seqnum
-          |
-          |
-          |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
-          |
-          |
-          |
-          |                ?newValue6 knora-base:valueHasInteger 1 ;
-          |                                     knora-base:valueHasString "1" .
-          |
-          |
-          |
-          |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
-          |
-          |
-          |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
-          |                             knora-base:valueCreationDate ?currentTime .
-          |
-          |
-          |
-          |        ?resource ?property6 ?newValue6 .
-          |
           |    }
           |}
           |
@@ -732,21 +599,21 @@ object GraphDBConsistencyCheckingSpec {
           |
           |WHERE {
           |    BIND(IRI("http://www.knora.org/data/0803/incunabula") AS ?dataNamedGraph)
-          |    BIND(IRI("http://rdfh.ch/0803/missingFileValue") AS ?resource)
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#page") AS ?resourceClass)
+          |    BIND(IRI("http://rdfh.ch/0803/missingComment") AS ?resource)
+          |    BIND(IRI("http://www.knora.org/ontology/knora-base#Annotation") AS ?resourceClass)
           |    BIND(IRI("http://rdfh.ch/users/b83acc5f05") AS ?creatorIri)
           |    BIND(IRI("http://rdfh.ch/projects/0803") AS ?projectIri)
-          |    BIND(str("Test-Page") AS ?label)
+          |    BIND(str("Test Annotation") AS ?label)
           |    BIND(NOW() AS ?currentTime)
           |
           |
           |
           |    # Value 0
-          |    # Property: http://www.knora.org/ontology/0803/incunabula#partOf
+          |    # Property: http://www.knora.org/ontology/knora-base#isAnnotationOf
           |
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#partOf") AS ?linkProperty0)
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#partOfValue") AS ?linkValueProperty0)
-          |    BIND(IRI("http://rdfh.ch/0803/missingFileValue/values/RFzfHLk1R-mU66NAFrVTYQ") AS ?newLinkValue0)
+          |    BIND(IRI("http://www.knora.org/ontology/knora-base#isAnnotationOf") AS ?linkProperty0)
+          |    BIND(IRI("http://www.knora.org/ontology/knora-base#isAnnotationOfValue") AS ?linkValueProperty0)
+          |    BIND(IRI("http://rdfh.ch/0803/missingComment/values/RFzfHLk1R-mU66NAFrVTYQ") AS ?newLinkValue0)
           |    BIND(IRI("http://rdfh.ch/0803/c5058f3a") AS ?linkTarget0)
           |
           |
@@ -773,127 +640,6 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            BIND(0 AS ?nextOrder0)
-          |
-          |
-          |
-          |
-          |
-          |
-          |    # Value 1
-          |    # Property: http://www.knora.org/ontology/0803/incunabula#pagenum
-          |
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#pagenum") AS ?property1)
-          |    BIND(IRI("http://rdfh.ch/0803/missingFileValue/values/nQ3tRObaQWe74WQv2_OdCg") AS ?newValue1)
-          |    BIND(IRI("http://www.knora.org/ontology/knora-base#TextValue") AS ?valueType1)
-          |
-          |
-          |
-          |    ?property1 knora-base:objectClassConstraint ?propertyRange1 .
-          |    ?valueType1 rdfs:subClassOf* ?propertyRange1 .
-          |
-          |
-          |
-          |    ?resourceClass rdfs:subClassOf* ?restriction1 .
-          |    ?restriction1 a owl:Restriction .
-          |    ?restriction1 owl:onProperty ?property1 .
-          |
-          |
-          |            BIND(0 AS ?nextOrder1)
-          |
-          |
-          |
-          |
-          |
-          |
-          |    # Value 4
-          |    # Property: http://www.knora.org/ontology/0803/incunabula#hasRightSideband
-          |
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#hasRightSideband") AS ?linkProperty4)
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#hasRightSidebandValue") AS ?linkValueProperty4)
-          |    BIND(IRI("http://rdfh.ch/0803/missingFileValue/values/i5tE5i-RRLOH631soexPFw") AS ?newLinkValue4)
-          |    BIND(IRI("http://rdfh.ch/0803/482a33d65c36") AS ?linkTarget4)
-          |
-          |
-          |
-          |    ?linkTarget4 rdf:type ?linkTargetClass4 .
-          |    ?linkTargetClass4 rdfs:subClassOf+ knora-base:Resource .
-          |
-          |
-          |
-          |    ?linkProperty4 knora-base:objectClassConstraint ?expectedTargetClass4 .
-          |    ?linkTargetClass4 rdfs:subClassOf* ?expectedTargetClass4 .
-          |
-          |
-          |
-          |    MINUS {
-          |        ?linkTarget4 knora-base:isDeleted true .
-          |    }
-          |
-          |
-          |
-          |    ?resourceClass rdfs:subClassOf* ?restriction4 .
-          |    ?restriction4 a owl:Restriction .
-          |    ?restriction4 owl:onProperty ?linkProperty4 .
-          |
-          |
-          |
-          |            BIND(0 AS ?nextOrder4)
-          |
-          |
-          |
-          |
-          |
-          |
-          |    # Value 5
-          |    # Property: http://www.knora.org/ontology/0803/incunabula#origname
-          |
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#origname") AS ?property5)
-          |    BIND(IRI("http://rdfh.ch/0803/missingFileValue/values/MLWWT-F8SlKsZmRo4JMLHw") AS ?newValue5)
-          |    BIND(IRI("http://www.knora.org/ontology/knora-base#TextValue") AS ?valueType5)
-          |
-          |
-          |
-          |    ?property5 knora-base:objectClassConstraint ?propertyRange5 .
-          |    ?valueType5 rdfs:subClassOf* ?propertyRange5 .
-          |
-          |
-          |
-          |    ?resourceClass rdfs:subClassOf* ?restriction5 .
-          |    ?restriction5 a owl:Restriction .
-          |    ?restriction5 owl:onProperty ?property5 .
-          |
-          |
-          |            BIND(0 AS ?nextOrder5)
-          |
-          |
-          |
-          |
-          |
-          |
-          |    # Value 6
-          |    # Property: http://www.knora.org/ontology/0803/incunabula#seqnum
-          |
-          |    BIND(IRI("http://www.knora.org/ontology/0803/incunabula#seqnum") AS ?property6)
-          |    BIND(IRI("http://rdfh.ch/0803/missingFileValue/values/uWQtW_X3RxKjFyGrsQwbpQ") AS ?newValue6)
-          |    BIND(IRI("http://www.knora.org/ontology/knora-base#IntValue") AS ?valueType6)
-          |
-          |
-          |
-          |    ?property6 knora-base:objectClassConstraint ?propertyRange6 .
-          |    ?valueType6 rdfs:subClassOf* ?propertyRange6 .
-          |
-          |
-          |
-          |    ?resourceClass rdfs:subClassOf* ?restriction6 .
-          |    ?restriction6 a owl:Restriction .
-          |    ?restriction6 owl:onProperty ?property6 .
-          |
-          |
-          |
-          |            BIND(0 AS ?nextOrder6)
-          |
-          |
-          |
           |}
         """.stripMargin
 
@@ -912,7 +658,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -922,7 +668,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0 rdf:type ?valueType0 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" .
           |
           |
           |
@@ -931,7 +678,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0 knora-base:valueHasOrder ?nextOrder0 ;
@@ -950,7 +697,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -964,7 +712,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
@@ -982,7 +730,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue2 rdf:type ?valueType2 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid2" .
           |
           |
           |
@@ -992,7 +741,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue2 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue2 knora-base:valueHasOrder ?nextOrder2 ;
@@ -1010,15 +759,15 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue3 rdf:type ?valueType3 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
-          |
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid3" .
           |
           |
           |                ?newValue3 knora-base:valueHasString "ein Zitat" .
           |
           |
           |            ?newValue3 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue3 knora-base:valueHasOrder ?nextOrder3 ;
@@ -1036,7 +785,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue4 rdf:type ?valueType4 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid4" .
           |
           |
           |
@@ -1045,7 +795,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue4 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue4 knora-base:valueHasOrder ?nextOrder4 ;
@@ -1063,7 +813,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue5 rdf:type ?valueType5 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid5" .
           |
           |
           |
@@ -1100,7 +851,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue5 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue5 knora-base:valueHasOrder ?nextOrder5 ;
@@ -1118,7 +869,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -1128,7 +880,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
@@ -1147,7 +899,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue7 rdf:type ?valueType7 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid7" .
           |
           |
           |
@@ -1156,7 +909,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue7 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue7 knora-base:valueHasOrder ?nextOrder7 ;
@@ -1410,7 +1163,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -1420,7 +1173,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0 rdf:type ?valueType0 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" .
           |
           |
           |
@@ -1429,7 +1183,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0 knora-base:valueHasOrder ?nextOrder0 ;
@@ -1447,7 +1201,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -1462,7 +1217,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
@@ -1481,7 +1236,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -1492,7 +1248,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
@@ -1616,7 +1372,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -1626,7 +1382,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0 rdf:type ?valueType0 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" .
           |
           |
           |
@@ -1636,7 +1393,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0 knora-base:valueHasOrder ?nextOrder0 ;
@@ -1654,7 +1411,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -1668,7 +1426,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
@@ -1687,7 +1445,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -1697,7 +1456,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
@@ -1820,7 +1579,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -1830,7 +1589,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0 rdf:type ?valueType0 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" .
           |
           |
           |
@@ -1840,7 +1600,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0 knora-base:valueHasOrder ?nextOrder0 ;
@@ -1858,7 +1618,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -1870,7 +1631,7 @@ object GraphDBConsistencyCheckingSpec {
           |                                     knora-base:valueHasString "2015-12-03" .
           |
           |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
@@ -1889,7 +1650,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -1898,7 +1660,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
@@ -2036,7 +1798,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -2046,7 +1808,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0 rdf:type ?valueType0 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" .
           |
           |
           |
@@ -2054,7 +1817,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0 knora-base:valueHasOrder ?nextOrder0 ;
@@ -2072,7 +1835,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -2086,7 +1850,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
@@ -2105,7 +1869,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -2113,7 +1878,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
@@ -2133,7 +1898,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue7 rdf:type ?valueType7 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid7" .
           |
           |
           |
@@ -2143,7 +1909,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue7 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue7 knora-base:valueHasOrder ?nextOrder7 ;
@@ -2284,7 +2050,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -2294,7 +2060,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue0 rdf:type ?valueType0 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid0" .
           |
           |
           |
@@ -2302,7 +2069,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue0 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue0 knora-base:valueHasOrder ?nextOrder0 ;
@@ -2320,7 +2087,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue1 rdf:type ?valueType1 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid1" .
           |
           |
           |
@@ -2334,7 +2102,7 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |            ?newValue1 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue1 knora-base:valueHasOrder ?nextOrder1 ;
@@ -2360,7 +2128,8 @@ object GraphDBConsistencyCheckingSpec {
           |
           |
           |        ?newValue6 rdf:type ?valueType6 ;
-          |            knora-base:isDeleted "false"^^xsd:boolean .
+          |            knora-base:isDeleted "false"^^xsd:boolean ;
+          |            knora-base:valueHasUUID "uuid6" .
           |
           |
           |
@@ -2369,7 +2138,7 @@ object GraphDBConsistencyCheckingSpec {
           |                ?newValue6 knora-base:valueHasTest "3"^^xsd:integer . # No cardinality for this property, so it should cause an error.
           |
           |            ?newValue6 <http://www.knora.org/ontology/knora-base#attachedToUser> ?creatorIri ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |        ?newValue6 knora-base:valueHasOrder ?nextOrder6 ;
@@ -2493,7 +2262,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label0 ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -2516,10 +2285,11 @@ object GraphDBConsistencyCheckingSpec {
           |
           |            knora-base:valueHasOrder ?nextOrder0_0 ;
           |            knora-base:isDeleted false ;
+          |            knora-base:valueHasUUID "uuid0" ;
           |            knora-base:valueCreationDate ?currentTime .
           |
           |        ?newLinkValue0_0 knora-base:attachedToUser <http://rdfh.ch/users/9XBCrDV3SRa7kS1WwynB4Q> ;
-          |                knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" .
+          |                knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" .
           |
           |
           |
@@ -2598,7 +2368,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label;
           |            rdfs:label "Second label not allowed" ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |    }
           |}
@@ -2614,16 +2384,6 @@ object GraphDBConsistencyCheckingSpec {
           |    BIND(IRI("http://rdfh.ch/projects/0001") AS ?projectIri)
           |    BIND(str("Test Thing") AS ?label)
           |    BIND(NOW() AS ?currentTime)
-          |
-          |
-          |
-          |    # Value 0
-          |    # Property: http://www.knora.org/ontology/0001/anything#hasBlueThing
-          |
-          |    BIND(IRI("http://www.knora.org/ontology/0001/anything#hasBlueThing") AS ?linkProperty0)
-          |    BIND(IRI("http://www.knora.org/ontology/0001/anything#hasBlueThingValue") AS ?linkValueProperty0)
-          |    BIND(IRI("http://rdfh.ch/0001/twoLabels/values/GjV_4ayjRDebneEQM0zHuw") AS ?newLinkValue0)
-          |    BIND(IRI("http://rdfh.ch/0001/a-thing") AS ?linkTarget0)
           |}
         """.stripMargin
 
@@ -2643,7 +2403,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:attachedToUser ?creatorIri ;
           |            knora-base:attachedToProject ?projectIri ;
           |            rdfs:label ?label ;
-          |            knora-base:hasPermissions "V knora-base:UnknownUser|M knora-base:ProjectMember" ;
+          |            knora-base:hasPermissions "V knora-admin:UnknownUser|M knora-admin:ProjectMember" ;
           |            knora-base:creationDate ?currentTime .
           |
           |
@@ -2661,6 +2421,7 @@ object GraphDBConsistencyCheckingSpec {
           |            knora-base:valueHasRefCount 1 ;
           |            knora-base:valueHasOrder ?nextOrder0 ;
           |            knora-base:isDeleted false ;
+          |            knora-base:valueHasUUID "uuid0" ;
           |            knora-base:valueCreationDate ?currentTime .
           |
           |        ?newLinkValue0 knora-base:attachedToUser <http://rdfh.ch/users/9XBCrDV3SRa7kS1WwynB4Q> .

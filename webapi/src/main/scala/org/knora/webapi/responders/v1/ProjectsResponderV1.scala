@@ -29,7 +29,6 @@ import org.knora.webapi.messages.v1.responder.projectmessages._
 import org.knora.webapi.messages.v1.responder.usermessages._
 import org.knora.webapi.responders.Responder.handleUnexpectedMessage
 import org.knora.webapi.responders.{Responder, ResponderData}
-import org.knora.webapi.util.KnoraIdUtil
 
 import scala.concurrent.Future
 
@@ -38,11 +37,8 @@ import scala.concurrent.Future
   */
 class ProjectsResponderV1(responderData: ResponderData) extends Responder(responderData) {
 
-    // Creates IRIs for new Knora user objects.
-    val knoraIdUtil = new KnoraIdUtil
-
     // Global lock IRI used for project creation and update
-    val PROJECTS_GLOBAL_LOCK_IRI = "http://rdfh.ch/projects"
+    private val PROJECTS_GLOBAL_LOCK_IRI = "http://rdfh.ch/projects"
 
     /**
       * Receives a message extending [[ProjectsResponderRequestV1]], and returns an appropriate response message.
@@ -112,7 +108,7 @@ class ProjectsResponderV1(responderData: ResponderData) extends Responder(respon
             projects = projectsWithProperties.map {
                 case (projectIri: String, propsMap: Map[String, Seq[String]]) =>
 
-                    val keywordsSeq: Seq[String] = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectKeyword, Seq.empty[String]).sorted
+                    val keywordsSeq: Seq[String] = propsMap.getOrElse(OntologyConstants.KnoraAdmin.ProjectKeyword, Seq.empty[String]).sorted
 
                     val maybeKeywords: Option[String] = if (keywordsSeq.nonEmpty) {
                         Some(keywordsSeq.mkString(", "))
@@ -124,16 +120,16 @@ class ProjectsResponderV1(responderData: ResponderData) extends Responder(respon
 
                     ProjectInfoV1(
                         id = projectIri,
-                        shortname = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectShortname, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortname defined.")).head,
-                        shortcode = propsMap.getOrElse(OntologyConstants.KnoraBase.ProjectShortcode, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortcode defined.")).head,
-                        longname = propsMap.get(OntologyConstants.KnoraBase.ProjectLongname).map(_.head),
-                        description = propsMap.get(OntologyConstants.KnoraBase.ProjectDescription).map(_.head),
+                        shortname = propsMap.getOrElse(OntologyConstants.KnoraAdmin.ProjectShortname, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortname defined.")).head,
+                        shortcode = propsMap.getOrElse(OntologyConstants.KnoraAdmin.ProjectShortcode, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortcode defined.")).head,
+                        longname = propsMap.get(OntologyConstants.KnoraAdmin.ProjectLongname).map(_.head),
+                        description = propsMap.get(OntologyConstants.KnoraAdmin.ProjectDescription).map(_.head),
                         keywords = maybeKeywords,
-                        logo = propsMap.get(OntologyConstants.KnoraBase.ProjectLogo).map(_.head),
-                        institution = propsMap.get(OntologyConstants.KnoraBase.BelongsToInstitution).map(_.head),
+                        logo = propsMap.get(OntologyConstants.KnoraAdmin.ProjectLogo).map(_.head),
+                        institution = propsMap.get(OntologyConstants.KnoraAdmin.BelongsToInstitution).map(_.head),
                         ontologies = ontologies,
-                        status = propsMap.getOrElse(OntologyConstants.KnoraBase.Status, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no status defined.")).head.toBoolean,
-                        selfjoin = propsMap.getOrElse(OntologyConstants.KnoraBase.HasSelfJoinEnabled, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no hasSelfJoinEnabled defined.")).head.toBoolean
+                        status = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Status, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no status defined.")).head.toBoolean,
+                        selfjoin = propsMap.getOrElse(OntologyConstants.KnoraAdmin.HasSelfJoinEnabled, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no hasSelfJoinEnabled defined.")).head.toBoolean
                     )
             }.toSeq
 
@@ -156,15 +152,13 @@ class ProjectsResponderV1(responderData: ResponderData) extends Responder(respon
             userADM: UserADM <- userProfile match {
                 case Some(profile) =>
                     profile.userData.user_id match {
-                        case Some(user_iri) => {
+                        case Some(user_iri) =>
                             (responderManager ? UserGetRequestADM(
                                 identifier = UserIdentifierADM(maybeIri = Some(user_iri)),
                                 requestingUser = KnoraSystemInstances.Users.SystemUser
                             )).mapTo[UserResponseADM].map(_.user)
-                        }
-                        case None => {
-                            FastFuture.successful(KnoraSystemInstances.Users.AnonymousUser)
-                        }
+
+                        case None => FastFuture.successful(KnoraSystemInstances.Users.AnonymousUser)
                     }
 
                 case None => FastFuture.successful(KnoraSystemInstances.Users.AnonymousUser)
@@ -310,7 +304,7 @@ class ProjectsResponderV1(responderData: ResponderData) extends Responder(respon
                 case (predicate, rows) => predicate -> rows.map(_.rowMap("o"))
             }
 
-            val keywordsSeq: Seq[String] = projectProperties.getOrElse(OntologyConstants.KnoraBase.ProjectKeyword, Seq.empty[String]).sorted
+            val keywordsSeq: Seq[String] = projectProperties.getOrElse(OntologyConstants.KnoraAdmin.ProjectKeyword, Seq.empty[String]).sorted
 
             val maybeKeywords: Option[String] = if (keywordsSeq.nonEmpty) {
                 Some(keywordsSeq.mkString(", "))
@@ -323,16 +317,16 @@ class ProjectsResponderV1(responderData: ResponderData) extends Responder(respon
             /* create and return the project info */
             ProjectInfoV1(
                 id = projectIri,
-                shortname = projectProperties.getOrElse(OntologyConstants.KnoraBase.ProjectShortname, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortname defined.")).head,
-                shortcode = projectProperties.getOrElse(OntologyConstants.KnoraBase.ProjectShortcode, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortcode defined.")).head,
-                longname = projectProperties.get(OntologyConstants.KnoraBase.ProjectLongname).map(_.head),
-                description = projectProperties.get(OntologyConstants.KnoraBase.ProjectDescription).map(_.head),
+                shortname = projectProperties.getOrElse(OntologyConstants.KnoraAdmin.ProjectShortname, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortname defined.")).head,
+                shortcode = projectProperties.getOrElse(OntologyConstants.KnoraAdmin.ProjectShortcode, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no shortcode defined.")).head,
+                longname = projectProperties.get(OntologyConstants.KnoraAdmin.ProjectLongname).map(_.head),
+                description = projectProperties.get(OntologyConstants.KnoraAdmin.ProjectDescription).map(_.head),
                 keywords = maybeKeywords,
-                logo = projectProperties.get(OntologyConstants.KnoraBase.ProjectLogo).map(_.head),
-                institution = projectProperties.get(OntologyConstants.KnoraBase.BelongsToInstitution).map(_.head),
+                logo = projectProperties.get(OntologyConstants.KnoraAdmin.ProjectLogo).map(_.head),
+                institution = projectProperties.get(OntologyConstants.KnoraAdmin.BelongsToInstitution).map(_.head),
                 ontologies = ontologies,
-                status = projectProperties.getOrElse(OntologyConstants.KnoraBase.Status, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no status defined.")).head.toBoolean,
-                selfjoin = projectProperties.getOrElse(OntologyConstants.KnoraBase.HasSelfJoinEnabled, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no hasSelfJoinEnabled defined.")).head.toBoolean
+                status = projectProperties.getOrElse(OntologyConstants.KnoraAdmin.Status, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no status defined.")).head.toBoolean,
+                selfjoin = projectProperties.getOrElse(OntologyConstants.KnoraAdmin.HasSelfJoinEnabled, throw InconsistentTriplestoreDataException(s"Project: $projectIri has no hasSelfJoinEnabled defined.")).head.toBoolean
             )
 
         } else {

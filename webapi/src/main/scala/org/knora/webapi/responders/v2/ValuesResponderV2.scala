@@ -29,7 +29,7 @@ import org.knora.webapi.messages.admin.responder.usersmessages.UserADM
 import org.knora.webapi.messages.store.triplestoremessages._
 import org.knora.webapi.messages.v2.responder.SuccessResponseV2
 import org.knora.webapi.messages.v2.responder.ontologymessages._
-import org.knora.webapi.messages.v2.responder.resourcemessages.{ReadResourceV2, ReadResourcesSequenceV2, ResourcesPreviewGetRequestV2}
+import org.knora.webapi.messages.v2.responder.resourcemessages._
 import org.knora.webapi.messages.v2.responder.searchmessages.GravsearchRequestV2
 import org.knora.webapi.messages.v2.responder.valuemessages._
 import org.knora.webapi.responders.Responder.handleUnexpectedMessage
@@ -37,8 +37,8 @@ import org.knora.webapi.responders.v2.search.gravsearch.GravsearchParser
 import org.knora.webapi.responders.{IriLocker, Responder, ResponderData}
 import org.knora.webapi.twirl.SparqlTemplateLinkUpdate
 import org.knora.webapi.util.IriConversions._
-import org.knora.webapi.util.PermissionUtilADM.{ChangeRightsPermission, DeletePermission, EntityPermission, ModifyPermission}
-import org.knora.webapi.util.{KnoraIdUtil, PermissionUtilADM, SmartIri}
+import org.knora.webapi.util.PermissionUtilADM._
+import org.knora.webapi.util.{PermissionUtilADM, SmartIri}
 
 import scala.concurrent.Future
 
@@ -46,9 +46,6 @@ import scala.concurrent.Future
   * Handles requests to read and write Knora values.
   */
 class ValuesResponderV2(responderData: ResponderData) extends Responder(responderData) {
-    // Creates IRIs for new Knora value objects.
-    val knoraIdUtil = new KnoraIdUtil
-
     /**
       * The IRI and content of a new value or value version whose existence in the triplestore has been verified.
       *
@@ -98,7 +95,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 }
 
                 // Don't accept knora-api:hasStandoffLinkToValue.
-                _ = if (createValueRequest.createValue.propertyIri.toString == OntologyConstants.KnoraApiV2WithValueObjects.HasStandoffLinkToValue) {
+                _ = if (createValueRequest.createValue.propertyIri.toString == OntologyConstants.KnoraApiV2Complex.HasStandoffLinkToValue) {
                     throw BadRequestException(s"Values of <${createValueRequest.createValue.propertyIri}> cannot be created directly")
                 }
 
@@ -151,7 +148,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 // Check that the resource class has a cardinality for the submitted property.
 
                 classInfo: ReadClassInfoV2 = classInfoResponse.classes(resourceInfo.resourceClassIri)
-                cardinalityInfo: Cardinality.KnoraCardinalityInfo = classInfo.allCardinalities.getOrElse(submittedInternalPropertyIri, throw BadRequestException(s"Resource <${createValueRequest.createValue.resourceIri}> belongs to class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2WithValueObjects)}>, which has no cardinality for property <${createValueRequest.createValue.propertyIri}>"))
+                cardinalityInfo: Cardinality.KnoraCardinalityInfo = classInfo.allCardinalities.getOrElse(submittedInternalPropertyIri, throw BadRequestException(s"Resource <${createValueRequest.createValue.resourceIri}> belongs to class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2Complex)}>, which has no cardinality for property <${createValueRequest.createValue.propertyIri}>"))
 
                 // Check that the object of the adjusted property (the value to be created, or the target of the link to be created) will have
                 // the correct type for the adjusted property's knora-base:objectClassConstraint.
@@ -175,11 +172,11 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 currentValuesForProp: Seq[ReadValueV2] = resourceInfo.values.getOrElse(submittedInternalPropertyIri, Seq.empty[ReadValueV2])
 
                 _ = if ((cardinalityInfo.cardinality == Cardinality.MustHaveOne || cardinalityInfo.cardinality == Cardinality.MustHaveSome) && currentValuesForProp.isEmpty) {
-                    throw InconsistentTriplestoreDataException(s"Resource class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2WithValueObjects)}> has a cardinality of ${cardinalityInfo.cardinality} on property <${createValueRequest.createValue.propertyIri}>, but resource <${createValueRequest.createValue.resourceIri}> has no value for that property")
+                    throw InconsistentTriplestoreDataException(s"Resource class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2Complex)}> has a cardinality of ${cardinalityInfo.cardinality} on property <${createValueRequest.createValue.propertyIri}>, but resource <${createValueRequest.createValue.resourceIri}> has no value for that property")
                 }
 
                 _ = if (cardinalityInfo.cardinality == Cardinality.MustHaveOne || (cardinalityInfo.cardinality == Cardinality.MayHaveOne && currentValuesForProp.nonEmpty)) {
-                    throw OntologyConstraintException(s"Resource class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2WithValueObjects)}> has a cardinality of ${cardinalityInfo.cardinality} on property <${createValueRequest.createValue.propertyIri}>, and this does not allow a value to be added for that property to resource <${createValueRequest.createValue.resourceIri}>")
+                    throw OntologyConstraintException(s"Resource class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2Complex)}> has a cardinality of ${cardinalityInfo.cardinality} on property <${createValueRequest.createValue.propertyIri}>, and this does not allow a value to be added for that property to resource <${createValueRequest.createValue.resourceIri}>")
                 }
 
                 // Check that the new value would not duplicate an existing value.
@@ -198,21 +195,44 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                     case _ => FastFuture.successful(())
                 }
 
+                // Get the default permissions for the new value.
+                defaultValuePermissions: String <- ResourceUtilV2.getDefaultValuePermissions(
+                    projectIri = resourceInfo.projectADM.id,
+                    resourceClassIri = resourceInfo.resourceClassIri,
+                    propertyIri = submittedInternalPropertyIri,
+                    requestingUser = createValueRequest.requestingUser,
+                    responderManager = responderManager
+                )
+
                 // Did the user submit permissions for the new value?
                 newValuePermissionLiteral <- createValueRequest.createValue.permissions match {
-                    case Some(permissions) =>
+                    case Some(permissions: String) =>
                         // Yes. Validate them.
-                        PermissionUtilADM.validatePermissions(permissionLiteral = permissions, responderManager = responderManager)
+                        for {
+                            validatedCustomPermissions <- PermissionUtilADM.validatePermissions(permissionLiteral = permissions, responderManager = responderManager)
+
+                            // Is the requesting user a system admin, or an admin of this project?
+                            _ = if (!(createValueRequest.requestingUser.permissions.isProjectAdmin(createValueRequest.requestingUser.id) || createValueRequest.requestingUser.permissions.isSystemAdmin)) {
+
+                                // No. Make sure they don't give themselves higher permissions than they would get from the default permissions.
+
+                                val permissionComparisonResult: PermissionComparisonResult = PermissionUtilADM.comparePermissionsADM(
+                                    entityCreator = createValueRequest.requestingUser.id,
+                                    entityProject = resourceInfo.projectADM.id,
+                                    permissionLiteralA = validatedCustomPermissions,
+                                    permissionLiteralB = defaultValuePermissions,
+                                    requestingUser = createValueRequest.requestingUser
+                                )
+
+                                if (permissionComparisonResult == AGreaterThanB) {
+                                    throw ForbiddenException(s"The specified value permissions would give a value's creator a higher permission on the value than the default permissions")
+                                }
+                            }
+                        } yield validatedCustomPermissions
 
                     case None =>
-                        // No. Get default permissions for the new value.
-                        ResourceUtilV2.getDefaultValuePermissions(
-                            projectIri = resourceInfo.projectADM.id,
-                            resourceClassIri = resourceInfo.resourceClassIri,
-                            propertyIri = submittedInternalPropertyIri,
-                            requestingUser = createValueRequest.requestingUser,
-                            responderManager = responderManager
-                        )
+                        // No. Use the default permissions.
+                        FastFuture.successful(defaultValuePermissions)
                 }
 
                 dataNamedGraph: IRI = stringFormatter.projectDataNamedGraphV2(resourceInfo.projectADM)
@@ -234,8 +254,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                 verifiedValue: VerifiedValueV2 <- verifyValue(
                     resourceIri = createValueRequest.createValue.resourceIri,
-                    propertyIriForGravsearch = adjustedInternalPropertyIri.toOntologySchema(ApiV2WithValueObjects),
-                    propertyIriInResult = submittedInternalPropertyIri,
+                    propertyIri = submittedInternalPropertyIri,
                     unverifiedValue = unverifiedValue,
                     requestingUser = createValueRequest.requestingUser
                 )
@@ -264,6 +283,10 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
             )
         } yield taskResult
 
+        // Since PR #1230, the cardinalities in knora-base don't allow you to create a file value
+        // without creating a new resource, but we leave this line here in case it's needed again
+        // someday:
+        //
         // If we were creating a file value, have Sipi move the file to permanent storage if the update
         // was successful, or delete the temporary file if the update failed.
         ResourceUtilV2.doSipiPostUpdate(
@@ -283,7 +306,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       * @param dataNamedGraph   the named graph in which the value is to be created.
       * @param projectIri       the IRI of the project in which to create the value.
       * @param resourceInfo     information about the the resource in which to create the value.
-      * @param propertyIri      the IRI of the property that will point from the resource to the value.
+      * @param propertyIri      the IRI of the property that will point from the resource to the value, or, if the
+      *                         value is a link value, the IRI of the link property.
       * @param value            the value to create.
       * @param valueCreator     the IRI of the new value's owner.
       * @param valuePermissions the literal that should be used as the object of the new value's `knora-base:hasPermissions` predicate.
@@ -343,7 +367,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                                                  requestingUser: UserADM): Future[UnverifiedValueV2] = {
         for {
             // Generate an IRI for the new value.
-            newValueIri <- FastFuture.successful(knoraIdUtil.makeRandomValueIri(resourceInfo.resourceIri))
+            newValueIri <- FastFuture.successful(stringFormatter.makeRandomValueIri(resourceInfo.resourceIri))
             currentTime: Instant = Instant.now
 
             // If we're creating a text value, update direct links and LinkValues for any resource references in standoff.
@@ -356,7 +380,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                                 sourceResourceInfo = resourceInfo,
                                 linkPropertyIri = OntologyConstants.KnoraBase.HasStandoffLinkTo.toSmartIri,
                                 targetResourceIri = targetResourceIri,
-                                valueCreator = OntologyConstants.KnoraBase.SystemUser,
+                                valueCreator = OntologyConstants.KnoraAdmin.SystemUser,
                                 valuePermissions = standoffLinkValuePermissions,
                                 requestingUser = requestingUser
                             )
@@ -372,12 +396,12 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 resourceIri = resourceInfo.resourceIri,
                 propertyIri = propertyIri,
                 newValueIri = newValueIri,
-                valueTypeIri = value.valueType,
                 value = value,
                 linkUpdates = standoffLinkUpdates,
                 valueCreator = valueCreator,
                 valuePermissions = valuePermissions,
-                creationDate = currentTime
+                creationDate = currentTime,
+                stringFormatter = stringFormatter
             ).toString()
 
             /*
@@ -391,7 +415,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         } yield UnverifiedValueV2(
             newValueIri = newValueIri,
             valueContent = value.unescape,
-            permissions = valuePermissions
+            permissions = valuePermissions,
+            creationDate = currentTime
         )
     }
 
@@ -433,7 +458,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 resourceIri = resourceInfo.resourceIri,
                 linkUpdate = sparqlTemplateLinkUpdate,
                 creationDate = currentTime,
-                maybeComment = linkValueContent.comment
+                maybeComment = linkValueContent.comment,
+                stringFormatter = stringFormatter
             ).toString()
 
             /*
@@ -447,7 +473,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         } yield UnverifiedValueV2(
             newValueIri = sparqlTemplateLinkUpdate.newLinkValueIri,
             valueContent = linkValueContent.unescape,
-            permissions = valuePermissions
+            permissions = valuePermissions,
+            creationDate = currentTime
         )
     }
 
@@ -507,7 +534,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       * @param propertyIri    the IRI of the property that will point to the value.
       * @param valueToCreate  the value to be created.
       * @param valueHasOrder  the value's `knora-base:valueHasOrder`.
-      * @param creationDate    the timestamp to be used as the value creation time.
+      * @param creationDate   the timestamp to be used as the value creation time.
       * @param requestingUser the user making the request.
       * @return a [[InsertSparqlWithUnverifiedValue]] containing the generated SPARQL and an [[UnverifiedValueV2]].
       */
@@ -518,7 +545,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                                                         creationDate: Instant,
                                                         requestingUser: UserADM): InsertSparqlWithUnverifiedValue = {
         // Make an IRI for the new value.
-        val newValueIri = knoraIdUtil.makeRandomValueIri(resourceIri)
+        val newValueIri = stringFormatter.makeRandomValueIri(resourceIri)
 
         // Generate the SPARQL.
         val insertSparql: String = valueToCreate.valueContent match {
@@ -548,7 +575,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                     linkUpdate = sparqlTemplateLinkUpdate,
                     creationDate = creationDate,
                     maybeComment = valueToCreate.valueContent.comment,
-                    maybeValueHasOrder = Some(valueHasOrder)
+                    maybeValueHasOrder = Some(valueHasOrder),
+                    stringFormatter = stringFormatter
                 ).toString()
 
             case otherValueContentV2 =>
@@ -562,7 +590,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                     valueCreator = requestingUser.id,
                     valuePermissions = valueToCreate.permissions,
                     creationDate = creationDate,
-                    maybeValueHasOrder = Some(valueHasOrder)
+                    maybeValueHasOrder = Some(valueHasOrder),
+                    stringFormatter = stringFormatter
                 ).toString()
         }
 
@@ -571,7 +600,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
             unverifiedValue = UnverifiedValueV2(
                 newValueIri = newValueIri,
                 valueContent = valueToCreate.valueContent.unescape,
-                permissions = valueToCreate.permissions
+                permissions = valueToCreate.permissions,
+                creationDate = creationDate
             )
         )
     }
@@ -622,11 +652,11 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                     deleteDirectLink = false,
                     linkValueExists = false,
                     linkTargetExists = true, // doesn't matter, the generateInsertStatementsForStandoffLinks template doesn't use it
-                    newLinkValueIri = knoraIdUtil.makeRandomValueIri(createMultipleValuesRequest.resourceIri),
+                    newLinkValueIri = stringFormatter.makeRandomValueIri(createMultipleValuesRequest.resourceIri),
                     linkTargetIri = targetIri,
                     currentReferenceCount = 0,
                     newReferenceCount = initialReferenceCount,
-                    newLinkValueCreator = OntologyConstants.KnoraBase.SystemUser,
+                    newLinkValueCreator = OntologyConstants.KnoraAdmin.SystemUser,
                     newLinkValuePermissions = standoffLinkValuePermissions
                 )
         }
@@ -635,7 +665,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         queries.sparql.v2.txt.generateInsertStatementsForStandoffLinks(
             resourceIri = createMultipleValuesRequest.resourceIri,
             linkUpdates = standoffLinkUpdates,
-            creationDate = createMultipleValuesRequest.creationDate
+            creationDate = createMultipleValuesRequest.creationDate,
+            stringFormatter = stringFormatter
         ).toString()
     }
 
@@ -665,11 +696,11 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                 // Don't accept link properties.
                 _ = if (propertyInfoForSubmittedProperty.isLinkProp) {
-                    throw BadRequestException(s"Invalid property <${propertyInfoForSubmittedProperty.entityInfoContent.propertyIri.toOntologySchema(ApiV2WithValueObjects)}>. Use a link value property to submit a link.")
+                    throw BadRequestException(s"Invalid property <${propertyInfoForSubmittedProperty.entityInfoContent.propertyIri.toOntologySchema(ApiV2Complex)}>. Use a link value property to submit a link.")
                 }
 
                 // Don't accept knora-api:hasStandoffLinkToValue.
-                _ = if (updateValueRequest.updateValue.propertyIri.toString == OntologyConstants.KnoraApiV2WithValueObjects.HasStandoffLinkToValue) {
+                _ = if (updateValueRequest.updateValue.propertyIri.toString == OntologyConstants.KnoraApiV2Complex.HasStandoffLinkToValue) {
                     throw BadRequestException(s"Values of <${updateValueRequest.updateValue.propertyIri}> cannot be updated directly")
                 }
 
@@ -725,7 +756,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 // on the value, they need ChangeRightsPermission, otherwise they need ModifyPermission.
 
                 currentPermissionsParsed: Map[EntityPermission, Set[IRI]] = PermissionUtilADM.parsePermissions(currentValue.permissions)
-                newPermissionsParsed: Map[EntityPermission, Set[IRI]] = PermissionUtilADM.parsePermissions(newValueVersionPermissionLiteral, { permissionLiteral: String => throw BadRequestException(s"Invalid permission literal: $permissionLiteral") })
+                newPermissionsParsed: Map[EntityPermission, Set[IRI]] = PermissionUtilADM.parsePermissions(newValueVersionPermissionLiteral, { permissionLiteral: String => throw AssertionException(s"Invalid permission literal: $permissionLiteral") })
 
                 permissionNeeded = if (newPermissionsParsed != currentPermissionsParsed) {
                     ChangeRightsPermission
@@ -742,7 +773,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                 // Check that the current value and the submitted value have the same type.
                 _ = if (currentValue.valueContent.valueType != submittedInternalValueContent.valueType) {
-                    throw BadRequestException(s"Value <${updateValueRequest.updateValue.valueIri}> has type <${currentValue.valueContent.valueType.toOntologySchema(ApiV2WithValueObjects)}>, but the submitted new version has type <${updateValueRequest.updateValue.valueContent.valueType}>")
+                    throw BadRequestException(s"Value <${updateValueRequest.updateValue.valueIri}> has type <${currentValue.valueContent.valueType.toOntologySchema(ApiV2Complex)}>, but the submitted new version has type <${updateValueRequest.updateValue.valueContent.valueType}>")
                 }
 
                 // Check that the object of the adjusted property (the value to be created, or the target of the link to be created) will have
@@ -816,8 +847,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                 verifiedValue <- verifyValue(
                     resourceIri = updateValueRequest.updateValue.resourceIri,
-                    propertyIriForGravsearch = adjustedInternalPropertyIri.toOntologySchema(ApiV2WithValueObjects),
-                    propertyIriInResult = submittedInternalPropertyIri,
+                    propertyIri = submittedInternalPropertyIri,
                     unverifiedValue = unverifiedValue,
                     requestingUser = updateValueRequest.requestingUser
                 )
@@ -862,7 +892,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       *
       * @param dataNamedGraph   the named graph in which the value is to be created.
       * @param resourceInfo     information about the the resource in which to create the value.
-      * @param propertyIri      the IRI of the property that will point from the resource to the value.
+      * @param propertyIri      the IRI of the property that will point from the resource to the value, or, if the
+      *                         value is a link value, the IRI of the link property.
       * @param currentValue     the value to be updated.
       * @param newValueVersion  the new version of the value.
       * @param valueCreator     the IRI of the new value's owner.
@@ -883,7 +914,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 updateLinkValueV2AfterChecks(
                     dataNamedGraph = dataNamedGraph,
                     resourceInfo = resourceInfo,
-                    propertyIri = propertyIri,
+                    linkPropertyIri = propertyIri,
                     currentLinkValue = currentLinkValue,
                     newLinkValue = newLinkValue,
                     valueCreator = valueCreator,
@@ -892,7 +923,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 )
 
             case _ =>
-                val newValueIri = knoraIdUtil.makeRandomValueIri(resourceInfo.resourceIri)
+                val newValueIri = stringFormatter.makeRandomValueIri(resourceInfo.resourceIri)
 
                 updateOrdinaryValueV2AfterChecks(
                     dataNamedGraph = dataNamedGraph,
@@ -947,7 +978,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                             sourceResourceInfo = resourceInfo,
                             linkPropertyIri = OntologyConstants.KnoraBase.HasStandoffLinkTo.toSmartIri,
                             targetResourceIri = targetResourceIri,
-                            valueCreator = OntologyConstants.KnoraBase.SystemUser,
+                            valueCreator = OntologyConstants.KnoraAdmin.SystemUser,
                             valuePermissions = standoffLinkValuePermissions,
                             requestingUser = requestingUser
                         )
@@ -960,7 +991,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                             sourceResourceInfo = resourceInfo,
                             linkPropertyIri = OntologyConstants.KnoraBase.HasStandoffLinkTo.toSmartIri,
                             targetResourceIri = removedTargetResource,
-                            valueCreator = OntologyConstants.KnoraBase.SystemUser,
+                            valueCreator = OntologyConstants.KnoraAdmin.SystemUser,
                             valuePermissions = standoffLinkValuePermissions,
                             requestingUser = requestingUser
                         )
@@ -989,7 +1020,9 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 valuePermissions = valuePermissions,
                 maybeComment = newValueVersion.comment,
                 linkUpdates = standoffLinkUpdates,
-                currentTime = currentTime
+                currentTime = currentTime,
+                requestingUser = requestingUser.id,
+                stringFormatter = stringFormatter
             ).toString())
 
             /*
@@ -1004,7 +1037,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         } yield UnverifiedValueV2(
             newValueIri = newValueIri,
             valueContent = newValueVersion.unescape,
-            permissions = valuePermissions
+            permissions = valuePermissions,
+            creationDate = currentTime
         )
     }
 
@@ -1013,7 +1047,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       *
       * @param dataNamedGraph   the IRI of the named graph to be updated.
       * @param resourceInfo     information about the resource containing the link.
-      * @param propertyIri      the IRI of the link property.
+      * @param linkPropertyIri  the IRI of the link property.
       * @param currentLinkValue a [[LinkValueContentV2]] representing the `knora-base:LinkValue` for the existing link.
       * @param newLinkValue     a [[LinkValueContentV2]] indicating the new target resource.
       * @param valueCreator     the IRI of the new link value's owner.
@@ -1023,7 +1057,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       */
     private def updateLinkValueV2AfterChecks(dataNamedGraph: IRI,
                                              resourceInfo: ReadResourceV2,
-                                             propertyIri: SmartIri,
+                                             linkPropertyIri: SmartIri,
                                              currentLinkValue: LinkValueContentV2,
                                              newLinkValue: LinkValueContentV2,
                                              valueCreator: IRI,
@@ -1032,7 +1066,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         // Delete the existing link and decrement its LinkValue's reference count.
         val sparqlTemplateLinkUpdateForCurrentLink: SparqlTemplateLinkUpdate = decrementLinkValue(
             sourceResourceInfo = resourceInfo,
-            linkPropertyIri = propertyIri,
+            linkPropertyIri = linkPropertyIri,
             targetResourceIri = currentLinkValue.referredResourceIri,
             valueCreator = valueCreator,
             valuePermissions = valuePermissions,
@@ -1042,7 +1076,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         // Create a new link, and create a new LinkValue for it.
         val sparqlTemplateLinkUpdateForNewLink: SparqlTemplateLinkUpdate = incrementLinkValue(
             sourceResourceInfo = resourceInfo,
-            linkPropertyIri = propertyIri,
+            linkPropertyIri = linkPropertyIri,
             targetResourceIri = newLinkValue.referredResourceIri,
             valueCreator = valueCreator,
             valuePermissions = valuePermissions,
@@ -1061,7 +1095,9 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 linkUpdateForCurrentLink = sparqlTemplateLinkUpdateForCurrentLink,
                 linkUpdateForNewLink = sparqlTemplateLinkUpdateForNewLink,
                 maybeComment = newLinkValue.comment,
-                currentTime = currentTime
+                currentTime = currentTime,
+                requestingUser = requestingUser.id,
+                stringFormatter = stringFormatter
             ).toString())
 
             /*
@@ -1074,7 +1110,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         } yield UnverifiedValueV2(
             newValueIri = sparqlTemplateLinkUpdateForNewLink.newLinkValueIri,
             valueContent = newLinkValue.unescape,
-            permissions = valuePermissions
+            permissions = valuePermissions,
+            creationDate = currentTime
         )
     }
 
@@ -1102,11 +1139,11 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                 // Don't accept link properties.
                 _ = if (propertyInfoForSubmittedProperty.isLinkProp) {
-                    throw BadRequestException(s"Invalid property <${propertyInfoForSubmittedProperty.entityInfoContent.propertyIri.toOntologySchema(ApiV2WithValueObjects)}>. Use a link value property to submit a link.")
+                    throw BadRequestException(s"Invalid property <${propertyInfoForSubmittedProperty.entityInfoContent.propertyIri.toOntologySchema(ApiV2Complex)}>. Use a link value property to submit a link.")
                 }
 
                 // Don't accept knora-api:hasStandoffLinkToValue.
-                _ = if (deleteValueRequest.propertyIri.toString == OntologyConstants.KnoraApiV2WithValueObjects.HasStandoffLinkToValue) {
+                _ = if (deleteValueRequest.propertyIri.toString == OntologyConstants.KnoraApiV2Complex.HasStandoffLinkToValue) {
                     throw BadRequestException(s"Values of <${deleteValueRequest.propertyIri}> cannot be deleted directly")
                 }
 
@@ -1174,14 +1211,14 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                 classInfoResponse: ReadOntologyV2 <- (responderManager ? classInfoRequest).mapTo[ReadOntologyV2]
                 classInfo: ReadClassInfoV2 = classInfoResponse.classes(resourceInfo.resourceClassIri)
-                cardinalityInfo: Cardinality.KnoraCardinalityInfo = classInfo.allCardinalities.getOrElse(submittedInternalPropertyIri, throw InconsistentTriplestoreDataException(s"Resource <${deleteValueRequest.resourceIri}> belongs to class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2WithValueObjects)}>, which has no cardinality for property <${deleteValueRequest.propertyIri}>"))
+                cardinalityInfo: Cardinality.KnoraCardinalityInfo = classInfo.allCardinalities.getOrElse(submittedInternalPropertyIri, throw InconsistentTriplestoreDataException(s"Resource <${deleteValueRequest.resourceIri}> belongs to class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2Complex)}>, which has no cardinality for property <${deleteValueRequest.propertyIri}>"))
 
                 // Check that the resource class's cardinality for the submitted property allows this value to be deleted.
 
                 currentValuesForProp: Seq[ReadValueV2] = resourceInfo.values.getOrElse(submittedInternalPropertyIri, Seq.empty[ReadValueV2])
 
                 _ = if ((cardinalityInfo.cardinality == Cardinality.MustHaveOne || cardinalityInfo.cardinality == Cardinality.MustHaveSome) && currentValuesForProp.size == 1) {
-                    throw OntologyConstraintException(s"Resource class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2WithValueObjects)}> has a cardinality of ${cardinalityInfo.cardinality} on property <${deleteValueRequest.propertyIri}>, and this does not allow a value to be deleted for that property from resource <${deleteValueRequest.resourceIri}>")
+                    throw OntologyConstraintException(s"Resource class <${resourceInfo.resourceClassIri.toOntologySchema(ApiV2Complex)}> has a cardinality of ${cardinalityInfo.cardinality} on property <${deleteValueRequest.propertyIri}>, and this does not allow a value to be deleted for that property from resource <${deleteValueRequest.resourceIri}>")
                 }
 
                 // Get information about the project that the resource is in, so we know which named graph to do the update in.
@@ -1319,7 +1356,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 linkSourceIri = resourceInfo.resourceIri,
                 linkUpdate = sparqlTemplateLinkUpdate,
                 maybeComment = deleteComment,
-                currentTime = currentTime
+                currentTime = currentTime,
+                requestingUser = requestingUser.id
             ).toString())
 
             _ <- (storeManager ? SparqlUpdateRequest(sparqlUpdate)).mapTo[SparqlUpdateResponse]
@@ -1355,7 +1393,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                             sourceResourceInfo = resourceInfo,
                             linkPropertyIri = OntologyConstants.KnoraBase.HasStandoffLinkTo.toSmartIri,
                             targetResourceIri = removedTargetResource,
-                            valueCreator = OntologyConstants.KnoraBase.SystemUser,
+                            valueCreator = OntologyConstants.KnoraAdmin.SystemUser,
                             valuePermissions = standoffLinkValuePermissions,
                             requestingUser = requestingUser
                         )
@@ -1376,7 +1414,9 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 valueIri = currentValue.valueIri,
                 maybeDeleteComment = deleteComment,
                 linkUpdates = linkUpdates,
-                currentTime = currentTime
+                currentTime = currentTime,
+                requestingUser = requestingUser.id,
+                stringFormatter = stringFormatter
             ).toString())
 
             _ <- (storeManager ? SparqlUpdateRequest(sparqlUpdate)).mapTo[SparqlUpdateResponse]
@@ -1402,7 +1442,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         if (propertyInfoForSubmittedProperty.isLinkValueProp) {
             maybeSubmittedValueType match {
                 case Some(submittedValueType) =>
-                    if (submittedValueType.toString != OntologyConstants.KnoraApiV2WithValueObjects.LinkValue) {
+                    if (submittedValueType.toString != OntologyConstants.KnoraApiV2Complex.LinkValue) {
                         FastFuture.failed(BadRequestException(s"A value of type <$submittedValueType> cannot be an object of property <$submittedPropertyIri>"))
                     }
 
@@ -1431,17 +1471,18 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       * Given a set of resource IRIs, checks that they point to Knora resources.
       * If not, throws an exception.
       *
-      * @param targeResourceIris the IRIs to be checked.
+      * @param targetResourceIris the IRIs to be checked.
       * @param requestingUser    the user making the request.
       */
-    private def checkResourceIris(targeResourceIris: Set[IRI], requestingUser: UserADM): Future[Unit] = {
-        if (targeResourceIris.isEmpty) {
+    private def checkResourceIris(targetResourceIris: Set[IRI], requestingUser: UserADM): Future[Unit] = {
+        if (targetResourceIris.isEmpty) {
             FastFuture.successful(())
         } else {
             for {
                 resourcePreviewRequest <- FastFuture.successful(
                     ResourcesPreviewGetRequestV2(
-                        resourceIris = targeResourceIris.toSeq,
+                        resourceIris = targetResourceIris.toSeq,
+                        targetSchema = ApiV2Complex,
                         requestingUser = requestingUser
                     )
                 )
@@ -1466,8 +1507,6 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       * @return a [[ReadResourceV2]] containing only the resource's metadata and its values for the specified property.
       */
     private def getResourceWithPropertyValues(resourceIri: IRI, propertyInfo: ReadPropertyInfoV2, requestingUser: UserADM): Future[ReadResourceV2] = {
-        // TODO: when text values in Gravsearch query results are shortened, make a way for this query to get the complete value.
-
         for {
             // Get the property's object class constraint.
             objectClassConstraint: SmartIri <- Future(propertyInfo.entityInfoContent.requireIriObject(OntologyConstants.KnoraBase.ObjectClassConstraint.toSmartIri, throw InconsistentTriplestoreDataException(s"Property ${propertyInfo.entityInfoContent.propertyIri} has no knora-base:objectClassConstraint")))
@@ -1480,7 +1519,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
             }
 
             // Convert the property IRIs to be queried to the API v2 complex schema for Gravsearch.
-            propertyIrisForGravsearchQuery: Seq[SmartIri] = (Seq(propertyInfo.entityInfoContent.propertyIri) ++ maybeStandoffLinkToPropertyIri).map(_.toOntologySchema(ApiV2WithValueObjects))
+            propertyIrisForGravsearchQuery: Seq[SmartIri] = (Seq(propertyInfo.entityInfoContent.propertyIri) ++ maybeStandoffLinkToPropertyIri).map(_.toOntologySchema(ApiV2Complex))
 
             // Make a Gravsearch query from a template.
             gravsearchQuery: String = queries.gravsearch.txt.getResourceWithSpecifiedProperties(
@@ -1491,46 +1530,48 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
             // Run the query.
 
             parsedGravsearchQuery <- FastFuture.successful(GravsearchParser.parseQuery(gravsearchQuery))
-            searchResponse <- (responderManager ? GravsearchRequestV2(parsedGravsearchQuery, requestingUser)).mapTo[ReadResourcesSequenceV2]
+            searchResponse <- (responderManager ? GravsearchRequestV2(
+                constructQuery = parsedGravsearchQuery,
+                targetSchema = ApiV2Complex,
+                schemaOptions = SchemaOptions.ForStandoffWithTextValues,
+                requestingUser = requestingUser)).mapTo[ReadResourcesSequenceV2]
         } yield searchResponse.toResource(resourceIri)
     }
-
-    /*
-    private def findResourceWithValue(valueIri: IRI, requestingUser: UserADM): Future[ReadResourceV2] = {
-
-    }
-    */
 
     /**
       * Verifies that a value was written correctly to the triplestore.
       *
-      * @param resourceIri              the IRI of the resource that the value belongs to.
-      * @param propertyIriForGravsearch the external IRI the property to be used in Gravsearch to find the value. If the value is a link value, this is the link property.
-      * @param propertyIriInResult      the internal IRI of the property that is expected to be returned. If the value is a link value, this is the link value property.
-      * @param unverifiedValue          the value that should have been written to the triplestore.
-      * @param requestingUser           the user making the request.
+      * @param resourceIri     the IRI of the resource that the value belongs to.
+      * @param propertyIri     the internal IRI of the property that points to the value. If the value is a link value,
+      *                        this is the link value property.
+      * @param unverifiedValue the value that should have been written to the triplestore.
+      * @param requestingUser  the user making the request.
       */
     private def verifyValue(resourceIri: IRI,
-                            propertyIriForGravsearch: SmartIri,
-                            propertyIriInResult: SmartIri,
+                            propertyIri: SmartIri,
                             unverifiedValue: UnverifiedValueV2,
                             requestingUser: UserADM): Future[VerifiedValueV2] = {
         for {
-            gravsearchQuery: String <- Future(queries.gravsearch.txt.getResourceWithSpecifiedProperties(
-                resourceIri = resourceIri,
-                propertyIris = Seq(propertyIriForGravsearch)
-            ).toString())
+            resourcesRequest <- Future {
+                ResourcesGetRequestV2(
+                    resourceIris = Seq(resourceIri),
+                    propertyIri = Some(propertyIri),
+                    versionDate = Some(unverifiedValue.creationDate),
+                    targetSchema = ApiV2Complex,
+                    schemaOptions = SchemaOptions.ForStandoffWithTextValues,
+                    requestingUser = requestingUser
+                )
+            }
 
-            parsedGravsearchQuery <- FastFuture.successful(GravsearchParser.parseQuery(gravsearchQuery))
-            searchResponse <- (responderManager ? GravsearchRequestV2(parsedGravsearchQuery, requestingUser)).mapTo[ReadResourcesSequenceV2]
+            resourcesResponse <- (responderManager ? resourcesRequest).mapTo[ReadResourcesSequenceV2]
 
             resource = try {
-                searchResponse.toResource(resourceIri)
+                resourcesResponse.toResource(resourceIri)
             } catch {
                 case _: NotFoundException => throw UpdateNotPerformedException(s"Resource <$resourceIri> was not created. Please report this as a possible bug.")
             }
 
-            propertyValues = resource.values.getOrElse(propertyIriInResult, throw UpdateNotPerformedException())
+            propertyValues = resource.values.getOrElse(propertyIri, throw UpdateNotPerformedException())
             valueInTriplestore: ReadValueV2 = propertyValues.find(_.valueIri == unverifiedValue.newValueIri).getOrElse(throw UpdateNotPerformedException())
 
             _ = if (!(unverifiedValue.valueContent.wouldDuplicateCurrentVersion(valueInTriplestore.valueContent) &&
@@ -1570,6 +1611,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
             resourcePreviewRequest <- FastFuture.successful(
                 ResourcesPreviewGetRequestV2(
                     resourceIris = Seq(linkValueContent.referredResourceIri),
+                    targetSchema = ApiV2Complex,
                     requestingUser = requestingUser
                 )
             )
@@ -1647,7 +1689,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
 
                     // Check that the property whose object class constraint is to be checked is actually a link property.
                     if (!propertyInfo.isLinkProp) {
-                        throw BadRequestException(s"Property <${propertyInfo.entityInfoContent.propertyIri.toOntologySchema(ApiV2WithValueObjects)}> is not a link property")
+                        throw BadRequestException(s"Property <${propertyInfo.entityInfoContent.propertyIri.toOntologySchema(ApiV2Complex)}> is not a link property")
                     }
 
                     // Check that the user has permission to view the target resource, and that the target resource has the correct type.
@@ -1729,7 +1771,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
         )
 
         // Generate an IRI for the new LinkValue.
-        val newLinkValueIri = knoraIdUtil.makeRandomValueIri(sourceResourceInfo.resourceIri)
+        val newLinkValueIri = stringFormatter.makeRandomValueIri(sourceResourceInfo.resourceIri)
 
         maybeLinkValueInfo match {
             case Some(linkValueInfo) =>
@@ -1817,7 +1859,7 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
                 val deleteDirectLink = newReferenceCount == 0
 
                 // Generate an IRI for the new LinkValue.
-                val newLinkValueIri = knoraIdUtil.makeRandomValueIri(sourceResourceInfo.resourceIri)
+                val newLinkValueIri = stringFormatter.makeRandomValueIri(sourceResourceInfo.resourceIri)
 
                 SparqlTemplateLinkUpdate(
                     linkPropertyIri = linkPropertyIri,
@@ -1845,8 +1887,8 @@ class ValuesResponderV2(responderData: ResponderData) extends Responder(responde
       */
     lazy val standoffLinkValuePermissions: String = {
         val permissions: Set[PermissionADM] = Set(
-            PermissionADM.changeRightsPermission(OntologyConstants.KnoraBase.SystemUser),
-            PermissionADM.viewPermission(OntologyConstants.KnoraBase.UnknownUser)
+            PermissionADM.changeRightsPermission(OntologyConstants.KnoraAdmin.SystemUser),
+            PermissionADM.viewPermission(OntologyConstants.KnoraAdmin.UnknownUser)
         )
 
         PermissionUtilADM.formatPermissionADMs(permissions, PermissionType.OAP)

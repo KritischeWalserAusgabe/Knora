@@ -37,7 +37,7 @@ sipi/test
 *.toc
 *.bak
 .sbtrc
-webapi/_fuseki/run
-triplestores/graphdb-se-7
-idea.vmoptions
-/.metadata/
+
+
+**/venv
+**/__pycache__

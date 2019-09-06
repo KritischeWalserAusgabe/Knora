@@ -116,24 +116,24 @@ case class ChangeUserApiRequestADM(username: Option[String] = None,
     // change password case
     if (requesterPassword.isDefined || newPassword.isDefined) {
         if (parametersCount > 2) {
-            throw BadRequestException("To many parameters sent for password change.")
+            throw BadRequestException("Too many parameters sent for password change.")
         } else if (parametersCount < 2) {
-            throw BadRequestException("To few parameters sent for password change.")
+            throw BadRequestException("Too few parameters sent for password change.")
         }
     }
 
     // change status case
     if (status.isDefined) {
-        if (parametersCount > 1) throw BadRequestException("To many parameters sent for user status change.")
+        if (parametersCount > 1) throw BadRequestException("Too many parameters sent for user status change.")
     }
 
     // change system admin membership case
     if (systemAdmin.isDefined) {
-        if (parametersCount > 1) throw BadRequestException("To many parameters sent for system admin membership change.")
+        if (parametersCount > 1) throw BadRequestException("Too many parameters sent for system admin membership change.")
     }
 
     // change basic user information case
-    if (parametersCount > 5) throw BadRequestException("To many parameters sent for basic user information change.")
+    if (parametersCount > 5) throw BadRequestException("Too many parameters sent for basic user information change.")
 
     def toJsValue: JsValue = UsersADMJsonProtocol.changeUserApiRequestADMFormat.write(this)
 }
@@ -473,9 +473,22 @@ case class UserADM(id: IRI,
     def passwordMatch(password: String): Boolean = {
         this.password.exists {
             hashedPassword =>
-                import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder
-                val encoder = new SCryptPasswordEncoder
-                encoder.matches(password, hashedPassword.toString)
+              // check which type of hash we have
+              if (hashedPassword.startsWith("$e0801$")){
+                  // SCrypt
+                  import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder
+                  val encoder = new SCryptPasswordEncoder()
+                  encoder.matches(password, hashedPassword.toString)
+              } else if (hashedPassword.startsWith("$2a$")) {
+                  // BCrypt
+                  import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+                  val encoder = new BCryptPasswordEncoder()
+                  encoder.matches(password, hashedPassword.toString)
+              } else {
+                  // SHA-1
+                  val md = java.security.MessageDigest.getInstance("SHA-1")
+                  md.digest(password.getBytes("UTF-8")).map("%02x".format(_)).mkString.equals(hashedPassword)
+              }
         }
     }
 
@@ -488,6 +501,23 @@ case class UserADM(id: IRI,
     def ofType(userTemplateType: UserInformationTypeADM): UserADM = {
 
         userTemplateType match {
+            case UserInformationTypeADM.PUBLIC => {
+                UserADM(
+                    id = id,
+                    username = "",
+                    email = "",
+                    password = None,
+                    token = None,
+                    givenName = givenName,
+                    familyName = familyName,
+                    status = false,
+                    lang = "",
+                    groups = Seq.empty[GroupADM],
+                    projects = Seq.empty[ProjectADM],
+                    sessionId = None,
+                    permissions = PermissionsDataADM()
+                )
+            }
             case UserInformationTypeADM.SHORT => {
 
                 UserADM(
@@ -561,12 +591,12 @@ case class UserADM(id: IRI,
       * Is the user a member of the SystemAdmin group
       */
     def isSystemAdmin: Boolean = {
-        permissions.groupsPerProject.getOrElse(OntologyConstants.KnoraBase.SystemProject, List.empty[IRI]).contains(OntologyConstants.KnoraBase.SystemAdmin)
+        permissions.groupsPerProject.getOrElse(OntologyConstants.KnoraAdmin.SystemProject, List.empty[IRI]).contains(OntologyConstants.KnoraAdmin.SystemAdmin)
     }
 
-    def isSystemUser: Boolean = id.equalsIgnoreCase(OntologyConstants.KnoraBase.SystemUser)
+    def isSystemUser: Boolean = id.equalsIgnoreCase(OntologyConstants.KnoraAdmin.SystemUser)
 
-    def isAnonymousUser: Boolean = id.equalsIgnoreCase(OntologyConstants.KnoraBase.AnonymousUser)
+    def isAnonymousUser: Boolean = id.equalsIgnoreCase(OntologyConstants.KnoraAdmin.AnonymousUser)
 
     def fullname: String = givenName + " " + familyName
 
@@ -612,7 +642,7 @@ case class UserADM(id: IRI,
 
             val v1Groups: Seq[IRI] = groups.map(_.id)
 
-            val projectsWithoutBuiltinProjects = projects.filter(_.id != OntologyConstants.KnoraBase.SystemProject).filter(_.id != OntologyConstants.KnoraBase.DefaultSharedOntologiesProject)
+            val projectsWithoutBuiltinProjects = projects.filter(_.id != OntologyConstants.KnoraAdmin.SystemProject).filter(_.id != OntologyConstants.KnoraAdmin.DefaultSharedOntologiesProject)
             val projectInfosV1 = projectsWithoutBuiltinProjects.map(_.asProjectInfoV1)
             val projects_info_v1: Map[IRI, ProjectInfoV1] = projectInfosV1.map(_.id).zip(projectInfosV1).toMap[IRI, ProjectInfoV1]
 
@@ -653,6 +683,7 @@ case class UserADM(id: IRI,
   * full: everything
   * restricted: everything without sensitive information, i.e. token, password, session.
   * short: like restricted and additionally without groups, projects and permissions.
+  * public: temporary: givenName, familyName
   *
   * Mainly used in combination with the 'ofType' method, to make sure that a request receiving this information
   * also returns the user profile of the correct type. Should be used in cases where we don't want to expose
@@ -664,9 +695,10 @@ object UserInformationTypeADM extends Enumeration {
 
     type UserInformationTypeADM = Value
 
-    val SHORT = Value(0, "short") // only basic user information (restricted and additionally without grpuos
-    val RESTRICTED = Value(1, "restricted") // without sensitive information
-    val FULL = Value(2, "full") // everything, including sensitive information
+    val PUBLIC = Value(0, "public") // a temporary type which only returns firstname and lastname
+    val SHORT = Value(1, "short") // only basic user information (restricted and additionally without groups
+    val RESTRICTED = Value(2, "restricted") // without sensitive information
+    val FULL = Value(3, "full") // everything, including sensitive information
 
     val valueMap: Map[String, Value] = values.map(v => (v.toString, v)).toMap
 
@@ -783,6 +815,13 @@ class UserIdentifierADM private(maybeIri: Option[IRI] = None,
         maybeUsername
     }
 
+    /**
+      * Returns the string representation
+      */
+    override def toString: IRI = {
+        s"UserIdentifierADM(${this.maybeIri}, ${this.maybeEmail}, ${this.maybeUsername})"
+    }
+
 }
 
 /**
@@ -834,37 +873,37 @@ case class UserUpdatePayloadADM(username: Option[String] = None,
 
     // change password case
     if (password.isDefined && parametersCount > 1) {
-        throw BadRequestException("To many parameters sent for password change.")
+        throw BadRequestException("Too many parameters sent for password change.")
     }
 
     // change status case
     if (status.isDefined && parametersCount > 1) {
-        throw BadRequestException("To many parameters sent for user status change.")
+        throw BadRequestException("Too many parameters sent for user status change.")
     }
 
     // change system admin membership case
     if (systemAdmin.isDefined && parametersCount > 1) {
-        throw BadRequestException("To many parameters sent for system admin membership change.")
+        throw BadRequestException("Too many parameters sent for system admin membership change.")
     }
 
     // change project memberships
     if (projects.isDefined && parametersCount > 1) {
-        throw BadRequestException("To many parameters sent for project membership change.")
+        throw BadRequestException("Too many parameters sent for project membership change.")
     }
 
     // change projectAdmin memberships
     if (projectsAdmin.isDefined && parametersCount > 1) {
-        throw BadRequestException("To many parameters sent for projectAdmin membership change.")
+        throw BadRequestException("Too many parameters sent for projectAdmin membership change.")
     }
 
     // change group memberships
     if (groups.isDefined && parametersCount > 1) {
-        throw BadRequestException("To many parameters sent for group membership change.")
+        throw BadRequestException("Too many parameters sent for group membership change.")
     }
 
     // change basic user information case
     if (parametersCount > 4) {
-        throw BadRequestException("To many parameters sent for basic user information change.")
+        throw BadRequestException("Too many parameters sent for basic user information change.")
     }
 
 }

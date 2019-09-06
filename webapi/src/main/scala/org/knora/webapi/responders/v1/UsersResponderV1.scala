@@ -31,7 +31,7 @@ import org.knora.webapi.messages.v1.responder.usermessages.UserProfileTypeV1.Use
 import org.knora.webapi.messages.v1.responder.usermessages._
 import org.knora.webapi.responders.Responder.handleUnexpectedMessage
 import org.knora.webapi.responders.{Responder, ResponderData}
-import org.knora.webapi.util.{CacheUtil, KnoraIdUtil}
+import org.knora.webapi.util.CacheUtil
 
 import scala.concurrent.Future
 
@@ -39,9 +39,6 @@ import scala.concurrent.Future
   * Provides information about Knora users to other responders.
   */
 class UsersResponderV1(responderData: ResponderData) extends Responder(responderData) {
-
-    // Creates IRIs for new Knora user objects.
-    val knoraIdUtil = new KnoraIdUtil
 
     // The IRI used to lock user creation and update
     val USERS_GLOBAL_LOCK_IRI = "http://rdfh.ch/users"
@@ -98,15 +95,15 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
                 case (userIri: IRI, propsMap: Map[String, String]) =>
 
                     UserDataV1(
-                        lang = propsMap.get(OntologyConstants.KnoraBase.PreferredLanguage) match {
+                        lang = propsMap.get(OntologyConstants.KnoraAdmin.PreferredLanguage) match {
                             case Some(langList) => langList
                             case None => settings.fallbackLanguage
                         },
                         user_id = Some(userIri),
-                        email = propsMap.get(OntologyConstants.KnoraBase.Email),
-                        firstname = propsMap.get(OntologyConstants.KnoraBase.GivenName),
-                        lastname = propsMap.get(OntologyConstants.KnoraBase.FamilyName),
-                        status = propsMap.get(OntologyConstants.KnoraBase.Status).map(_.toBoolean)
+                        email = propsMap.get(OntologyConstants.KnoraAdmin.Email),
+                        firstname = propsMap.get(OntologyConstants.KnoraAdmin.GivenName),
+                        lastname = propsMap.get(OntologyConstants.KnoraAdmin.FamilyName),
+                        status = propsMap.get(OntologyConstants.KnoraAdmin.Status).map(_.toBoolean)
                     )
             }.toSeq
 
@@ -172,7 +169,8 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
                 // found a user profile in the cache
                 log.debug(s"userProfileByIRIGetV1 - cache hit: $userProfile")
                 FastFuture.successful(Some(userProfile.ofType(profileType)))
-            case None => {
+
+            case None =>
                 for {
                     sparqlQueryString <- Future(queries.sparql.v1.txt.getUserByIri(
                         triplestore = settings.triplestoreType,
@@ -193,7 +191,6 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
 
                     // _ = log.debug("userProfileByIRIGetV1 - maybeUserProfileV1: {}", MessageUtil.toSource(maybeUserProfileV1))
                 } yield result // UserProfileV1(userData, groups, projects_info, sessionId, isSystemUser, permissionData)
-            }
         }
     }
 
@@ -236,7 +233,8 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
                 // found a user profile in the cache
                 log.debug(s"userProfileByIRIGetV1 - cache hit: $userProfile")
                 FastFuture.successful(Some(userProfile.ofType(profileType)))
-            case None => {
+
+            case None =>
                 for {
                     sparqlQueryString <- Future(queries.sparql.v1.txt.getUserByEmail(
                         triplestore = settings.triplestoreType,
@@ -258,7 +256,6 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
                     // _ = log.debug("userProfileByEmailGetV1 - maybeUserProfileV1: {}", MessageUtil.toSource(maybeUserProfileV1))
 
                 } yield result // UserProfileV1(userDataV1, groupIris, projectIris)
-            }
         }
 
 
@@ -307,7 +304,7 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             }
 
             /* the projects the user is member of */
-            projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraBase.IsInProject) match {
+            projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInProject) match {
                 case Some(projects) => projects
                 case None => Seq.empty[IRI]
             }
@@ -341,7 +338,7 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             }
 
             /* the projects the user is member of */
-            projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraBase.IsInProjectAdminGroup) match {
+            projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInProjectAdminGroup) match {
                 case Some(projects) => projects
                 case None => Seq.empty[IRI]
             }
@@ -375,7 +372,7 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             }
 
             /* the groups the user is member of */
-            groupIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraBase.IsInGroup) match {
+            groupIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInGroup) match {
                 case Some(projects) => projects
                 case None => Seq.empty[IRI]
             }
@@ -410,18 +407,18 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             // _ = log.debug(s"userDataQueryResponse2UserProfileV1 - groupedUserData: ${MessageUtil.toSource(groupedUserData)}")
 
             val userDataV1 = UserDataV1(
-                lang = groupedUserData.get(OntologyConstants.KnoraBase.PreferredLanguage) match {
+                lang = groupedUserData.get(OntologyConstants.KnoraAdmin.PreferredLanguage) match {
                     case Some(langList) => langList.head
                     case None => settings.fallbackLanguage
                 },
                 user_id = Some(returnedUserIri),
-                email = groupedUserData.get(OntologyConstants.KnoraBase.Email).map(_.head),
-                firstname = groupedUserData.get(OntologyConstants.KnoraBase.GivenName).map(_.head),
-                lastname = groupedUserData.get(OntologyConstants.KnoraBase.FamilyName).map(_.head),
+                email = groupedUserData.get(OntologyConstants.KnoraAdmin.Email).map(_.head),
+                firstname = groupedUserData.get(OntologyConstants.KnoraAdmin.GivenName).map(_.head),
+                lastname = groupedUserData.get(OntologyConstants.KnoraAdmin.FamilyName).map(_.head),
                 password = if (!short) {
-                    groupedUserData.get(OntologyConstants.KnoraBase.Password).map(_.head)
+                    groupedUserData.get(OntologyConstants.KnoraAdmin.Password).map(_.head)
                 } else None,
-                status = groupedUserData.get(OntologyConstants.KnoraBase.Status).map(_.head.toBoolean)
+                status = groupedUserData.get(OntologyConstants.KnoraAdmin.Status).map(_.head.toBoolean)
             )
             // _ = log.debug(s"userDataQueryResponse - userDataV1: {}", MessageUtil.toSource(userDataV1)")
             FastFuture.successful(Some(userDataV1))
@@ -450,23 +447,23 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             // log.debug("userDataQueryResponse2UserProfileV1 - groupedUserData: {}", MessageUtil.toSource(groupedUserData))
 
             val userDataV1 = UserDataV1(
-                lang = groupedUserData.get(OntologyConstants.KnoraBase.PreferredLanguage) match {
+                lang = groupedUserData.get(OntologyConstants.KnoraAdmin.PreferredLanguage) match {
                     case Some(langList) => langList.head
                     case None => settings.fallbackLanguage
                 },
                 user_id = Some(returnedUserIri),
-                email = groupedUserData.get(OntologyConstants.KnoraBase.Email).map(_.head),
-                firstname = groupedUserData.get(OntologyConstants.KnoraBase.GivenName).map(_.head),
-                lastname = groupedUserData.get(OntologyConstants.KnoraBase.FamilyName).map(_.head),
-                password = groupedUserData.get(OntologyConstants.KnoraBase.Password).map(_.head),
-                status = groupedUserData.get(OntologyConstants.KnoraBase.Status).map(_.head.toBoolean)
+                email = groupedUserData.get(OntologyConstants.KnoraAdmin.Email).map(_.head),
+                firstname = groupedUserData.get(OntologyConstants.KnoraAdmin.GivenName).map(_.head),
+                lastname = groupedUserData.get(OntologyConstants.KnoraAdmin.FamilyName).map(_.head),
+                password = groupedUserData.get(OntologyConstants.KnoraAdmin.Password).map(_.head),
+                status = groupedUserData.get(OntologyConstants.KnoraAdmin.Status).map(_.head.toBoolean)
             )
 
             // log.debug("userDataQueryResponse2UserProfileV1 - userDataV1: {}", MessageUtil.toSource(userDataV1))
 
 
             /* the projects the user is member of */
-            val projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraBase.IsInProject) match {
+            val projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInProject) match {
                 case Some(projects) => projects
                 case None => Seq.empty[IRI]
             }
@@ -474,7 +471,7 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             // log.debug(s"userDataQueryResponse2UserProfileV1 - projectIris: ${MessageUtil.toSource(projectIris)}")
 
             /* the groups the user is member of (only explicit groups) */
-            val groupIris = groupedUserData.get(OntologyConstants.KnoraBase.IsInGroup) match {
+            val groupIris = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInGroup) match {
                 case Some(groups) => groups
                 case None => Seq.empty[IRI]
             }
@@ -482,10 +479,10 @@ class UsersResponderV1(responderData: ResponderData) extends Responder(responder
             // log.debug(s"userDataQueryResponse2UserProfileV1 - groupIris: ${MessageUtil.toSource(groupIris)}")
 
             /* the projects for which the user is implicitly considered a member of the 'http://www.knora.org/ontology/knora-base#ProjectAdmin' group */
-            val isInProjectAdminGroups = groupedUserData.getOrElse(OntologyConstants.KnoraBase.IsInProjectAdminGroup, Vector.empty[IRI])
+            val isInProjectAdminGroups = groupedUserData.getOrElse(OntologyConstants.KnoraAdmin.IsInProjectAdminGroup, Vector.empty[IRI])
 
             /* is the user implicitly considered a member of the 'http://www.knora.org/ontology/knora-base#SystemAdmin' group */
-            val isInSystemAdminGroup = groupedUserData.get(OntologyConstants.KnoraBase.IsInSystemAdminGroup).exists(p => p.head.toBoolean)
+            val isInSystemAdminGroup = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInSystemAdminGroup).exists(p => p.head.toBoolean)
 
             for {
                 /* get the user's permission profile from the permissions responder */

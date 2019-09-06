@@ -51,6 +51,14 @@ class SettingsImpl(config: Config) extends Extension {
     val externalKnoraApiHostPort: String = externalKnoraApiHost + (if (externalKnoraApiPort != 80) ":" + externalKnoraApiPort else "")
     val externalKnoraApiBaseUrl: String = externalKnoraApiProtocol + "://" + externalKnoraApiHost + (if (externalKnoraApiPort != 80) ":" + externalKnoraApiPort else "")
 
+    // If the external hostname is localhost, include the configured external port number in ontology IRIs for manual testing.
+    val externalOntologyIriHostAndPort: String = if (externalKnoraApiHost == "0.0.0.0" || externalKnoraApiHost == "localhost") {
+        externalKnoraApiHostPort
+    } else {
+        // Otherwise, don't include any port number in IRIs, so the IRIs will work both with http
+        // and with https.
+        externalKnoraApiHost
+    }
 
     val salsah1BaseUrl: String = config.getString("app.salsah1.base-url")
     val salsah1ProjectIconsBasePath: String = config.getString("app.salsah1.project-icons-basepath")
@@ -129,6 +137,7 @@ class SettingsImpl(config: Config) extends Extension {
     val dumpMessages: Boolean = config.getBoolean("app.dump-messages")
     val showInternalErrors: Boolean = config.getBoolean("app.show-internal-errors")
     val maxResultsPerSearchResultPage: Int = config.getInt("app.max-results-per-search-result-page")
+    val standoffPerPage: Int = config.getInt("app.standoff-per-page")
     val defaultIconSizeDimX: Int = config.getInt("app.gui.default-icon-size.dimX")
     val defaultIconSizeDimY: Int = config.getInt("app.gui.default-icon-size.dimY")
 
@@ -198,10 +207,9 @@ class SettingsImpl(config: Config) extends Extension {
         mType: ConfigValue => mType.unwrapped.toString
     }.toSeq
 
-    // monitoring reporters
-    val prometheusReporter: Boolean = config.getBoolean("app.monitoring.prometheus-reporter")
-    val zipkinReporter: Boolean = config.getBoolean("app.monitoring.zipkin-reporter")
-    val jaegerReporter: Boolean = config.getBoolean("app.monitoring.jaeger-reporter")
+    val allowReloadOverHTTP: Boolean = config.getBoolean("app.allow-reload-over-http")
+
+    val bcryptPasswordStrength: Int = config.getInt("app.bcrypt-password-strength")
 
     private def getFiniteDuration(path: String, underlying: Config): FiniteDuration = Duration(underlying.getString(path)) match {
         case x: FiniteDuration ⇒ x

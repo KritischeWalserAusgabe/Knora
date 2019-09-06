@@ -29,17 +29,25 @@
 
 <http://rdfh.ch/0666/wopH6GHOSpCyASdrsNqg_A/values/UKYA3eNMQK6OWmPjxVAbsA> a :LinkValue .
 
+<http://rdfh.ch/0666/wopH6GHOSpCyASdrsNqg_A/values/UKYA3eNMQK6OWmPjxVAbsA> :valueHasUUID "UKYA3eNMQK6OWmPjxVAbsA"^^xsd:string .
+
 <http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw> a gravsearchtest1:Person .
 
 <http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw/values/XktHkAazSZWzBA3x0sYFuQ> a :LinkValue .
+
+<http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw/values/XktHkAazSZWzBA3x0sYFuQ> :valueHasUUID "XktHkAazSZWzBA3x0sYFuQ"^^xsd:string .
 
 <http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg> a gravsearchtest1:BibliographicNotice .
 
 <http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg/values/m1bols-_R3OZQTe20pqBGw> a :LinkValue .
 
+<http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg/values/m1bols-_R3OZQTe20pqBGw> :valueHasUUID "m1bols-_R3OZQTe20pqBGw"^^xsd:string .
+
 <http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ> a gravsearchtest1:Relation .
 
 <http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ/values/yK5vML4_Sc6QcTPrdfD1kQ> a :LinkValue .
+
+<http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ/values/yK5vML4_Sc6QcTPrdfD1kQ> :valueHasUUID "yK5vML4_Sc6QcTPrdfD1kQ"^^xsd:string .
 
 <http://rdfh.ch/0666/tWf2vqMqQ_OcUMJSRj6e5w> rdfs:label "Project1" .
 
@@ -161,27 +169,27 @@
 
 <http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ/values/yK5vML4_Sc6QcTPrdfD1kQ> :valueHasString "http://rdfh.ch/0666/tWf2vqMqQ_OcUMJSRj6e5w" .
 
-<http://rdfh.ch/0666/tWf2vqMqQ_OcUMJSRj6e5w> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/tWf2vqMqQ_OcUMJSRj6e5w> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/1rK4ZevpT5eIxj48kgncsQ> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/1rK4ZevpT5eIxj48kgncsQ> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/NLe33EVtTKGozGJOqKT_2Q> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/NLe33EVtTKGozGJOqKT_2Q> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/wopH6GHOSpCyASdrsNqg_A> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/wopH6GHOSpCyASdrsNqg_A> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/wopH6GHOSpCyASdrsNqg_A/values/UKYA3eNMQK6OWmPjxVAbsA> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/wopH6GHOSpCyASdrsNqg_A/values/UKYA3eNMQK6OWmPjxVAbsA> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw/values/XktHkAazSZWzBA3x0sYFuQ> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/xY8O4uSeQb-MDC4VtvQGdw/values/XktHkAazSZWzBA3x0sYFuQ> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg/values/m1bols-_R3OZQTe20pqBGw> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/yjOFfSKPR_uiw8KoJu5mQg/values/m1bols-_R3OZQTe20pqBGw> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
-<http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ/values/yK5vML4_Sc6QcTPrdfD1kQ> :hasPermissions "CR knora-base:ProjectAdmin|M knora-base:ProjectMember|V knora-base:KnownUser,knora-base:UnknownUser" .
+<http://rdfh.ch/0666/tWxW7jM0S2uMYKifwF0mtQ/values/yK5vML4_Sc6QcTPrdfD1kQ> :hasPermissions "CR knora-admin:ProjectAdmin|M knora-admin:ProjectMember|V knora-admin:KnownUser,knora-admin:UnknownUser" .
 
 <http://rdfh.ch/0666/tWf2vqMqQ_OcUMJSRj6e5w> :attachedToUser <http://rdfh.ch/users/0666-test-user1> .
 

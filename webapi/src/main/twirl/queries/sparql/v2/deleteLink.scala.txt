@@ -31,6 +31,7 @@
  * @param linkUpdate a [[SparqlTemplateLinkUpdate]] specifying how to update the link.
  * @param maybeComment an optional comment explaining why the link is being deleted.
  * @param currentTime an xsd:dateTimeStamp that will be attached to the resources.
+ * @param requestingUser the IRI of the user making the request.
  *
  * To find out whether the update succeeded, the application must query the deleted link.
  *@
@@ -39,7 +40,8 @@
   linkSourceIri: IRI,
   linkUpdate: SparqlTemplateLinkUpdate,
   maybeComment: Option[String],
-  currentTime: Instant)
+  currentTime: Instant,
+  requestingUser: IRI)
 
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -62,6 +64,9 @@ DELETE {
         @* Detach the LinkValue from the link source. *@
         @if(linkUpdate.linkValueExists) {
             ?linkSource ?linkValueProperty ?currentLinkValue .
+
+            @* Delete the UUID from the current version of the link value, because the new version will store it. *@
+            ?currentLinkValue knora-base:valueHasUUID ?currentLinkUUID .
         } else {
             @{throw SparqlGenerationException(s"linkUpdate.linkValueExists must be true in this SPARQL template"); ()}
         }
@@ -78,10 +83,12 @@ INSERT {
             knora-base:valueHasRefCount @linkUpdate.newReferenceCount ;
             knora-base:valueCreationDate "@currentTime"^^xsd:dateTime ;
             knora-base:deleteDate "@currentTime"^^xsd:dateTime ;
+            knora-base:deletedBy <@requestingUser> ;
             knora-base:previousValue ?currentLinkValue ;
+            knora-base:valueHasUUID ?currentLinkUUID ;
             @maybeComment match {
                 case Some(comment) => {
-                    knora-base:valueHasComment """@comment""" ;
+                    knora-base:deleteComment """@comment""" ;
                 }
 
                 case None => {}
@@ -141,7 +148,8 @@ WHERE {
             rdf:predicate ?linkProperty ;
             rdf:object ?linkTarget ;
             knora-base:valueHasRefCount @linkUpdate.currentReferenceCount ;
-            knora-base:isDeleted false .
+            knora-base:isDeleted false ;
+            knora-base:valueHasUUID ?currentLinkUUID .
     } else {
         @{throw SparqlGenerationException(s"linkUpdate.linkValueExists must be true in this SPARQL template"); ()}
     }

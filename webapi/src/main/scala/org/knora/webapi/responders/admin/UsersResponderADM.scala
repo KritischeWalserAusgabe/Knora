@@ -34,8 +34,8 @@ import org.knora.webapi.messages.store.triplestoremessages._
 import org.knora.webapi.messages.v1.responder.usermessages._
 import org.knora.webapi.responders.Responder.handleUnexpectedMessage
 import org.knora.webapi.responders.{IriLocker, Responder, ResponderData}
-import org.knora.webapi.util.{CacheUtil, KnoraIdUtil}
-import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder
+import org.knora.webapi.util.CacheUtil
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 
 import scala.concurrent.Future
 
@@ -43,9 +43,6 @@ import scala.concurrent.Future
   * Provides information about Knora users to other responders.
   */
 class UsersResponderADM(responderData: ResponderData) extends Responder(responderData) {
-
-    // Creates IRIs for new Knora user objects.
-    private val knoraIdUtil = new KnoraIdUtil
 
     // The IRI used to lock user creation and update
     private val USERS_GLOBAL_LOCK_IRI = "http://rdfh.ch/users"
@@ -114,12 +111,12 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
 
                     UserADM(
                         id = userIri.toString,
-                        username = propsMap.getOrElse(OntologyConstants.KnoraBase.Username, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'username' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                        email = propsMap.getOrElse(OntologyConstants.KnoraBase.Email, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'email' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                        givenName = propsMap.getOrElse(OntologyConstants.KnoraBase.GivenName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'givenName' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                        familyName = propsMap.getOrElse(OntologyConstants.KnoraBase.FamilyName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'familyName' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                        status = propsMap.getOrElse(OntologyConstants.KnoraBase.Status, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'status' defined.")).head.asInstanceOf[BooleanLiteralV2].value,
-                        lang = propsMap.getOrElse(OntologyConstants.KnoraBase.PreferredLanguage, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'preferedLanguage' defined.")).head.asInstanceOf[StringLiteralV2].value)
+                        username = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Username, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'username' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                        email = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Email, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'email' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                        givenName = propsMap.getOrElse(OntologyConstants.KnoraAdmin.GivenName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'givenName' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                        familyName = propsMap.getOrElse(OntologyConstants.KnoraAdmin.FamilyName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'familyName' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                        status = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Status, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'status' defined.")).head.asInstanceOf[BooleanLiteralV2].value,
+                        lang = propsMap.getOrElse(OntologyConstants.KnoraAdmin.PreferredLanguage, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'preferedLanguage' defined.")).head.asInstanceOf[StringLiteralV2].value)
             }
 
         } yield users.sorted
@@ -156,56 +153,60 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
     private def userGetADM(identifier: UserIdentifierADM, userInformationType: UserInformationTypeADM, requestingUser: UserADM): Future[Option[UserADM]] = {
         log.debug(s"userGetADM: identifier: {}, userInformationType: {}, requestingUser: {}", identifier, userInformationType, requestingUser)
 
-        for {
-            _ <- Future(
-                if (!requestingUser.permissions.isSystemAdmin && !requestingUser.isSelf(identifier) && !requestingUser.isSystemUser) {
-                    throw ForbiddenException("Operation not allowed.")
-                }
-            )
+        val maybeUserFromCache = identifier.hasType match {
+            case UserIdentifierType.IRI => CacheUtil.get[UserADM](USER_ADM_CACHE_NAME, identifier.toIri)
+            case UserIdentifierType.EMAIL => CacheUtil.get[UserADM](USER_ADM_CACHE_NAME, identifier.value)
+            case UserIdentifierType.USERNAME => CacheUtil.get[UserADM](USER_ADM_CACHE_NAME, identifier.value)
+        }
 
-            maybeUserFromCache = identifier.hasType match {
-                case UserIdentifierType.IRI => CacheUtil.get[UserADM](USER_ADM_CACHE_NAME, identifier.toIri)
-                case UserIdentifierType.EMAIL => CacheUtil.get[UserADM](USER_ADM_CACHE_NAME, identifier.value)
-                case UserIdentifierType.USERNAME => CacheUtil.get[UserADM](USER_ADM_CACHE_NAME, identifier.value)
-            }
+        val maybeUserADM: Future[Option[UserADM]] = maybeUserFromCache match {
+            case Some(user) =>
+                // found a user profile in the cache
+                log.debug("userGetADM - cache hit for: {}", identifier.value)
+                FastFuture.successful(Some(user.ofType(userInformationType)))
 
-            maybeUserADM: Future[Option[UserADM]] = maybeUserFromCache match {
-                case Some(user) =>
-                    // found a user profile in the cache
-                    log.debug("userGetADM - cache hit for: {}", identifier.value)
-                    FastFuture.successful(Some(user.ofType(userInformationType)))
+            case None =>
+                // didn't find a user profile in the cache
+                log.debug("userGetADM - no cache hit for: {}", identifier.value)
+                for {
+                    sparqlQueryString <- Future(queries.sparql.admin.txt.getUsers(
+                        triplestore = settings.triplestoreType,
+                        maybeIri = identifier.toIriOption,
+                        maybeUsername = identifier.toUsernameOption,
+                        maybeEmail = identifier.toEmailOption
+                    ).toString())
 
-                case None =>
-                    // didn't find a user profile in the cache
-                    log.debug("userGetADM - no cache hit for: {}", identifier.value)
-                    for {
-                        sparqlQueryString <- Future(queries.sparql.admin.txt.getUsers(
-                            triplestore = settings.triplestoreType,
-                            maybeIri = identifier.toIriOption,
-                            maybeUsername = identifier.toUsernameOption,
-                            maybeEmail = identifier.toEmailOption
-                        ).toString())
+                    userQueryResponse <- (storeManager ? SparqlExtendedConstructRequest(sparqlQueryString)).mapTo[SparqlExtendedConstructResponse]
 
-                        userQueryResponse <- (storeManager ? SparqlExtendedConstructRequest(sparqlQueryString)).mapTo[SparqlExtendedConstructResponse]
+                    maybeUserADM: Option[UserADM] <- if (userQueryResponse.statements.nonEmpty) {
+                        statements2UserADM(userQueryResponse.statements.head, requestingUser)
+                    } else {
+                        FastFuture.successful(None)
+                    }
 
-                        maybeUserADM: Option[UserADM] <- if (userQueryResponse.statements.nonEmpty) {
-                            statements2UserADM(userQueryResponse.statements.head, requestingUser)
-                        } else {
-                            FastFuture.successful(None)
-                        }
+                    _ = if (maybeUserADM.nonEmpty) {
+                        writeUserADMToCache(maybeUserADM.get)
+                    }
 
-                        _ = if (maybeUserADM.nonEmpty) {
-                            writeUserADMToCache(maybeUserADM.get)
-                        }
+                    result = maybeUserADM.map(_.ofType(userInformationType))
 
-                        result = maybeUserADM.map(_.ofType(userInformationType))
+                } yield result
+        }
 
-                    } yield result
-            }
+        // return the correct amount of information depending on user permissions
+        val res: Future[Option[UserADM]] = if (requestingUser.permissions.isSystemAdmin || requestingUser.isSelf(identifier) || requestingUser.isSystemUser) {
+            // return everything or what was requested
+            maybeUserADM
+        } else {
+            // all others should only see public information
+            for {
+                user <- maybeUserADM
+                result = user.map(_.ofType(UserInformationTypeADM.PUBLIC))
+            } yield result
+        }
 
-            // _ = log.debug("userGetADM - user: {}", MessageUtil.toSource(user))
-            result <- maybeUserADM
-        } yield result
+        // _ = log.debug("userGetADM - user: {}", res)
+        res
     }
 
     /**
@@ -265,9 +266,9 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
 
             usernameTaken: Boolean <- userByUsernameExists(createRequest.username)
 
-            userIri = knoraIdUtil.makeRandomPersonIri
+            userIri = stringFormatter.makeRandomPersonIri
 
-            encoder = new SCryptPasswordEncoder
+            encoder = new BCryptPasswordEncoder(settings.bcryptPasswordStrength)
             hashedPassword = encoder.encode(createRequest.password)
 
             // Create the new user.
@@ -275,7 +276,7 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
                 adminNamedGraphIri = OntologyConstants.NamedGraphs.AdminNamedGraph,
                 triplestore = settings.triplestoreType,
                 userIri = userIri,
-                userClassIri = OntologyConstants.KnoraBase.User,
+                userClassIri = OntologyConstants.KnoraAdmin.User,
                 username = createRequest.username,
                 email = createRequest.email,
                 password = hashedPassword,
@@ -285,7 +286,7 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
                 preferredLanguage = createRequest.lang,
                 systemAdmin = createRequest.systemAdmin
             ).toString
-            //_ = log.debug(s"createNewUser: $createNewUserSparqlString")
+            // _ = log.debug(s"createNewUser: $createNewUserSparqlString")
             createResourceResponse <- (storeManager ? SparqlUpdateRequest(createNewUserSparqlString)).mapTo[SparqlUpdateResponse]
 
 
@@ -426,7 +427,7 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
             }
 
             // create the update request
-            encoder = new SCryptPasswordEncoder
+            encoder = new BCryptPasswordEncoder(settings.bcryptPasswordStrength)
             newHashedPassword = encoder.encode(changeUserRequest.newPassword.get)
             userUpdatePayload = UserUpdatePayloadADM(password = Some(newHashedPassword))
 
@@ -756,7 +757,7 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
             }
 
             /* the projects the user is member of */
-            projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraBase.IsInProjectAdminGroup) match {
+            projectIris: Seq[IRI] = groupedUserData.get(OntologyConstants.KnoraAdmin.IsInProjectAdminGroup) match {
                 case Some(projects) => projects
                 case None => Seq.empty[IRI]
             }
@@ -1243,18 +1244,18 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
             // _ = log.debug(s"userDataQueryResponse2UserProfile - groupedUserData: ${MessageUtil.toSource(groupedUserData)}")
 
             val userDataV1 = UserDataV1(
-                lang = groupedUserData.get(OntologyConstants.KnoraBase.PreferredLanguage) match {
+                lang = groupedUserData.get(OntologyConstants.KnoraAdmin.PreferredLanguage) match {
                     case Some(langList) => langList.head
                     case None => settings.fallbackLanguage
                 },
                 user_id = Some(returnedUserIri),
-                email = groupedUserData.get(OntologyConstants.KnoraBase.Email).map(_.head),
-                firstname = groupedUserData.get(OntologyConstants.KnoraBase.GivenName).map(_.head),
-                lastname = groupedUserData.get(OntologyConstants.KnoraBase.FamilyName).map(_.head),
+                email = groupedUserData.get(OntologyConstants.KnoraAdmin.Email).map(_.head),
+                firstname = groupedUserData.get(OntologyConstants.KnoraAdmin.GivenName).map(_.head),
+                lastname = groupedUserData.get(OntologyConstants.KnoraAdmin.FamilyName).map(_.head),
                 password = if (!short) {
-                    groupedUserData.get(OntologyConstants.KnoraBase.Password).map(_.head)
+                    groupedUserData.get(OntologyConstants.KnoraAdmin.Password).map(_.head)
                 } else None,
-                status = groupedUserData.get(OntologyConstants.KnoraBase.Status).map(_.head.toBoolean)
+                status = groupedUserData.get(OntologyConstants.KnoraAdmin.Status).map(_.head.toBoolean)
             )
             // _ = log.debug(s"userDataQueryResponse - userDataV1: {}", MessageUtil.toSource(userDataV1)")
             FastFuture.successful(Some(userDataV1))
@@ -1281,7 +1282,7 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
         if (propsMap.nonEmpty) {
 
             /* the groups the user is member of (only explicit groups) */
-            val groupIris: Seq[IRI] = propsMap.get(OntologyConstants.KnoraBase.IsInGroup) match {
+            val groupIris: Seq[IRI] = propsMap.get(OntologyConstants.KnoraAdmin.IsInGroup) match {
                 case Some(groups) => groups.map(_.asInstanceOf[IriLiteralV2].value)
                 case None => Seq.empty[IRI]
             }
@@ -1289,7 +1290,7 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
             // log.debug(s"statements2UserADM - groupIris: {}", MessageUtil.toSource(groupIris))
 
             /* the projects the user is member of (only explicit projects) */
-            val projectIris: Seq[IRI] = propsMap.get(OntologyConstants.KnoraBase.IsInProject) match {
+            val projectIris: Seq[IRI] = propsMap.get(OntologyConstants.KnoraAdmin.IsInProject) match {
                 case Some(projects) => projects.map(_.asInstanceOf[IriLiteralV2].value)
                 case None => Seq.empty[IRI]
             }
@@ -1297,10 +1298,10 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
             // log.debug(s"statements2UserADM - projectIris: {}", MessageUtil.toSource(projectIris))
 
             /* the projects for which the user is implicitly considered a member of the 'http://www.knora.org/ontology/knora-base#ProjectAdmin' group */
-            val isInProjectAdminGroups: Seq[IRI] = propsMap.getOrElse(OntologyConstants.KnoraBase.IsInProjectAdminGroup, Vector.empty[IRI]).map(_.asInstanceOf[IriLiteralV2].value)
+            val isInProjectAdminGroups: Seq[IRI] = propsMap.getOrElse(OntologyConstants.KnoraAdmin.IsInProjectAdminGroup, Vector.empty[IRI]).map(_.asInstanceOf[IriLiteralV2].value)
 
             /* is the user implicitly considered a member of the 'http://www.knora.org/ontology/knora-base#SystemAdmin' group */
-            val isInSystemAdminGroup = propsMap.get(OntologyConstants.KnoraBase.IsInSystemAdminGroup).exists(p => p.head.asInstanceOf[BooleanLiteralV2].value)
+            val isInSystemAdminGroup = propsMap.get(OntologyConstants.KnoraAdmin.IsInSystemAdminGroup).exists(p => p.head.asInstanceOf[BooleanLiteralV2].value)
 
             for {
                 /* get the user's permission profile from the permissions responder */
@@ -1330,14 +1331,14 @@ class UsersResponderADM(responderData: ResponderData) extends Responder(responde
                 /* construct the user profile from the different parts */
                 user = UserADM(
                     id = userIri,
-                    username = propsMap.getOrElse(OntologyConstants.KnoraBase.Username, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'username' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                    email = propsMap.getOrElse(OntologyConstants.KnoraBase.Email, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'email' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                    password = propsMap.get(OntologyConstants.KnoraBase.Password).map(_.head.asInstanceOf[StringLiteralV2].value),
+                    username = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Username, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'username' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                    email = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Email, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'email' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                    password = propsMap.get(OntologyConstants.KnoraAdmin.Password).map(_.head.asInstanceOf[StringLiteralV2].value),
                     token = None,
-                    givenName = propsMap.getOrElse(OntologyConstants.KnoraBase.GivenName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'givenName' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                    familyName = propsMap.getOrElse(OntologyConstants.KnoraBase.FamilyName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'familyName' defined.")).head.asInstanceOf[StringLiteralV2].value,
-                    status = propsMap.getOrElse(OntologyConstants.KnoraBase.Status, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'status' defined.")).head.asInstanceOf[BooleanLiteralV2].value,
-                    lang = propsMap.getOrElse(OntologyConstants.KnoraBase.PreferredLanguage, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'preferredLanguage' defined.")).head.asInstanceOf[StringLiteralV2].value, groups = groups, projects = projects,
+                    givenName = propsMap.getOrElse(OntologyConstants.KnoraAdmin.GivenName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'givenName' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                    familyName = propsMap.getOrElse(OntologyConstants.KnoraAdmin.FamilyName, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'familyName' defined.")).head.asInstanceOf[StringLiteralV2].value,
+                    status = propsMap.getOrElse(OntologyConstants.KnoraAdmin.Status, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'status' defined.")).head.asInstanceOf[BooleanLiteralV2].value,
+                    lang = propsMap.getOrElse(OntologyConstants.KnoraAdmin.PreferredLanguage, throw InconsistentTriplestoreDataException(s"User: $userIri has no 'preferredLanguage' defined.")).head.asInstanceOf[StringLiteralV2].value, groups = groups, projects = projects,
                     sessionId = None,
                     permissions = permissionData
                 )

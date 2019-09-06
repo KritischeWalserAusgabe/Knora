@@ -129,7 +129,7 @@ class ValuesV2R2RSpec extends R2RSpec {
     }
 
     "The values v2 endpoint" should {
-        "create a still image file value using a mock Sipi" in {
+        "update a still image file value using a mock Sipi" in {
             val resourceIri: IRI = aThingPictureIri
 
             val internalFilename ="IQUO3t1AABm-FSLC0vNvVpr.jp2"
@@ -139,6 +139,7 @@ class ValuesV2R2RSpec extends R2RSpec {
                    |  "@id" : "$resourceIri",
                    |  "@type" : "anything:ThingPicture",
                    |  "knora-api:hasStillImageFileValue" : {
+                   |    "@id" : "http://rdfh.ch/0001/a-thing-picture/values/file1",
                    |    "@type" : "knora-api:StillImageFileValue",
                    |    "knora-api:fileValueHasFilename" : "$internalFilename"
                    |  },
@@ -148,25 +149,25 @@ class ValuesV2R2RSpec extends R2RSpec {
                    |  }
                    |}""".stripMargin
 
-            Post("/v2/values", HttpEntity(RdfMediaTypes.`application/ld+json`, jsonLdEntity)) ~> addCredentials(BasicHttpCredentials(anythingUserEmail, password)) ~> valuesPath ~> check {
+            Put("/v2/values", HttpEntity(RdfMediaTypes.`application/ld+json`, jsonLdEntity)) ~> addCredentials(BasicHttpCredentials(anythingUserEmail, password)) ~> valuesPath ~> check {
                 assert(status == StatusCodes.OK, response.toString)
                 val responseJsonDoc = responseToJsonLDDocument(response)
                 val valueIri: IRI = responseJsonDoc.body.requireStringWithValidation(JsonLDConstants.ID, stringFormatter.validateAndEscapeIri)
                 stillImageFileValueIri.set(valueIri)
                 val valueType: SmartIri = responseJsonDoc.body.requireStringWithValidation(JsonLDConstants.TYPE, stringFormatter.toSmartIriWithErr)
-                valueType should ===(OntologyConstants.KnoraApiV2WithValueObjects.StillImageFileValue.toSmartIri)
+                valueType should ===(OntologyConstants.KnoraApiV2Complex.StillImageFileValue.toSmartIri)
 
                 val savedValue: JsonLDObject = getValue(
                     resourceIri = resourceIri,
-                    propertyIriForGravsearch = OntologyConstants.KnoraApiV2WithValueObjects.HasStillImageFileValue.toSmartIri,
-                    propertyIriInResult = OntologyConstants.KnoraApiV2WithValueObjects.HasStillImageFileValue.toSmartIri,
+                    propertyIriForGravsearch = OntologyConstants.KnoraApiV2Complex.HasStillImageFileValue.toSmartIri,
+                    propertyIriInResult = OntologyConstants.KnoraApiV2Complex.HasStillImageFileValue.toSmartIri,
                     expectedValueIri = stillImageFileValueIri.get,
                     userEmail = anythingUserEmail
                 )
 
-                savedValue.requireString(OntologyConstants.KnoraApiV2WithValueObjects.FileValueHasFilename) should ===(internalFilename)
-                savedValue.requireInt(OntologyConstants.KnoraApiV2WithValueObjects.StillImageFileValueHasDimX) should ===(512)
-                savedValue.requireInt(OntologyConstants.KnoraApiV2WithValueObjects.StillImageFileValueHasDimY) should ===(256)
+                savedValue.requireString(OntologyConstants.KnoraApiV2Complex.FileValueHasFilename) should ===(internalFilename)
+                savedValue.requireInt(OntologyConstants.KnoraApiV2Complex.StillImageFileValueHasDimX) should ===(512)
+                savedValue.requireInt(OntologyConstants.KnoraApiV2Complex.StillImageFileValueHasDimY) should ===(256)
             }
         }
     }

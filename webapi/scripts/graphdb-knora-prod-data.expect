@@ -6,9 +6,9 @@ set prompt "> "
 expect $prompt
 send "open knora-prod .\r"
 expect $prompt
-send "load ../../knora-ontologies/knora-base.ttl into http://www.knora.org/ontology/knora-base .\r"
+send "load ../../knora-ontologies/knora-admin.ttl into http://www.knora.org/ontology/knora-admin .\r"
 expect $prompt
-send "load ../../knora-ontologies/knora-admin.ttl into http://www.knora.org/ontology/knora-base .\r"
+send "load ../../knora-ontologies/knora-base.ttl into http://www.knora.org/ontology/knora-base .\r"
 expect $prompt
 send "load ../../knora-ontologies/standoff-onto.ttl into http://www.knora.org/ontology/standoff .\r"
 expect $prompt
@@ -41,6 +41,8 @@ expect $prompt
 send "load ../_test_data/ontologies/biblio-onto.ttl into http://www.knora.org/ontology/0801/biblio .\r"
 expect $prompt
 send "load ../_test_data/ontologies/newton-onto.ttl into http://www.knora.org/ontology/0801/newton .\r"
+expect $prompt
+send "load ../_test_data/ontologies/leibniz-onto.ttl into http://www.knora.org/ontology/0801/leibniz .\r"
 expect $prompt
 send "load ../_test_data/all_data/biblio-data.ttl into http://www.knora.org/data/0801/biblio .\r"
 expect $prompt

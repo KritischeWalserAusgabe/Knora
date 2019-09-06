@@ -18,6 +18,7 @@
  *@
 
 @import java.time.Instant
+@import java.util.UUID
 @import org.knora.webapi._
 @import org.knora.webapi.util._
 @import org.knora.webapi.twirl.SparqlTemplateLinkUpdate
@@ -34,6 +35,8 @@
  * @param linkUpdates a list of [[SparqlTemplateLinkUpdate]] objects describing LinkValues that need to be
  *        updated for resource references in standoff markup.
  * @param currentTime an xsd:dateTimeStamp that will be attached to the resources.
+ * @param requestingUser the IRI of the user making the request.
+ * @param stringFormatter a [[StringFormatter]].
  *@
 @(dataNamedGraph: IRI,
   triplestore: String,
@@ -42,7 +45,9 @@
   valueIri: IRI,
   maybeDeleteComment: Option[String],
   linkUpdates: Seq[SparqlTemplateLinkUpdate],
-  currentTime: Instant)
+  currentTime: Instant,
+  requestingUser: IRI,
+  stringFormatter: StringFormatter)
 
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -67,6 +72,9 @@ DELETE {
             @* If any LinkValues need to be updated, detach them from the resource. *@
             @if(linkUpdate.linkValueExists) {
                 ?resource <@{linkUpdate.linkPropertyIri}Value> ?linkValue@linkValueIndex .
+
+                @* Delete the UUID from the current version of the link value, because the new version will store it. *@
+                ?linkValue@linkValueIndex knora-base:valueHasUUID ?linkValueUUID@linkValueIndex .
             }
         }
     }
@@ -74,6 +82,7 @@ DELETE {
     GRAPH ?dataNamedGraph {
         @* Mark the value as deleted. *@
         ?value knora-base:isDeleted true ;
+            knora-base:deletedBy <@requestingUser> ;
             knora-base:deleteDate "@currentTime"^^xsd:dateTime .
 
         @* Add the delete comment, if any. *@
@@ -104,6 +113,7 @@ DELETE {
                 knora-base:valueHasRefCount @linkUpdate.newReferenceCount ;
                 @if(linkUpdate.newReferenceCount == 0) {
                     knora-base:isDeleted true ;
+                    knora-base:deletedBy <@linkUpdate.newLinkValueCreator> ;
                     knora-base:deleteDate "@currentTime"^^xsd:dateTime ;
                 } else {
                     knora-base:isDeleted false ;
@@ -113,9 +123,17 @@ DELETE {
             <@linkUpdate.newLinkValueIri> knora-base:attachedToUser <@linkUpdate.newLinkValueCreator> ;
                 knora-base:hasPermissions "@linkUpdate.newLinkValuePermissions" .
 
-            @* If we're inserting a new version of an existing LinkValue, attach it to the previous version. *@
+            @*
+
+               If we're inserting a new version of an existing LinkValue, attach it to the previous version,
+               and use the previous version's UUID. Otherwise, make a random UUID.
+
+            *@
             @if(linkUpdate.linkValueExists) {
-                <@linkUpdate.newLinkValueIri> knora-base:previousValue ?linkValue@linkValueIndex .
+                <@linkUpdate.newLinkValueIri> knora-base:previousValue ?linkValue@linkValueIndex ;
+                    knora-base:valueHasUUID ?linkValueUUID@linkValueIndex .
+            } else {
+                <@linkUpdate.newLinkValueIri> knora-base:valueHasUUID "@{stringFormatter.base64EncodeUuid(UUID.randomUUID)}" .
             }
 
             @* Attach the new LinkValue to its containing resource. *@
@@ -172,7 +190,8 @@ WHERE {
                 rdf:predicate <@linkUpdate.linkPropertyIri> ;
                 rdf:object <@linkUpdate.linkTargetIri> ;
                 knora-base:valueHasRefCount @linkUpdate.currentReferenceCount ;
-                knora-base:isDeleted false .
+                knora-base:isDeleted false ;
+                knora-base:valueHasUUID ?linkValueUUID@linkValueIndex .
         } else {
             @{throw SparqlGenerationException(s"linkUpdate.linkValueExists must be true in this SPARQL template"); ()}
         }

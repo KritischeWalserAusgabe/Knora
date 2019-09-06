@@ -34,7 +34,7 @@ object SharedTestDataV1 {
     /** System Admin Data                **/
     /** ***********************************/
 
-    val SYSTEM_PROJECT_IRI: IRI = OntologyConstants.KnoraBase.SystemProject // built-in project
+    val SYSTEM_PROJECT_IRI: IRI = OntologyConstants.KnoraAdmin.SystemProject // built-in project
 
     /* represents the user profile of 'root' as found in admin-data.ttl */
     def rootUser: UserProfileV1 = SharedTestDataADM.rootUser.asUserProfileV1
@@ -59,7 +59,7 @@ object SharedTestDataV1 {
             firstname = Some("Multi"),
             lastname = Some("User"),
             email = Some("multi.user@example.com"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -69,8 +69,8 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraBase.ProjectMember}", s"${OntologyConstants.KnoraBase.ProjectAdmin}"),
-                IMAGES_PROJECT_IRI -> List("http://rdfh.ch/groups/00FF/images-reviewer", s"${OntologyConstants.KnoraBase.ProjectMember}", s"${OntologyConstants.KnoraBase.ProjectAdmin}")
+                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraAdmin.ProjectMember}", s"${OntologyConstants.KnoraAdmin.ProjectAdmin}"),
+                IMAGES_PROJECT_IRI -> List("http://rdfh.ch/groups/00FF/images-reviewer", s"${OntologyConstants.KnoraAdmin.ProjectMember}", s"${OntologyConstants.KnoraAdmin.ProjectAdmin}")
             ),
             administrativePermissionsPerProject = Map(
                 INCUNABULA_PROJECT_IRI -> Set(
@@ -103,7 +103,7 @@ object SharedTestDataV1 {
             firstname = Some("User01"),
             lastname = Some("User"),
             email = Some("user01.user1@example.com"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -113,7 +113,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                IMAGES_PROJECT_IRI -> List(OntologyConstants.KnoraBase.ProjectMember, OntologyConstants.KnoraBase.ProjectAdmin)
+                IMAGES_PROJECT_IRI -> List(OntologyConstants.KnoraAdmin.ProjectMember, OntologyConstants.KnoraAdmin.ProjectAdmin)
             ),
             administrativePermissionsPerProject = Map(
                 IMAGES_PROJECT_IRI -> Set(
@@ -131,7 +131,7 @@ object SharedTestDataV1 {
             firstname = Some("User02"),
             lastname = Some("User"),
             email = Some("user02.user@example.com"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -141,7 +141,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                IMAGES_PROJECT_IRI -> List(OntologyConstants.KnoraBase.ProjectMember)
+                IMAGES_PROJECT_IRI -> List(OntologyConstants.KnoraAdmin.ProjectMember)
             ),
             administrativePermissionsPerProject = Map(
                 IMAGES_PROJECT_IRI -> Set(
@@ -168,7 +168,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                IMAGES_PROJECT_IRI -> List("http://rdfh.ch/groups/00FF/images-reviewer", s"${OntologyConstants.KnoraBase.ProjectMember}")
+                IMAGES_PROJECT_IRI -> List("http://rdfh.ch/groups/00FF/images-reviewer", s"${OntologyConstants.KnoraAdmin.ProjectMember}")
             ),
             administrativePermissionsPerProject = Map(
                 IMAGES_PROJECT_IRI -> Set(
@@ -208,7 +208,7 @@ object SharedTestDataV1 {
             firstname = Some("User"),
             lastname = Some("Test"),
             email = Some("user.test@example.com"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -218,7 +218,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraBase.ProjectMember}", s"${OntologyConstants.KnoraBase.ProjectAdmin}")
+                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraAdmin.ProjectMember}", s"${OntologyConstants.KnoraAdmin.ProjectAdmin}")
             ),
             administrativePermissionsPerProject = Map(
                 INCUNABULA_PROJECT_IRI -> Set(
@@ -236,7 +236,7 @@ object SharedTestDataV1 {
             firstname = Some("Administrator-alt"),
             lastname = Some("Admin-alt"),
             email = Some("root-alt@example.com"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -246,7 +246,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraBase.ProjectMember}")
+                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraAdmin.ProjectMember}")
             ),
             administrativePermissionsPerProject = Map(
                 INCUNABULA_PROJECT_IRI -> Set(
@@ -263,7 +263,7 @@ object SharedTestDataV1 {
             firstname = Some("User"),
             lastname = Some("Test2"),
             email = Some("test.user2@test.ch"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -273,7 +273,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraBase.ProjectMember}")
+                INCUNABULA_PROJECT_IRI -> List(s"${OntologyConstants.KnoraAdmin.ProjectMember}")
             ),
             administrativePermissionsPerProject = Map(
                 INCUNABULA_PROJECT_IRI -> Set(
@@ -310,7 +310,7 @@ object SharedTestDataV1 {
             firstname = Some("Anything"),
             lastname = Some("Admin"),
             email = Some("anything.admin@example.org"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -320,7 +320,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                ANYTHING_PROJECT_IRI -> List(OntologyConstants.KnoraBase.ProjectMember, OntologyConstants.KnoraBase.ProjectAdmin)
+                ANYTHING_PROJECT_IRI -> List(OntologyConstants.KnoraAdmin.ProjectMember, OntologyConstants.KnoraAdmin.ProjectAdmin)
             ),
             administrativePermissionsPerProject = Map(
                 ANYTHING_PROJECT_IRI -> Set(
@@ -337,7 +337,7 @@ object SharedTestDataV1 {
             firstname = Some("Anything"),
             lastname = Some("User01"),
             email = Some("anything.user01@example.org"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -347,7 +347,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                ANYTHING_PROJECT_IRI -> List(OntologyConstants.KnoraBase.ProjectMember)
+                ANYTHING_PROJECT_IRI -> List(OntologyConstants.KnoraAdmin.ProjectMember)
             ),
             administrativePermissionsPerProject = Map(
                 ANYTHING_PROJECT_IRI -> Set(
@@ -363,7 +363,7 @@ object SharedTestDataV1 {
             firstname = Some("Anything"),
             lastname = Some("User02"),
             email = Some("anything.user02@example.org"),
-            password = Some("$e0801$FGl9FDIWw+D83OeNPGmD9u2VTqIkJopIQECgmb2DSWQLS0TeKSvYoWAkbEv6KxePPlCI3CP9MmVHuvnWv8/kag==$mlegCYdGXt+ghuo8i0rLjgOiNnGDW604Q5g/v7zwBPU="), // -> "test"
+            password = Some("$2a$12$7XEBehimXN1rbhmVgQsyve08.vtDmKK7VMin4AdgCEtE4DWgfQbTK"), // -> "test"
             token = None,
             status = Some(true),
             lang = "de"
@@ -373,7 +373,7 @@ object SharedTestDataV1 {
         sessionId = None,
         permissionData = PermissionsDataADM(
             groupsPerProject = Map(
-                ANYTHING_PROJECT_IRI -> List(OntologyConstants.KnoraBase.ProjectMember)
+                ANYTHING_PROJECT_IRI -> List(OntologyConstants.KnoraAdmin.ProjectMember)
             ),
             administrativePermissionsPerProject = Map(
                 ANYTHING_PROJECT_IRI -> Set(

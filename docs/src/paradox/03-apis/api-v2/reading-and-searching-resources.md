@@ -54,16 +54,134 @@ JSON-LD specification).
 In the complex schema, dependent resources, i.e. resources that are referred
 to by other resources on the top level, are nested in link value objects.
 If resources on the top level are referred to by other resources and 
-these links are part of the response, virtual incoming links are generated,
-see @ref:[Gravsearch: Virtual Graph Search](query-language.md)) 
+these links are part of the response, virtual incoming links are generated;
+see @ref:[Gravsearch: Virtual Graph Search](query-language.md)).
 
 See the interfaces `Resource` and `ResourcesSequence` in module
 `ResourcesResponse` (exists for both API schemas: `ApiV2Simple` and
 `ApiV2WithValueObjects`).
 
-## Get the Representation of a Resource by its IRI
+### Text Markup Options
 
-### Get a Full Representation of a Resource by its IRI
+Text markup can be returned in one of two ways:
+
+- As XML embedded in the response, using an @ref:[XML to Standoff Mapping](xml-to-standoff-mapping.md).
+
+- As @ref:[standoff/RDF](../../02-knora-ontologies/knora-base.md#text-with-standoff-markup),
+  which is Knora's internal markup representation.
+
+Embedded XML is the default.
+
+Implementation of support for standoff/RDF in API v2 is in its early stages. The basic
+procedure works like this:
+
+First, request a resource in the @ref:[complex schema](introduction.md#api-schema), using any relevant
+API v2 route, submitting the string `standoff` as the value of either:
+
+  - the HTTP header `X-Knora-Accept-Markup`
+
+  - the URL parameter `markup`
+
+If a text value in the resource contains markup, the text value will look something like this:
+
+```jsonld
+{
+  "@id" : "http://rdfh.ch/0001/LK-wKXDNQJaRHOf0F0aJ2g/values/1Er1OpVwQR2u6peTwyNpJw",
+  "@type" : "knora-api:TextValue",
+  "knora-api:attachedToUser" : {
+    "@id" : "http://rdfh.ch/users/9XBCrDV3SRa7kS1WwynB4Q"
+  },
+  "knora-api:hasPermissions" : "CR knora-admin:Creator|V knora-admin:UnknownUser",
+  "knora-api:textValueHasMarkup" : true,
+  "knora-api:textValueHasMaxStandoffStartIndex" : 6737,
+  "knora-api:userHasPermission" : "CR",
+  "knora-api:valueAsString" : "\nHamlet\nACT I\nSCENE I. Elsinore. A platform before the castle...",
+  "knora-api:valueCreationDate" : {
+    "@type" : "xsd:dateTimeStamp",
+    "@value" : "2019-05-08T17:08:32.158401Z"
+  }
+}
+```
+
+The object `knora-api:valueAsString` contains the text without markup. The predicate
+`knora-api:textValueHasMarkup` indicates that the text value has markup,
+and the value of the predicate `knora-api:textValueHasMaxStandoffStartIndex` gives the start
+index of the last standoff tag; this gives the client some idea of how much markup there is.
+
+You can then request the text value's standoff/RDF, which is returned in pages of a limited
+size. To get each page:
+
+```
+HTTP GET to http://host/v2/standoff/RESOURCE_IRI/TEXT_VALUE_IRI/OFFSET
+```
+
+Both `RESOURCE_IRI` and `TEXT_VALUE_IRI` must be URL-encoded. The offset is an integer whose
+initial value is 0. The response will look like this:
+
+```jsonld
+{
+  "@graph" : [ {
+    "@type" : "http://api.knora.org/ontology/standoff/v2#StandoffRootTag",
+    "knora-api:standoffTagHasEnd" : 184716,
+    "knora-api:standoffTagHasStart" : 0,
+    "knora-api:standoffTagHasStartIndex" : 0,
+    "knora-api:standoffTagHasUUID" : "sbBzeAaNTzaUXl90UtlYzw"
+  }, {
+    "@type" : "http://api.knora.org/ontology/standoff/v2#StandoffHeader1Tag",
+    "knora-api:standoffTagHasEnd" : 7,
+    "knora-api:standoffTagHasStart" : 1,
+    "knora-api:standoffTagHasStartIndex" : 1,
+    "knora-api:standoffTagHasStartParentIndex" : 0,
+    "knora-api:standoffTagHasUUID" : "HhXjcdSTS_G6eSQ0apdjUw"
+  }, {
+    "@type" : "http://api.knora.org/ontology/standoff/v2#StandoffHeader3Tag",
+    "knora-api:standoffTagHasEnd" : 14,
+    "knora-api:standoffTagHasStart" : 9,
+    "knora-api:standoffTagHasStartIndex" : 2,
+    "knora-api:standoffTagHasStartParentIndex" : 0,
+    "knora-api:standoffTagHasUUID" : "Ymr2aDUqTx6nMwGZGiqduA"
+  }, {
+    "@type" : "http://api.knora.org/ontology/standoff/v2#StandoffHeader3Tag",
+    "knora-api:standoffTagHasEnd" : 64,
+    "knora-api:standoffTagHasStart" : 16,
+    "knora-api:standoffTagHasStartIndex" : 3,
+    "knora-api:standoffTagHasStartParentIndex" : 0,
+    "knora-api:standoffTagHasUUID" : "_Zk0B1edRK6mgdtokmosXg"
+  }, {
+    "@type" : "http://api.knora.org/ontology/standoff/v2#StandoffBlockquoteTag",
+    "knora-api:standoffTagHasEnd" : 112,
+    "knora-api:standoffTagHasStart" : 66,
+    "knora-api:standoffTagHasStartIndex" : 4,
+    "knora-api:standoffTagHasStartParentIndex" : 0,
+    "knora-api:standoffTagHasUUID" : "1DLdI0LJTCy07w6ZsOM_Sg"
+  }, {
+    "@type" : "http://api.knora.org/ontology/standoff/v2#StandoffItalicTag",
+    "knora-api:standoffTagHasEnd" : 111,
+    "knora-api:standoffTagHasStart" : 67,
+    "knora-api:standoffTagHasStartIndex" : 5,
+    "knora-api:standoffTagHasStartParentIndex" : 4,
+    "knora-api:standoffTagHasUUID" : "XJ6GVO1VQSqrTyLHGnHqcA"
+  } ],
+  "knora-api:nextStandoffStartIndex" : 100,
+  "@context" : {
+    "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd" : "http://www.w3.org/2001/XMLSchema#",
+    "knora-api" : "http://api.knora.org/ontology/knora-api/v2#"
+  }
+}
+```
+
+See @ref:[Text with Standoff Markup](../../02-knora-ontologies/knora-base.md#text-with-standoff-markup)
+for details of the predicates in each standoff tag.
+
+If there are more pages of standoff to be requested, the response will contain `knora-api:nextStandoffStartIndex`,
+whose object should be submitted as the next `OFFSET` to the same route. This continues until
+you receive a response without `knora-api:nextStandoffStartIndex`.
+
+## Get the Representation of a Resource by IRI
+
+### Get a Full Representation of a Resource by IRI
 
 A full representation of resource can be obtained by making a GET
 request to the API providing its IRI. Because a Knora IRI has the format
@@ -90,7 +208,124 @@ More formally, the URL looks like this:
 HTTP GET to http://host/v2/resources/resourceIRI(/anotherResourceIri)*
 ```
 
-### Get the preview of a resource by its IRI
+### Get a Full Representation of a Version of a Resource by IRI
+
+To get a specific past version of a resource, use the route described in
+@ref:[Get a Full Representation of a Resource by IRI](#get-a-full-representation-of-a-resource-by-iri),
+and add the URL parameter `?version=TIMESTAMP`, where `TIMESTAMP` is an
+[xsd:dateTimeStamp](https://www.w3.org/TR/xmlschema11-2/#dateTimeStamp) in the
+UTC timezone. The timestamp can either be URL-encoded, or submitted with all
+punctuation (`-`, `:`, and `.`) removed (this is to accept timestamps
+from Knora's @ref:[ARK URLs](permalinks.md)).
+
+The resource will be returned with the values that it had at the specified
+time. Since Knora only versions values, not resource metadata (e.g.
+`rdfs:label`), the current metadata will be returned.
+
+The returned resource will include the predicate `knora-api:versionDate`,
+containing the timestamp that was submitted, and its `knora-api:versionArkUrl`
+(see @ref:[Resource Permalinks](permalinks.md)) will contain the
+same timestamp.
+
+### Get a Value in a Resource
+
+To get a specific value of a resource, use this route:
+
+```
+HTTP GET to http://host//v2/values/resourceIRI/valueUUID
+```
+
+The resource IRI must be URL-encoded. The path element `valueUUID` is the
+string object of the value's `knora-api:valueHasUUID`.
+
+The value will be returned within its containing resource, in the same format
+as for @ref:[Responses Describing Resources](#responses-describing-resources),
+but without any of the resource's other values.
+
+### Get a Version of a Value in a Resource
+
+To get a particular version of a specific value of a resource, use the route
+described in @ref:[Get a Value in a Resource](#get-a-value-in-a-resource),
+and add the URL parameter `?version=TIMESTAMP`, where `TIMESTAMP` is an
+[xsd:dateTimeStamp](https://www.w3.org/TR/xmlschema11-2/#dateTimeStamp) in the
+UTC timezone. The timestamp can either be URL-encoded, or submitted with all
+punctuation (`-`, `:`, and `.`) removed (this is to accept timestamps
+from Knora's @ref:[ARK URLs](permalinks.md)).
+
+The value will be returned within its containing resource, in the same format
+as for @ref:[Responses Describing Resources](#responses-describing-resources),
+but without any of the resource's other values.
+
+Since Knora only versions values, not resource metadata (e.g.
+`rdfs:label`), the current resource metadata will be returned.
+
+### Get the Version History of a Resource
+
+To get a list of the changes that have been made to a resource since its creation,
+use this route:
+
+```
+HTTP GET to http://host/v2/resources/history/resourceIRI[?startDate=START_DATE&endDate=END_DATE]
+```
+
+The resource IRI must be URL-encoded. The start and end dates are optional, and
+are URL-encoded timestamps in
+[xsd:dateTimeStamp](https://www.w3.org/TR/xmlschema11-2/#dateTimeStamp) format.
+The start date is inclusive, and the end date is exclusive.
+If the start date is not provided, the resource's history since its creation is returned.
+If the end date is not provided, the resource's history up to the present is returned.
+
+The response is a list of changes made to the resource, in reverse chronological order.
+Each entry has the properties `knora-api:author` (the IRI of the user who made the change) and
+`knora-api:versionDate` (the date when the change was made). For example:
+
+```jsonld
+{
+  "@graph" : [ {
+    "knora-api:author" : {
+      "@id" : "http://rdfh.ch/users/BhkfBc3hTeS_IDo-JgXRbQ"
+    },
+    "knora-api:versionDate" : {
+      "@type" : "xsd:dateTimeStamp",
+      "@value" : "2019-02-11T09:05:10Z"
+    }
+  }, {
+    "knora-api:author" : {
+      "@id" : "http://rdfh.ch/users/9XBCrDV3SRa7kS1WwynB4Q"
+    },
+    "knora-api:versionDate" : {
+      "@type" : "xsd:dateTimeStamp",
+      "@value" : "2019-02-10T10:30:10Z"
+    }
+  }, {
+    "knora-api:author" : {
+      "@id" : "http://rdfh.ch/users/BhkfBc3hTeS_IDo-JgXRbQ"
+    },
+    "knora-api:versionDate" : {
+      "@type" : "xsd:dateTimeStamp",
+      "@value" : "2019-02-10T10:05:10Z"
+    }
+  } ],
+  "@context" : {
+    "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd" : "http://www.w3.org/2001/XMLSchema#",
+    "knora-api" : "http://api.knora.org/ontology/knora-api/v2#"
+  }
+}
+```
+
+The entries include all the dates when the resource's values were created or modified (within
+the requested date range), as well as the date when the resource was created (if the requested
+date range allows it). Each date is included only once. Since Knora only versions values, not
+resource metadata (e.g. `rdfs:label`), changes to a resource's metadata are not included in its
+version history.
+
+To request the resource as it was at each of these dates, see
+@ref:[Get a Full Representation of a Version of a Resource by IRI](#get-a-full-representation-of-a-version-of-a-resource-by-iri). For consistency in citation, we recommend using these dates when
+requesting resource versions.
+
+### Get the preview of a resource by IRI
 
 In some cases, the client may only want to request the preview of a
 resource, which just provides its metadata (e.g. its IRI, `rdfs:label`,
@@ -283,3 +518,25 @@ called @ref:[Gravsearch: Virtual Graph Search](query-language.md)).
 ### Support of TEI/XML
 
 To convert standoff markup to TEI/XML, see @ref:[TEI/XML](tei-xml.md).
+
+### Reading Resources by Class from a Project
+
+To facilitate the development of tabular user interfaces for data entry, it is
+possible to get a paged list of all the resources belonging to a particular
+class in a given project, sorted by the value of a property:
+
+```
+HTTP GET to http://host/v2/resources?resourceClass=RESOURCE_CLASS_IRI&page=PAGE[&orderByProperty=PROPERTY_IRI]
+```
+
+This is useful only if the project does not contain a large amount of data;
+otherwise, you should use @ref:[Gravsearch](query-language.md) to search
+using more specific criteria.
+
+The HTTP header `X-Knora-Accept-Project` must be submitted; its value is
+a Knora project IRI. In the request URL, the values of `resourceClass` and `orderByProperty`
+are URL-encoded IRIs in the @ref:[complex schema](introduction.md#api-schema).
+The `orderByProperty` parameter is optional; if it is not supplied, resources will
+be sorted alphabetically by resource IRI (an arbitrary but consistent order).
+The value of `page` is a 0-based integer page number. Paging works as it does
+in @ref:[Gravsearch](query-language.md)).

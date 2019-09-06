@@ -234,7 +234,6 @@ object PermissionUtilADM {
     /**
       * Determines the permissions that a user has on a entity, and returns an [[EntityPermission]].
       *
-      * @param entityIri               the IRI of the entity.
       * @param entityCreator           the IRI of the user that created the entity.
       * @param entityProject           the IRI of the entity's project.
       * @param entityPermissionLiteral the literal that is the object of the entity's `knora-base:hasPermissions` predicate.
@@ -242,8 +241,7 @@ object PermissionUtilADM {
       * @return an [[EntityPermission]] representing the user's permission level for the entity, or `None` if the user
       *         has no permissions on the entity.
       */
-    def getUserPermissionADM(entityIri: IRI,
-                             entityCreator: IRI,
+    def getUserPermissionADM(entityCreator: IRI,
                              entityProject: IRI,
                              entityPermissionLiteral: String,
                              requestingUser: UserADM): Option[EntityPermission] = {
@@ -257,12 +255,12 @@ object PermissionUtilADM {
             // to the entity.
             val userGroups: Set[IRI] = if (requestingUser.isAnonymousUser) {
                 // The user is an unknown user; put them in the UnknownUser built-in group.
-                Set(OntologyConstants.KnoraBase.UnknownUser)
+                Set(OntologyConstants.KnoraAdmin.UnknownUser)
             } else {
                 // The user is a known user.
                 // If the user is the creator of the entity, put the user in the "creator" built-in group.
                 val creatorOption = if (requestingUser.id == entityCreator) {
-                    Some(OntologyConstants.KnoraBase.Creator)
+                    Some(OntologyConstants.KnoraAdmin.Creator)
                 } else {
                     None
                 }
@@ -274,21 +272,91 @@ object PermissionUtilADM {
 
                 // Make the complete list of the user's groups: KnownUser, the user's built-in (e.g., ProjectAdmin,
                 // ProjectMember) and non-built-in groups, possibly creator, and possibly SystemAdmin.
-                Set(OntologyConstants.KnoraBase.KnownUser) ++ otherGroups ++ creatorOption
+                Set(OntologyConstants.KnoraAdmin.KnownUser) ++ otherGroups ++ creatorOption
             }
 
             // Find the highest permission that can be granted to the user.
             calculateHighestGrantedPermissionLevel(entityPermissions, userGroups) match {
-                case Some(highestPermissionlevel) => Some(highestPermissionlevel)
+                case Some(highestPermissionLevel) => Some(highestPermissionLevel)
 
                 case None =>
                     // If the result is that they would get no permissions, give them user whatever permission an
                     // unknown user would have.
-                    calculateHighestGrantedPermissionLevel(entityPermissions, Set(OntologyConstants.KnoraBase.UnknownUser))
+                    calculateHighestGrantedPermissionLevel(entityPermissions, Set(OntologyConstants.KnoraAdmin.UnknownUser))
             }
         }
 
         maybePermissionLevel
+    }
+
+    /**
+      * A trait representing a result returned by [[comparePermissionsADM]].
+      */
+    sealed trait PermissionComparisonResult
+
+    /**
+      * Indicates that the user would have a lower permission with permission string A.
+      */
+    case object ALessThanB extends PermissionComparisonResult
+
+    /**
+      * Indicates that permission strings A and B would give the user the same permission.
+      */
+    case object AEqualToB extends PermissionComparisonResult
+
+    /**
+      * Indicates that the user would have a higher permission with permission string A.
+      */
+    case object AGreaterThanB extends PermissionComparisonResult
+
+    /**
+      * Calculates the permissions that the specified user would have on an entity with two permission strings,
+      * and returns:
+      *
+      * - [[ALessThanB]] if the user would have a lower permission with `permissionLiteralA`.
+      * - [[AEqualToB]] if `permissionLiteralA` and `permissionLiteralB` would give the user the same permission.
+      * - [[AGreaterThanB]] if the user would have a higher permission with `permissionLiteralA`.
+      *
+      * @param entityCreator      the IRI of the user that created the entity.
+      * @param entityProject      the IRI of the entity's project.
+      * @param permissionLiteralA the first permission string.
+      * @param permissionLiteralB the second permission string.
+      * @param requestingUser     the user making the request.
+      * @return a [[PermissionComparisonResult]].
+      */
+    def comparePermissionsADM(entityCreator: IRI,
+                              entityProject: IRI,
+                              permissionLiteralA: String,
+                              permissionLiteralB: String,
+                              requestingUser: UserADM): PermissionComparisonResult = {
+        val maybePermissionA: Option[EntityPermission] = getUserPermissionADM(
+            entityCreator = requestingUser.id,
+            entityProject = entityProject,
+            entityPermissionLiteral = permissionLiteralA,
+            requestingUser = requestingUser
+        )
+
+        val maybePermissionB: Option[EntityPermission] = getUserPermissionADM(
+            entityCreator = requestingUser.id,
+            entityProject = entityProject,
+            entityPermissionLiteral = permissionLiteralB,
+            requestingUser = requestingUser
+        )
+
+        (maybePermissionA, maybePermissionB) match {
+            case (None, None) => AEqualToB
+            case (None, Some(_)) => ALessThanB
+            case (Some(_), None) => AGreaterThanB
+
+            case (Some(permissionA: EntityPermission), Some(permissionB: EntityPermission)) =>
+                if (permissionA == permissionB) {
+                    AEqualToB
+                } else if (permissionA < permissionB) {
+                    ALessThanB
+                } else {
+                    AGreaterThanB
+                }
+        }
     }
 
     /**
@@ -312,12 +380,11 @@ object PermissionUtilADM {
         val assertionMap: Map[IRI, String] = assertions.toMap
 
         // Anything with permissions must have an creator and a project.
-        val entityCreator: IRI = assertionMap.getOrElse(OntologyConstants.KnoraBase.AttachedToUser, throw InconsistentTriplestoreDataException(s"entity $entityIri has no creator"))
-        val entityProject: IRI = assertionMap.getOrElse(OntologyConstants.KnoraBase.AttachedToProject, throw InconsistentTriplestoreDataException(s"entity $entityIri has no project"))
-        val entityPermissionLiteral: String = assertionMap.getOrElse(OntologyConstants.KnoraBase.HasPermissions, throw InconsistentTriplestoreDataException(s"entity $entityIri has no knora-base:hasPermissions predicate"))
+        val entityCreator: IRI = assertionMap.getOrElse(OntologyConstants.KnoraBase.AttachedToUser, throw InconsistentTriplestoreDataException(s"Entity $entityIri has no creator"))
+        val entityProject: IRI = assertionMap.getOrElse(OntologyConstants.KnoraBase.AttachedToProject, throw InconsistentTriplestoreDataException(s"Entity $entityIri has no project"))
+        val entityPermissionLiteral: String = assertionMap.getOrElse(OntologyConstants.KnoraBase.HasPermissions, throw InconsistentTriplestoreDataException(s"Entity $entityIri has no knora-base:hasPermissions predicate"))
 
         getUserPermissionADM(
-            entityIri = entityIri,
             entityCreator = entityCreator,
             entityProject = entityProject,
             entityPermissionLiteral = entityPermissionLiteral,
@@ -351,7 +418,7 @@ object PermissionUtilADM {
                 }
 
                 val shortGroups: Set[String] = splitPermission(1).split(OntologyConstants.KnoraBase.GroupListDelimiter).toSet
-                val groups = shortGroups.map(_.replace(OntologyConstants.KnoraBase.KnoraBasePrefix, OntologyConstants.KnoraBase.KnoraBasePrefixExpansion))
+                val groups = shortGroups.map(_.replace(OntologyConstants.KnoraAdmin.KnoraAdminPrefix, OntologyConstants.KnoraAdmin.KnoraAdminPrefixExpansion))
                 (permissionStringsToPermissionLevels(abbreviation), groups)
         }.toMap
     }
@@ -377,13 +444,13 @@ object PermissionUtilADM {
 
                         permissionType match {
                             case PermissionType.AP =>
-                                if (!OntologyConstants.KnoraBase.AdministrativePermissionAbbreviations.contains(abbreviation)) {
+                                if (!OntologyConstants.KnoraAdmin.AdministrativePermissionAbbreviations.contains(abbreviation)) {
                                     throw InconsistentTriplestoreDataException(s"Unrecognized permission abbreviation '$abbreviation'")
                                 }
 
                                 if (splitPermission.length > 1) {
                                     val shortGroups: Array[String] = splitPermission(1).split(OntologyConstants.KnoraBase.GroupListDelimiter)
-                                    val groups: Set[IRI] = shortGroups.map(_.replace(OntologyConstants.KnoraBase.KnoraBasePrefix, OntologyConstants.KnoraBase.KnoraBasePrefixExpansion)).toSet
+                                    val groups: Set[IRI] = shortGroups.map(_.replace(OntologyConstants.KnoraAdmin.KnoraAdminPrefix, OntologyConstants.KnoraAdmin.KnoraAdminPrefixExpansion)).toSet
                                     buildPermissionObject(abbreviation, groups)
                                 } else {
                                     buildPermissionObject(abbreviation, Set.empty[IRI])
@@ -394,7 +461,7 @@ object PermissionUtilADM {
                                     throw InconsistentTriplestoreDataException(s"Unrecognized permission abbreviation '$abbreviation'")
                                 }
                                 val shortGroups: Array[String] = splitPermission(1).split(OntologyConstants.KnoraBase.GroupListDelimiter)
-                                val groups: Set[IRI] = shortGroups.map(_.replace(OntologyConstants.KnoraBase.KnoraBasePrefix, OntologyConstants.KnoraBase.KnoraBasePrefixExpansion)).toSet
+                                val groups: Set[IRI] = shortGroups.map(_.replace(OntologyConstants.KnoraAdmin.KnoraAdminPrefix, OntologyConstants.KnoraAdmin.KnoraAdminPrefixExpansion)).toSet
                                 buildPermissionObject(abbreviation, groups)
                         }
                 }
@@ -412,9 +479,9 @@ object PermissionUtilADM {
       */
     def buildPermissionObject(name: String, iris: Set[IRI]): Set[PermissionADM] = {
         name match {
-            case OntologyConstants.KnoraBase.ProjectResourceCreateAllPermission => Set(PermissionADM.ProjectResourceCreateAllPermission)
+            case OntologyConstants.KnoraAdmin.ProjectResourceCreateAllPermission => Set(PermissionADM.ProjectResourceCreateAllPermission)
 
-            case OntologyConstants.KnoraBase.ProjectResourceCreateRestrictedPermission =>
+            case OntologyConstants.KnoraAdmin.ProjectResourceCreateRestrictedPermission =>
                 if (iris.nonEmpty) {
                     log.debug(s"buildPermissionObject - ProjectResourceCreateRestrictedPermission - iris: $iris")
                     iris.map(iri => PermissionADM.projectResourceCreateRestrictedPermission(iri))
@@ -422,18 +489,18 @@ object PermissionUtilADM {
                     throw InconsistentTriplestoreDataException(s"Missing additional permission information.")
                 }
 
-            case OntologyConstants.KnoraBase.ProjectAdminAllPermission => Set(PermissionADM.ProjectAdminAllPermission)
+            case OntologyConstants.KnoraAdmin.ProjectAdminAllPermission => Set(PermissionADM.ProjectAdminAllPermission)
 
-            case OntologyConstants.KnoraBase.ProjectAdminGroupAllPermission => Set(PermissionADM.ProjectAdminGroupAllPermission)
+            case OntologyConstants.KnoraAdmin.ProjectAdminGroupAllPermission => Set(PermissionADM.ProjectAdminGroupAllPermission)
 
-            case OntologyConstants.KnoraBase.ProjectAdminGroupRestrictedPermission =>
+            case OntologyConstants.KnoraAdmin.ProjectAdminGroupRestrictedPermission =>
                 if (iris.nonEmpty) {
                     iris.map(iri => PermissionADM.projectAdminGroupRestrictedPermission(iri))
                 } else {
                     throw InconsistentTriplestoreDataException(s"Missing additional permission information.")
                 }
 
-            case OntologyConstants.KnoraBase.ProjectAdminRightsAllPermission => Set(PermissionADM.ProjectAdminRightsAllPermission)
+            case OntologyConstants.KnoraAdmin.ProjectAdminRightsAllPermission => Set(PermissionADM.ProjectAdminRightsAllPermission)
 
             case OntologyConstants.KnoraBase.ChangeRightsPermission =>
                 if (iris.nonEmpty) {
@@ -525,13 +592,14 @@ object PermissionUtilADM {
                 if (permissions.nonEmpty) {
 
                     /* a map with permission names, shortened groups, and full group names. */
-                    val groupedPermissions: Map[String, String] = permissions.groupBy(_.name).map { case (name, perms) =>
-                        val shortGroupsString = perms.foldLeft("") { (acc, perm) =>
-                            if (acc.isEmpty) {
-                                acc + perm.additionalInformation.get.replace(OntologyConstants.KnoraBase.KnoraBasePrefixExpansion, OntologyConstants.KnoraBase.KnoraBasePrefix)
-                            } else {
-                                acc + OntologyConstants.KnoraBase.GroupListDelimiter + perm.additionalInformation.get.replace(OntologyConstants.KnoraBase.KnoraBasePrefixExpansion, OntologyConstants.KnoraBase.KnoraBasePrefix)
-                            }
+                    val groupedPermissions: Map[String, String] = permissions.groupBy(_.name).map { case (name: String, perms: Set[PermissionADM]) =>
+                        val shortGroupsString = perms.toVector.sortBy(_.additionalInformation.get).foldLeft("") {
+                            case (acc: String, perm: PermissionADM) =>
+                                if (acc.isEmpty) {
+                                    acc + perm.additionalInformation.get.replace(OntologyConstants.KnoraAdmin.KnoraAdminPrefixExpansion, OntologyConstants.KnoraAdmin.KnoraAdminPrefix)
+                                } else {
+                                    acc + OntologyConstants.KnoraBase.GroupListDelimiter + perm.additionalInformation.get.replace(OntologyConstants.KnoraAdmin.KnoraAdminPrefixExpansion, OntologyConstants.KnoraAdmin.KnoraAdminPrefix)
+                                }
                         }
                         (name, shortGroupsString)
                     }
@@ -574,7 +642,7 @@ object PermissionUtilADM {
             parsedPermissions: Map[PermissionUtilADM.EntityPermission, Set[IRI]] <- Future(parsePermissions(permissionLiteral = permissionLiteral, errorFun = { literal => throw BadRequestException(s"Invalid permission literal: $literal") }))
 
             // Get the group IRIs that are mentioned, minus the built-in groups.
-            projectSpecificGroupIris: Set[IRI] = parsedPermissions.values.flatten.toSet -- OntologyConstants.KnoraBase.BuiltInGroups
+            projectSpecificGroupIris: Set[IRI] = parsedPermissions.values.flatten.toSet -- OntologyConstants.KnoraAdmin.BuiltInGroups
 
             validatedProjectSpecificGroupIris: Set[IRI] = projectSpecificGroupIris.map(iri => stringFormatter.validateAndEscapeIri(iri, throw BadRequestException(s"Invalid group IRI: $iri")))
 
@@ -711,7 +779,7 @@ object PermissionUtilADM {
                     // The user is a known user.
                     // If the user is the creator of the entity, put the user in the "creator" built-in group.
                     val creatorOption = if (userIri == entityCreator) {
-                        Some(OntologyConstants.KnoraBase.Creator)
+                        Some(OntologyConstants.KnoraAdmin.Creator)
                     } else {
                         None
                     }
@@ -723,11 +791,11 @@ object PermissionUtilADM {
 
                     // Make the complete list of the user's groups: KnownUser, the user's built-in (e.g., ProjectAdmin,
                     // ProjectMember) and non-built-in groups, possibly creator, and possibly SystemAdmin.
-                    Set(OntologyConstants.KnoraBase.KnownUser) ++ otherGroups ++ creatorOption
+                    Set(OntologyConstants.KnoraAdmin.KnownUser) ++ otherGroups ++ creatorOption
 
                 case None =>
                     // The user is an unknown user; put them in the UnknownUser built-in group.
-                    Set(OntologyConstants.KnoraBase.UnknownUser)
+                    Set(OntologyConstants.KnoraAdmin.UnknownUser)
             }
 
             // Find the highest permission that can be granted to the user.
@@ -736,7 +804,7 @@ object PermissionUtilADM {
                 case None =>
                     // If the result is that they would get no permissions, give them user whatever permission an
                     // unknown user would have.
-                    calculateHighestGrantedPermissionLevel(entityPermissions, Set(OntologyConstants.KnoraBase.UnknownUser))
+                    calculateHighestGrantedPermissionLevel(entityPermissions, Set(OntologyConstants.KnoraAdmin.UnknownUser))
             }
         }
 
